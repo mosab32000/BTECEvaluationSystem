@@ -1,0 +1,1525 @@
+BTEC-Evaluation-System/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── models.py
+│   │   ├── routes/
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py
+│   │   │   └── evaluation.py
+│   │   ├── security/
+│   │   │   ├── __init__.py
+│   │   │   ├── encryption.py
+│   │   │   └── token_utils.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── ai_service.py
+│   │   │   └── blockchain_service.py
+│   │   └── templates/            # (Optional: if serving any HTML from Flask)
+│   ├── migrations/
+│   │   └── versions/             # Will contain migration scripts
+│   ├── tests/
+│   │   ├── __init__.py
+│   │   └── test_encryption.py    # Example test file
+│   ├── .env                      # Local environment variables (DO NOT COMMIT)
+│   ├── .env.example
+│   ├── requirements.txt
+│   ├── wsgi.py
+│   └── manage.py
+│
+├── frontend/
+│   ├── public/
+│   │   └── index.html
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   ├── index.css
+│   │   ├── components/
+│   │   │   ├── Login.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── EvaluationForm.jsx
+│   │   │   ├── AuditLog.jsx
+│   │   │   └── ProtectedRoute.jsx
+│   │   ├── contexts/
+│   │   │   └── AuthContext.jsx
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── hooks/
+│   │   │   └── useAuth.js
+│   │   └── router/               # Optional separate directory for routing config
+│   │       └── index.js
+│   ├── .env                      # Frontend env vars (e.g., VITE_API_URL)
+│   ├── .env.example
+│   ├── package.json
+│   ├── vite.config.js            # Assuming Vite for build tool
+│   └── postcss.config.js
+│
+├── deployments/
+│   ├── docker-compose.yaml
+│   ├── Dockerfile                # Backend Docker build file
+│   └── kubernetes/
+│       ├── deployment.yaml       # Backend K8s deployment definition
+│       ├── frontend-deployment.yaml # Frontend K8s deployment definition
+│       ├── service.yaml          # Backend K8s service definition
+│       ├── frontend-service.yaml # Frontend K8s service definition
+│       ├── secrets.yaml          # K8s secrets definition (template)
+│       └── configmap.yaml        # K8s configmap definition (template)
+│
+├── .env.example
+├── .gitignore
+└── README.md
+Python
+
+backend/app/__init__.py
+Python
+
+from flask import Flask
+from flask_cors import CORS
+from .config import config
+from .database import db, migrate
+from .routes import auth_bp, evaluation_bp
+from app.security.encryption import Vault # Import to trigger key check on app start
+import logging
+from flask_limiter import Limiter, get_remote_address
+from flask_talisman import Talisman
+
+def create_app(config_name='default'):
+    app = Flask(__name__)
+    app.config.from_object(config[config_name])
+
+    # Initialize extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
+    CORS(app, resources={r"/*": {"origins": app.config['ALLOWED_ORIGINS']}})
+    Talisman(app) # Apply security headers
+
+    # Rate limiting
+    limiter = Limiter(
+        get_remote_address,
+        app=app,
+        default_limits=["200 per day", "50 per hour"]
+    )
+    limiter.exempt('/health') # Exempt health check from rate limiting
+
+    # Register blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(evaluation_bp)
+
+    # Health check endpoint
+    @app.route('/health')
+    def health():
+        return "System operational", 200
+
+    # Initialize encryption vault on app startup to check for key
+    try:
+        Vault(app.config['ENCRYPTION_KEY'])
+    except ValueError as e:
+        logging.critical(f"Application startup failed due to encryption key issue: {e}")
+        # Potentially exit the application here if encryption is critical
+        # import sys
+        # sys.exit(1)
+
+    return app
+Python
+
+backend/app/config.py
+Python
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'super-secret-jwt-key'
+    ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Service Keys
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    INFURA_URL = os.environ.get('INFURA_URL')
+    CONTRACT_ADDRESS = os.environ.get('CONTRACT_ADDRESS')
+    SIGNER_PRIVATE_KEY = os.environ.get('SIGNER_PRIVATE_KEY')
+    # Allowed origins for CORS
+    ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', '*').split(' ')
+
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    FLASK_ENV = 'development'
+
+class ProductionConfig(Config):
+    DEBUG = False
+    FLASK_ENV = 'production'
+    # Add production-specific settings like logging, different DB, etc.
+
+# Select configuration based on FLASK_ENV
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
+}
+Python
+
+backend/app/database.py
+Python
+
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
+db = SQLAlchemy()
+migrate = Migrate()
+Python
+
+backend/app/models.py
+Python
+
+from .database import db
+from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), index=True, unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    evaluations = db.relationship('Evaluation', backref='submitter', lazy='dynamic')
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f'<User {self.email}>'
+
+class Evaluation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task_encrypted = db.Column(db.Text, nullable=False) # Store encrypted task
+    grade = db.Column(db.String(100)) # AI generated grade/feedback
+    audit_hash = db.Column(db.String(66)) # Blockchain transaction hash (e.g., keccak256)
+    submitted_at = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def __repr__(self):
+        return f'<Evaluation {self.id} by User {self.user_id}>'
+Python
+
+backend/app/routes/__init__.py
+Python
+
+from flask import Blueprint
+
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+evaluation_bp = Blueprint('evaluation', __name__, url_prefix='/evaluation')
+
+from . import auth, evaluation
+Python
+
+backend/app/routes/auth.py
+Python
+
+from flask import request, jsonify
+from app.database import db
+from app.models import User
+from app.security.token_utils import generate_token
+from . import auth_bp
+from werkzeug.security import generate_password_hash, check_password_hash
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({'message': 'Email and password are required'}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'message': 'User with this email already exists'}), 409
+
+    new_user = User(email=email)
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message': 'User registered successfully'}), 201
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({'message': 'Email and password are required'}), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if user and user.check_password(password):
+        token = generate_token(user.id)
+        return jsonify({'token': token}), 200
+    else:
+        return jsonify({'message': 'Invalid credentials'}), 401
+Python
+
+backend/app/routes/evaluation.py
+Python
+
+from flask import request, jsonify
+from app.database import db
+from app.models import Evaluation
+from app.security.encryption import Vault
+from app.security.token_utils import token_required
+from app.services.ai_service import AIEvaluator
+from app.services.blockchain_service import BlockchainService
+from flask import current_app
+from . import evaluation_bp
+
+@evaluation_bp.route('/evaluate', methods=['POST'])
+@token_required
+def evaluate(user_id):
+    data = request.get_json()
+    task = data.get('task')
+
+    if not task:
+        return jsonify({'message': 'Task submission is required'}), 400
+
+    vault = Vault(current_app.config['ENCRYPTION_KEY'])
+    blockchain_service = BlockchainService()
+    ai_evaluator = AIEvaluator()
+
+    encrypted_task = vault.encrypt(task)
+    grade = ai_evaluator.evaluate(task) # Evaluate the original task for now
+    audit_hash = blockchain_service.record_grade(grade)
+
+    new_evaluation = Evaluation(task_encrypted=encrypted_task, grade=grade, audit_hash=audit_hash, user_id=user_id)
+    db.session.add(new_evaluation)
+    db.session.commit()
+
+    return jsonify({
+        'grade': grade,
+        'audit_hash': audit_hash
+    }), 200
+
+@evaluation_bp.route('/evaluations', methods=['GET'])
+@token_required
+def get_evaluations(user_id):
+    evaluations = Evaluation.query.filter_by(user_id=user_id).all()
+    output = []
+    vault = Vault(current_app.config['ENCRYPTION_KEY'])
+    for evaluation in evaluations:
+        output.append({
+            'id': evaluation.id,
+            'task': vault.decrypt(evaluation.task_encrypted),
+            'grade': evaluation.grade,
+            'audit_hash': evaluation.audit_hash,
+            'submitted_at': evaluation.submitted_at
+        })
+    return jsonify(output), 200
+Python
+
+backend/app/security/__init__.py
+Python
+
+# No content needed for this directory's __init__.py
+Python
+
+backend/app/security/encryption.py
+Python
+
+from cryptography.fernet import Fernet, InvalidToken
+import base64
+import logging
+
+class Vault:
+    def __init__(self, key):
+        if not key:
+            logging.error("Encryption key is missing!")
+            raise ValueError("ENCRYPTION_KEY environment variable not set.")
+        try:
+            # Decode the base64 encoded key from env var
+            decoded_key = base64.urlsafe_b64decode(key)
+            self.cipher = Fernet(decoded_key)
+        except (ValueError, TypeError) as e:
+            logging.error(f"Invalid encryption key format: {e}")
+            raise ValueError("Invalid ENCRYPTION_KEY format. Ensure it's base64 encoded.")
+
+    def encrypt(self, text: str) -> str:
+        try:
+            return self.cipher.encrypt(text.encode()).decode()
+        except Exception as e:
+            logging.error(f"Encryption failed: {e}")
+            return "" # Or raise an exception
+
+    def decrypt(self, ciphertext: str) -> str:
+        try:
+            return self.cipher.decrypt(ciphertext.encode()).decode()
+        except InvalidToken:
+            logging.warning("Decryption failed: Invalid token.")
+            return "" # Or raise a specific error/None
+        except Exception as e:
+            logging.error(f"Decryption failed: {e}")
+            return "" # Or raise an exception
+Python
+
+backend/app/security/token_utils.py
+Python
+
+import jwt
+from datetime import datetime, timedelta
+from flask import current_app
+from functools import wraps
+
+def generate_token(user_id):
+    payload = {
+        'exp': datetime.utcnow() + timedelta(hours=1), # Token expires in 1 hour
+        'iat': datetime.utcnow(),
+        'sub': user_id
+    }
+    return jwt.encode(payload, current_app.config['JWT_SECRET_KEY'], algorithm='HS256')
+
+def verify_token(token):
+    try:
+        payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        return payload['sub']
+    except jwt.ExpiredSignatureError:
+        return None # Token has expired
+    except jwt.InvalidTokenError:
+        return None # Invalid token
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        from flask import request
+        token = None
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            try:
+                token = auth_header.split(" ")[1]
+            except IndexError:
+                return {'message': 'Bearer token not found!'}, 401
+
+        if not token:
+            return {'message': 'Token is missing!'}, 401
+
+        try:
+            user_id = verify_token(token)
+            if not user_id:
+                return {'message': 'Invalid or expired token!'}, 401
+            # Optionally fetch user from database and pass to the route
+            # current_user = User.query.get(user_id)
+            # return f(current_user, *args, **kwargs)
+            return f(user_id, *args, **kwargs) # Passing just user_id for simplicity
+        except Exception as e:
+            return {'message': 'Something went wrong', 'error': str(e)}, 500
+
+    return decorated
+Python
+
+backend/app/services/__init__.py
+Python
+
+# No content needed for this directory's __init__.py
+Python
+
+backend/app/services/ai_service.py
+Python
+
+import openai
+from flask import current_app
+import logging
+
+class AIEvaluator:
+    def __init__(self):
+        api_key = current_app.config.get('OPENAI_API_KEY')
+        if not api_key:
+            logging.warning("OPENAI_API_KEY is not configured. AI evaluation will be simulated.")
+            self.api_key = None
+        else:
+            openai.api_key = api_key
+
+    def evaluate(self, task):
+        if self.api_key:
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4-turbo", # Ensure you have access to this model
+                    messages=[{"role": "system", "content": "أنت مقيّم محايد وموضوعي لمهام BTEC."},
+                              {"role": "user", "content": f"Evaluate the following task submission based on BTEC criteria:\n\n{task}"}]
+                )
+                return response.choices[0].message.content.strip()
+            except openai.error.OpenAIError as e:
+                logging.error(f"OpenAI API error: {e}")
+                return "Error during AI evaluation."
+        else:
+            # Simulate AI evaluation if API key is not available
+            return f"Simulated AI evaluation for task: {task[:50]}..."
+Python
+
+backend/app/services/blockchain_service.py
+Python
+
+from web3 import Web3
+from flask import current_app
+import os
+import logging
+
+class BlockchainService:
+    def __init__(self):
+        infura_url = current_app.config.get('INFURA_URL')
+        contract_address = current_app.config.get('CONTRACT_ADDRESS')
+        signer_private_key = current_app.config.get('SIGNER_PRIVATE_KEY')
+
+        if not infura_url or not contract_address or not signer_private_key:
+            logging.warning("Blockchain configuration is incomplete. Blockchain interactions will be simulated.")
+            self.w3 = None
+            self.contract = None
+            self.signer_account = None
+        else:
+            try:
+                self.w3 = Web3(Web3.HTTPProvider(infura_url))
+                # !!! IMPORTANT: Replace [...] with the actual ABI of your smart contract
+                abi = [...] # Placeholder for the smart contract ABI
+                self.contract = self.w3.eth.contract(address=contract_address, abi=abi)
+                self.signer_account = self.w3.eth.account.from_key(signer_private_key)
+                self.w3.eth.default_account = self.signer_account.address
+            except Exception as e:
+                logging.error(f"Error initializing Web3 or contract: {e}")
+                self.w3 = None
+                self.contract = None
+                self.signer_account = None
+
+    def record_grade(self, grade):
+        if self.contract and self.signer_account:
+            try:
+                nonce = self.w3.eth.get_transaction_count(self.signer_account.address)
+                tx = self.contract.functions.recordGrade(grade).build_transaction({
+                    'nonce': nonce,
+                    'gas': 2000000, # Adjust gas limit as needed
+                    'gasPrice': self.w3.eth.gas_price # Or specify a gas price
+                    # 'chainId': ... # Specify the chain ID if necessary
+                })
+                signed_tx = self.w3.eth.account.sign_transaction(tx, current_app.config['SIGNER_PRIVATE_KEY'])
+                tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+                return tx_hash.hex()
+            except Exception as e:
+                logging.error(f"Error recording grade on blockchain: {e}")
+                return "SimulatedHashForError" # Indicate an error
+        else:
+            # Simulate recording grade if blockchain is not configured
+            return f"SimulatedHash-{grade[:10]}"
+Python
+
+backend/migrations/README.md
+Markdown
+
+# Flask-Migrate Configuration
+
+This directory contains the migration scripts for the BTEC Rebellion System backend.
+
+To run migrations, use the `manage.py` script:
+
+```bash
+python manage.py db init # Initialize the migration repository (run only once)
+python manage.py db migrate # Create a new migration script based on changes in models
+python manage.py db upgrade # Apply the migration scripts to the database
+Ensure your database configuration is correct in the .env file before running migrations.
+
+
+```python
+backend/tests/__init__.py
+Python
+
+# Placeholder for tests
+Python
+
+backend/tests/test_encryption.py
+Python
+
+import unittest
+import base64
+from app.security.encryption import Vault
+from unittest.mock import patch
+
+class TestVault(unittest.TestCase):
+
+    @patch.dict('os.environ', {'ENCRYPTION_KEY': base64.urlsafe_b64encode(b'a' * 32).decode()})
+    def setUp(self):
+        self.vault = Vault(base64.urlsafe_b64encode(b'a' * 32).decode())
+
+    def test_encryption_decryption(self):
+        plaintext = "This is a secret message."
+        ciphertext = self.vault.encrypt(plaintext)
+        self.assertNotEqual(plaintext, ciphertext)
+        decrypted_text = self.vault.decrypt(ciphertext)
+        self.assertEqual(plaintext, decrypted_text)
+
+    def test_decryption_invalid_token(self):
+        ciphertext = "invalid_ciphertext"
+        decrypted_text = self.vault.decrypt(ciphertext)
+        self.assertEqual("", decrypted_text) # Or assertRaises
+
+if __name__ == '__main__':
+    unittest.main()
+backend/.env
+FLASK_ENV=development
+FLASK_APP=wsgi:app
+DATABASE_URL=postgresql://user:password@localhost:5432/btec_eval # Replace with your DB config
+SECRET_KEY=your_flask_secret_key_here # Use os.urandom(24) to generate
+JWT_SECRET_KEY=your_jwt_secret_key_here # Different from SECRET_KEY
+# For Fernet Encryption (Generate using Fernet.generate_key() and base64 encode it)
+ENCRYPTION_KEY=your_base64_encoded_fernet_key_here
+
+# Service Keys (Keep these secure, preferably load from Vault in Prod)
+OPENAI_API_KEY=your_openai_api_key
+INFURA_URL=https://mainnet.infura.io/v3/YOUR_PROJECT_ID # Or other node provider
+CONTRACT_ADDRESS=0xYourDeployedSmartContractAddress
+SIGNER_PRIVATE_KEY=your_ethereum_private_key_for_signing_transactions
+
+# CORS Origins (Space-separated list for production)
+ALLOWED_ORIGINS=*
+backend/.env.example
+FLASK_ENV=development
+FLASK_APP=wsgi:app
+DATABASE_URL=postgresql://user:password@localhost:5432/btec_eval # Replace with your DB config
+SECRET_KEY=your_flask_secret_key_here # Use os.urandom(24) to generate
+JWT_SECRET_KEY=your_jwt_secret_key_here # Different from SECRET_KEY
+# For Fernet Encryption (Generate using Fernet.generate_key() and base64 encode it)
+ENCRYPTION_KEY=your_base64_encoded_fernet_key_here
+
+# Service Keys (Keep these secure, preferably load from Vault in Prod)
+OPENAI_API_KEY=your_openai_api_key
+INFURA_URL=https://mainnet.infura.io/v3/YOUR_PROJECT_ID # Or other node provider
+CONTRACT_ADDRESS=0xYourDeployedSmartContractAddress
+SIGNER_PRIVATE_KEY=your_ethereum_private_key_for_signing_transactions
+
+# CORS Origins (Space-separated list for production)
+ALLOWED_ORIGINS=https://your-frontend-domain.com http://localhost:5173
+backend/requirements.txt
+Flask>=2.0
+Flask-SQLAlchemy>=2.5
+Flask-Migrate>=3.0
+Flask-Cors>=3.0
+Flask-Limiter>=2.0
+Flask-Talisman>=1.0
+python-dotenv>=0.19
+cryptography>=3.4
+PyJWT>=2.0 # For JWT tokens
+web3>=5.0 # For Blockchain interaction (even if simulated)
+openai>=0.27 # For AI service
+gunicorn>=20.0 # WSGI server
+psycopg2-binary # Or mysql-connector-python, depending on DB
+Werkzeug>=2.0 # For password hashing
+Python
+
+backend/wsgi.py
+Python
+
+import os
+from app import create_app
+
+app = create_app(os.getenv('FLASK_ENV') or 'default')
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5005, debug=app.config['DEBUG'])
+Python
+
+backend/manage.py
+Python
+
+from app import create_app
+from flask_script import Manager
+from flask_migrate import MigrateCommand
+
+app = create_app()
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
+
+if __name__ == '__main__':
+    manager.run()
+JavaScript
+
+frontend/package.json
+JSON
+
+{
+  "name": "btec-rebellion-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:prod": "vite build"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.17.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.1.0",
+    "vite": "^4.4.9"
+  }
+}
+JavaScript
+
+frontend/vite.config.js
+JavaScript
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5005', // Backend server address
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  }
+})
+JavaScript
+
+frontend/.env.example
+VITE_API_BASE_URL=/api
+JavaScript
+
+frontend/.env
+VITE_API_BASE_URL=/api
+frontend/public/index.html
+HTML
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTEC Rebellion System</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
+JavaScript
+
+frontend/src/main.jsx
+JavaScript
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+JavaScript
+
+frontend/src/index.css
+CSS
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+}
+
+.container {
+  max-width: 960px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Add more global styles as needed */
+JavaScript
+
+frontend/src/App.jsx
+JavaScript
+
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import EvaluationForm from './components/EvaluationForm';
+import AuditLog from './components/AuditLog';
+import Login from './components/Login';
+import Register from './components/Register';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="container">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<ProtectedRoute><EvaluationForm /></ProtectedRoute>} />
+            <Route path="/audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to="/" />} /> {/* Redirect to home if route not found */}
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
+
+export default App;
+JavaScript
+
+frontend/src/components/ProtectedRoute.jsx
+JavaScript
+
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+}
+
+export default ProtectedRoute;
+JavaScript
+
+frontend/src/components/Login.jsx
+JavaScript
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
+
+function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      login(response.data.token);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to login');
+    }
+  };
+
+  return (
+    <div>
+      <h2>Login</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="password">Password:</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit">Login</button>
+      </form>
+      <p>Don't have an account? <a href="/register">Register</a></p>
+    </div>
+  );
+}
+
+export default Login;
+JavaScript
+
+frontend/src/components/Register.jsx
+JavaScript
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+
+function Register() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      await api.post('/auth/register', { email, password });
+      setSuccessMessage('Registration successful! You can now login.');
+      setTimeout(() => navigate('/login'), 2000); // Redirect after 2 seconds
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to register');
+    }
+  };
+
+  return (
+    <div>
+      <h2>Register</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="password">Password:</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="confirmPassword">Confirm Password:</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit">Register</button>
+      </form>
+      <p>Already have an account? <a href="/login">Login</a></p>
+    </div>
+  );
+}
+
+export default Register;
+JavaScript
+
+frontend/src/components/EvaluationForm.jsx
+JavaScript
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+
+function EvaluationForm() {
+  const [task, setTask] = useState('');
+  const [grade, setGrade] = useState('');
+  const [auditHash, setAuditHash] = useState('');
+  const [error, setError] = useState('');
+  const { token } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setGrade('');
+    setAuditHash('');
+
+    try {
+      const response = await api.post('/evaluation/evaluate', { task }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setGrade(response.data.grade);
+      setAuditHash(response.data.audit_hash);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to evaluate task');
+    }
+  };
+
+  const handleViewAuditLog = () => {
+    navigate('/audit');
+  };
+
+  return (
+    <div>
+      <h2>Submit Task for Evaluation</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="task">Task Submission:</label>
+          <textarea
+            id="task"
+            value={task}
+            onChange={(e) => setTask(e.target.value)}
+            rows="5"
+            required
+          />
+        </div>
+        <button type="submit">Evaluate</button>
+      </form>
+
+      {grade && (
+        <div>
+          <h3>Evaluation Result</h3>
+          <p>Grade/Feedback: {grade}</p>
+          <p>Audit Hash (Blockchain): {auditHash}</p>
+        </div>
+      )}
+
+      <button onClick={handleViewAuditLog}>View Audit Log</button>
+    </div>
+  );
+}
+
+export default EvaluationForm;
+JavaScript
+
+frontend/src/components/AuditLog.jsx
+JavaScript
+
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+
+function AuditLog() {
+  const [evaluations, setEvaluations] = useState([]);
+  const [error, setError] = useState('');
+  const { token } = useAuth();
+
+  useEffect(() => {
+    const fetchAuditLog = async () => {
+      setError('');
+      try {
+        const response = await api.get('/evaluation/evaluations', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setEvaluations(response.data);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to fetch audit log');
+      }
+    };
+
+    fetchAuditLog();
+  }, [token]);
+
+  return (
+    <div>
+      <h2>Audit Log</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {evaluations.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Task</th>
+              <th>Grade</th>
+              <th>Audit Hash</th>
+              <th>Submitted At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {evaluations.map((evalItem) => (
+              <tr key={evalItem.id}>
+                <td>{evalItem.id}</td>
+                <td>{evalItem.task}</td>
+                <td>{evalItem.grade}</td>
+                <td>{evalItem.audit_hash}</td>
+                <td>{new Date(evalItem.submitted_at).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>{error || 'No evaluations found.'}</p>
+      )}
+    </div>
+  );
+}
+
+export default AuditLog;
+JavaScript
+
+frontend/src/contexts/AuthContext.jsx
+JavaScript
+
+import React, { createContext, useState, useContext, useEffect } from 'react';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(localStorage.getItem('token'));
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  }, [token]);
+
+  const login = (newToken) => {
+    setToken(newToken);
+  };
+
+  const logout = () => {
+    setToken(null);
+  };
+
+  const isAuthenticated = !!token;
+
+  return (
+    <AuthContext.Provider value={{ token, login, logout, isAuthenticated }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
+JavaScript
+
+frontend/src/services/api.js
+JavaScript
+
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+});
+
+export default api;
+JavaScript
+
+frontend/src/hooks/useAuth.js
+JavaScript
+
+// Re-export for convenience
+export { useAuth } from '../contexts/AuthContext';
+JavaScript
+
+frontend/src/router/index.js
+JavaScript
+
+// Optional: You can define your routes here if you prefer a separate file
+// import { createBrowserRouter } from 'react-router-dom';
+// import EvaluationForm from '../components/EvaluationForm';
+// import AuditLog from '../components/AuditLog';
+// import Login from '../components/Login';
+// import Register from '../components/Register';
+// import ProtectedRoute from '../components/ProtectedRoute';
+
+// const router = createBrowserRouter([
+//   {
+//     path: '/',
+//     element: <ProtectedRoute><EvaluationForm /></ProtectedRoute>,
+//   },
+//   {
+//     path: '/audit',
+//     element: <ProtectedRoute><AuditLog /></ProtectedRoute>,
+//   },
+//   {
+//     path: '/login',
+//     element: <Login />,
+//   },
+//   {
+//     path: '/register',
+//     element: <Register />,
+//   },
+// ]);
+
+// export default router;
+frontend/.env
+VITE_API_BASE_URL=/api
+frontend/.env.example
+VITE_API_BASE_URL=/api
+frontend/postcss.config.js
+JavaScript
+
+// Example if you are using Tailwind CSS or other PostCSS plugins
+// module.exports = {
+//   plugins: {
+//     tailwindcss: {},
+//     autoprefixer: {},
+//   },
+// };
+deployments/docker-compose.yaml
+YAML
+
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5005:5005"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://user:password@db:5432/btec_eval # Replace with your DB config
+      - SECRET_KEY=your_flask_secret_key_here
+      - JWT_SECRET_KEY=your_jwt_secret_key_here
+      - ENCRYPTION_KEY=your_base64_encoded_fernet_key_here
+      - OPENAI_API_KEY=your_openai_api_key # Consider using Docker secrets in production
+      - INFURA_URL=https://mainnet.infura.io/v3/YOUR_PROJECT_ID # Consider using Docker secrets
+      - CONTRACT_ADDRESS=0xYourDeployedSmartContractAddress # Consider using Docker secrets
+      - SIGNER_PRIVATE_KEY=your_ethereum_private_key_for_signing_transactions # Consider using Docker secrets
+      - ALLOWED_ORIGINS=*
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+    networks:
+      - btec-net
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=/api
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - btec-net
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: btec_eval
+    volumes:
+      - db_data:/var/lib/postgresql/data/
+    networks:
+      - btec-net
+
+networks:
+  btec-net:
+    driver: bridge
+
+volumes:
+  db_data:
+deployments/Dockerfile
+Dockerfile
+
+FROM python:3.9-slim-buster
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+
+HEALTHCHECK --interval=5m --timeout=3s \
+  CMD curl -f http://localhost:5005/health || exit 1
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5005", "backend.app:app"]
+YAML
+
+deployments/kubernetes/deployment.yaml
+YAML
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: btec-rebel-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: btec-rebel-backend
+  template:
+    metadata:
+      labels:
+        app: btec-rebel-backend
+    spec:
+      containers:
+      - name: backend
+        image: btec-rebel-backend:latest # Ensure this image is built and pushed
+        ports:
+        - containerPort: 5005
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: QUANTUM_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rebel-secrets
+              key: quantum_key
+        - name: INFURA_URL
+          valueFrom:
+            secretKeyRef:
+              name: rebel-secrets
+              key: infura_url
+        - name: SMART_CONTRACT
+          valueFrom:
+            configMapKeyRef:
+              name: rebel-config
+              key: smart_contract_address
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rebel-secrets
+              key: openai_api_key
+        - name: SIGNER_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rebel-secrets
+              key: private_key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: rebel-db-credentials # Assuming you'll store DB credentials in a separate secret
+              key: database_url
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rebel-secrets
+              key: flask_secret_key
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rebel-secrets
+              key: jwt_secret_key
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rebel-secrets
+              key: encryption_key
+        - name: ALLOWED_ORIGINS
+          value: "*" # Adjust as needed for production
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5005
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5005
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      serviceAccountName: btec-service-account # Ensure this ServiceAccount exists
+YAML
+
+deployments/kubernetes/frontend-deployment.yaml
+YAML
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: btec-rebel-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: btec-rebel-frontend
+  template:
+    metadata:
+      labels:
+        app: btec-rebel-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: btec-rebel-frontend:latest # Ensure this image is built and pushed
+        ports:
+        - containerPort: 5173
+        env:
+        - name: VITE_API_BASE_URL
+          value: "/api" # Assuming backend service is accessible via /api through the frontend service
+        # You might need to pass other frontend specific environment variables here
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      serviceAccountName: btec-service-account # Use the same ServiceAccount or create a new one if needed
+YAML
+
+deployments/kubernetes/service.yaml
+YAML
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: btec-rebel-backend-service
+spec:
+  selector:
+    app: btec-rebel-backend
+  ports:
+    - protocol: TCP
+      port: 5005
+      targetPort: 5005
+  type: ClusterIP # Or LoadBalancer if you need external access
+YAML
+
+deployments/kubernetes/frontend-service.yaml
+YAML
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: btec-rebel-frontend-service
+spec:
+  selector:
+    app: btec-rebel-frontend
+  ports:
+    - protocol: TCP
+      port: 80 # Or 443 for HTTPS
+      targetPort: 5173
+      nodePort: 30080 # Optional: If using NodePort
+  type: LoadBalancer # Or NodePort
+YAML
+
+deployments/kubernetes/secrets.yaml
+YAML
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rebel-secrets
+type: Opaque
+data:
+  quantum_key: <base64-encoded-quantum-key>
+  infura_url: <base64-encoded-infura-url>
+  openai_api_key: <base64-encoded-openai-api-key>
+  private_key: <base64-encoded-ethereum-private-key>
+  flask_secret_key: <base64-encoded-flask-secret-key>
+  jwt_secret_key: <base64-encoded-jwt-secret-key>
+  encryption_key: <base64-encoded-fernet-key>
+YAML
+
+deployments/kubernetes/configmap.yaml
+YAML
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rebel-config
+data:
+  smart_contract_address: "0xYourSmartContractAddress"
+.env.example
+# Backend
+FLASK_ENV=development
+FLASK_APP=wsgi:app
+DATABASE_URL=postgresql://user:password@localhost:5432/btec_eval # Replace with your DB config
+SECRET_KEY=your_flask_secret_key_here # Use os.urandom(24) to generate
+JWT_SECRET_KEY=your_jwt_secret_key_here # Different from SECRET_KEY
+ENCRYPTION_KEY=your_base64_encoded_fernet_key_here
+OPENAI_API_KEY=your_openai_api_key
+INFURA_URL=https://mainnet.infura.io/v3/YOUR_PROJECT_ID
+CONTRACT_ADDRESS=0xYourSmartContractAddress
+SIGNER_PRIVATE_KEY=your_ethereum_private_key_for_signing_transactions
+ALLOWED_ORIGINS=http://localhost:5173
+
+# Frontend
+VITE_API_BASE_URL=/api
+.gitignore
+# Backend
+.env
+__pycache__/
+*.py[cod]
+*.log
+*.sqlite
+*.sqlite3
+*.db
+migrations/versions/
+
+# Frontend
+node_modules/
+dist/
+
+# General
+.DS_Store
+*.swp
+README.md
+Markdown
+
+# BTEC Rebellion System
+
+This project is a BTEC evaluation system with features like AI-powered grading and blockchain-based audit logging.
+
+## Project Structure
+
+[Include a brief description of the project structure here, as outlined at the beginning]
+
+## Backend Setup
+
+1.  **Install Dependencies:** `cd backend && pip install -r requirements.txt`
+2.  **Configure Environment Variables:** Create a `.env` file based on `.env.example` and fill in your specific configurations.
+3.  **Database Migrations:**
+    ```bash
+    python manage.py db init
+    python manage.py db migrate
+    python manage.py db upgrade
+    ```
+4.  **Run the Backend:** `python wsgi.py` or `gunicorn --bind 0.0.0.0:5005 backend.wsgi:app`
+
+## Frontend Setup
+
+1.  **Navigate to Frontend:** `cd frontend`
+2.  **Install Dependencies:** `npm install` or `yarn install`
+3.  **Configure Environment Variables:** Create a `.env` file based on `.env.example`.
+4.  **Run the Frontend:** `npm run dev` or `yarn dev`
+5.  **Build the Frontend:** `npm run build` or `yarn build`
+
+## Deployment
+
+[Include instructions on how to deploy the project using Docker and Kubernetes]
+
+## Notes
+
+[Include any important notes or disclaimers]
+This provides a comprehensive structure and the code for all the files we have discussed. Remember to replace the placeholder values in the .env files and Kubernetes Secrets with your actual sensitive information. This is a solid foundation, and you can continue to build upon it by adding more features, tests, and improvements.
