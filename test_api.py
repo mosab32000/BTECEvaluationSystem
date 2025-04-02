@@ -59,7 +59,8 @@ Project Plan:
 5. Communication Strategy: I established regular reporting methods and stakeholder communication channels.
         
 The project was delivered on time and within budget, meeting all the specified requirements.
-"""
+""",
+        'format': 'text'  # Using text format, could be 'json' for structured response
     }
     
     response = requests.post(f'{BASE_URL}/evaluation/evaluate', headers=headers, json=payload)
@@ -82,6 +83,90 @@ def test_get_evaluations(token):
     print(f'Response: {json.dumps(response.json(), indent=2)}')
     print('-' * 50)
 
+def test_evaluate_json(token):
+    """Test task evaluation with JSON response format"""
+    if not token:
+        print("No token available for evaluation test.")
+        return
+    
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    
+    payload = {
+        'task': """This is a sample BTEC assignment submission for Database Systems.
+        
+I have designed and implemented a normalized relational database for a retail management system.
+The database includes entities for Products, Categories, Customers, Orders, and Payments.
+I implemented foreign key constraints and indexes to optimize query performance.
+I created stored procedures for common operations like processing orders and generating reports.
+        
+The database was tested with sample data and performance metrics were collected.
+""",
+        'format': 'json'  # Request structured JSON response
+    }
+    
+    response = requests.post(f'{BASE_URL}/evaluation/evaluate', headers=headers, json=payload)
+    print(f'JSON Evaluation status: {response.status_code}')
+    print(f'Response: {json.dumps(response.json(), indent=2)}')
+    print('-' * 50)
+
+def test_evaluate_with_rubric(token):
+    """Test task evaluation with custom rubric"""
+    if not token:
+        print("No token available for rubric evaluation test.")
+        return
+    
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    
+    # Custom rubric for database design assignment
+    custom_rubric = {
+        "sections": [
+            {
+                "name": "Database Design",
+                "weight": 30,
+                "criteria": ["Normalization", "Entity Relationships", "Data Types"]
+            },
+            {
+                "name": "Implementation",
+                "weight": 30,
+                "criteria": ["SQL Code Quality", "Constraints", "Indexes"]
+            },
+            {
+                "name": "Performance",
+                "weight": 20,
+                "criteria": ["Query Optimization", "Execution Plans", "Benchmark Results"]
+            },
+            {
+                "name": "Documentation",
+                "weight": 20,
+                "criteria": ["Schema Documentation", "Data Dictionary", "Setup Instructions"]
+            }
+        ]
+    }
+    
+    payload = {
+        'task': """This is a sample BTEC assignment for Database Implementation.
+        
+My database design follows Third Normal Form with proper entity separation.
+I created tables for Students, Courses, Enrollments, Instructors, and Departments.
+Foreign keys enforce referential integrity between related tables.
+I implemented indexes on frequently queried columns to improve read performance.
+I created views for common reporting needs and stored procedures for complex operations.
+        
+The database was deployed to PostgreSQL and load tested with 10,000 sample records.
+All documentation includes ERD diagrams, data dictionaries, and setup instructions.
+""",
+        'rubric': custom_rubric
+    }
+    
+    response = requests.post(f'{BASE_URL}/evaluation/evaluate/rubric', headers=headers, json=payload)
+    print(f'Rubric Evaluation status: {response.status_code}')
+    print(f'Response: {json.dumps(response.json(), indent=2)}')
+    print('-' * 50)
+
 if __name__ == '__main__':
     print("Starting API tests...")
     try:
@@ -91,6 +176,8 @@ if __name__ == '__main__':
         token = test_login()
         if token:
             test_evaluate(token)
+            test_evaluate_json(token)
+            test_evaluate_with_rubric(token)
             test_get_evaluations(token)
     except Exception as e:
         print(f"Error during testing: {e}")

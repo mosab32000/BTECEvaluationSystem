@@ -15,6 +15,30 @@ mode = "sequential"
 task = "shell.exec"
 args = "python backend/wsgi.py"
 
+[[workflows.workflow]]
+name = "ة"
+mode = "sequential"
+author = 41069515
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask"
+
 [nix]
 channel = "stable-24_05"
 

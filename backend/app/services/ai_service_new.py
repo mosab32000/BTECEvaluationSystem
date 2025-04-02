@@ -4,6 +4,7 @@ import logging
 import json
 import time
 import os
+import httpx
 
 class AIEvaluator:
     def __init__(self):
