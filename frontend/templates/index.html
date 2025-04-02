@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}نظام تقييم BTEC - الصفحة الرئيسية{% endblock %}
+
+{% block header %}مرحبًا بك في نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="hero-section animated">
+    <h1 class="mb-4">تقييم ذكي ومبتكر لمهامك الدراسية</h1>
+    <p class="lead mb-5">منصة متطورة للتقييم الأكاديمي مدعومة بالذكاء الاصطناعي وتقنية البلوكتشين للتحقق، صممت خصيصًا لتقييم مهام BTEC بطريقة شفافة وآمنة.</p>
+    
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-4 text-center">
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('frontend.evaluate') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-file-alt me-2"></i> بدء تقييم جديد
+            </a>
+            {% else %}
+            <a href="{{ url_for('frontend.register') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-user-plus me-2"></i> تسجيل حساب جديد
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="hero-features">
+        <div class="feature-card animated">
+            <div class="feature-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <h3 class="mb-3">تقييم ذكي</h3>
+            <p>استفد من تقنيات الذكاء الاصطناعي المتقدمة لتقييم مهامك بدقة وموضوعية وفقًا لمعايير BTEC العالمية.</p>
+        </div>
+        
+        <div class="feature-card animated">
+            <div class="feature-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 class="mb-3">تحقق آمن</h3>
+            <p>تأكد من صحة وسلامة تقييماتك باستخدام تقنية البلوكتشين التي توفر طبقة إضافية من الأمان والشفافية.</p>
+        </div>
+        
+        <div class="feature-card animated">
+            <div class="feature-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="mb-3">تحليل شامل</h3>
+            <p>احصل على تحليل مفصل لأدائك مع تقييمات معيارية وتوصيات لتحسين مستواك الأكاديمي.</p>
+        </div>
+    </div>
+    
+    <div class="mt-5 p-4 bg-dark rounded text-center">
+        <h2 class="mb-3">كيف يعمل النظام؟</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="p-3">
+                    <div class="fs-1 mb-2">1</div>
+                    <h4>أدخل مهمتك</h4>
+                    <p class="text-muted">قم بإدخال أو نسخ ولصق نص مهمتك الدراسية للتقييم.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3">
+                    <div class="fs-1 mb-2">2</div>
+                    <h4>الحصول على التقييم</h4>
+                    <p class="text-muted">يقوم النظام بتحليل وتقييم المهمة وفقًا لمعايير BTEC محددة.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3">
+                    <div class="fs-1 mb-2">3</div>
+                    <h4>التحقق والحفظ</h4>
+                    <p class="text-muted">يتم توثيق التقييم على البلوكتشين ويمكنك الوصول إليه في أي وقت.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

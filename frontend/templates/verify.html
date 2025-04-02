@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}التحقق من التقييم - نظام تقييم BTEC{% endblock %}
+
+{% block header %}التحقق من صحة التقييم{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-3d animated">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-shield-alt"></i> التحقق من صحة التقييم</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead mb-4">أدخل رمز التحقق للتأكد من صحة وسلامة التقييم على سلسلة الكتل.</p>
+                
+                <form id="verify-form">
+                    <div class="mb-4">
+                        <label for="audit-hash" class="form-label">رمز التحقق</label>
+                        <input type="text" class="form-control" id="audit-hash" name="audit_hash" required
+                               placeholder="أدخل رمز التحقق (على سبيل المثال: 0x1234...)">
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" id="btn-verify">
+                            <i class="fas fa-check-circle"></i> التحقق
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- نتيجة التحقق -->
+        <div id="verification-result" class="mt-4" style="display: none;"></div>
+        
+        <!-- معلومات إضافية -->
+        <div class="card mt-4">
+            <div class="card-header bg-dark">
+                <h3 class="mb-0"><i class="fas fa-info-circle"></i> معلومات عن التحقق</h3>
+            </div>
+            <div class="card-body">
+                <h4>ما هو رمز التحقق؟</h4>
+                <p>رمز التحقق هو قيمة فريدة مشفرة يتم إنشاؤها لكل تقييم وتخزينها على سلسلة الكتل (Blockchain). يتيح هذا الرمز التحقق من صحة وأصالة التقييم في أي وقت.</p>
+                
+                <h4>أين يمكنني العثور على رمز التحقق؟</h4>
+                <p>يتم عرض رمز التحقق في نتيجة التقييم وفي صفحة تفاصيل التقييم. يمكنك نسخه من هناك واستخدامه في هذه الصفحة للتحقق.</p>
+                
+                <h4>كيف يعمل نظام التحقق؟</h4>
+                <p>يستخدم النظام تقنية التشفير والتوقيع الرقمي لتوثيق التقييمات على سلسلة الكتل، مما يضمن عدم تغيير نتائج التقييم بعد إصدارها.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

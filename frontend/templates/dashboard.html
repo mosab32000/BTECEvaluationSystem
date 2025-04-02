@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - نظام تقييم BTEC{% endblock %}
+
+{% block header %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="row animated">
+    <div class="col-md-4 mb-4">
+        <div class="card card-3d h-100">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-file-alt"></i> تقييم جديد</h3>
+            </div>
+            <div class="card-body">
+                <p>قم بتقييم مهمة BTEC جديدة باستخدام نظام التقييم الذكي المدعوم بالذكاء الاصطناعي.</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('frontend.evaluate') }}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> بدء تقييم جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card card-3d h-100">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-history"></i> التقييمات السابقة</h3>
+            </div>
+            <div class="card-body">
+                <p>استعرض جميع التقييمات السابقة التي قمت بإجرائها والوصول إلى تفاصيلها الكاملة.</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('frontend.evaluations') }}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> عرض التقييمات
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card card-3d h-100">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-check-circle"></i> التحقق</h3>
+            </div>
+            <div class="card-body">
+                <p>تحقق من صحة أي تقييم باستخدام رمز التحقق المخزن على سلسلة الكتل.</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('frontend.verify') }}" class="btn btn-primary">
+                        <i class="fas fa-shield-alt"></i> التحقق من تقييم
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card card-3d animated">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-info-circle"></i> إحصائيات سريعة</h3>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <h2 class="grade-indicator" id="total-evaluations">-</h2>
+                            <p>إجمالي التقييمات</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <h2 class="grade-indicator" id="average-grade">-</h2>
+                            <p>متوسط الدرجات</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <h2 class="grade-indicator" id="recent-evaluation">-</h2>
+                            <p>آخر تقييم</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card card-3d animated">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-lightbulb"></i> نصائح للتحسين</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="criteria-item mb-3">
+                            <h4><i class="fas fa-check text-success"></i> مهارات التواصل</h4>
+                            <p>ركز على تطوير مهارات التواصل الكتابي والشفهي لتحقيق درجات أعلى في معايير التقييم الخاصة بالتواصل.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="criteria-item mb-3">
+                            <h4><i class="fas fa-check text-success"></i> تطبيق النظريات</h4>
+                            <p>تأكد من ربط النظريات بالأمثلة العملية والتطبيقات الواقعية لتعزيز فهمك ودرجات تقييمك.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="criteria-item mb-3">
+                            <h4><i class="fas fa-check text-success"></i> التحليل النقدي</h4>
+                            <p>طور قدراتك على التحليل النقدي من خلال مقارنة وجهات النظر المختلفة وتقييم المصادر.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="criteria-item mb-3">
+                            <h4><i class="fas fa-check text-success"></i> التوثيق والمراجع</h4>
+                            <p>استخدم أنظمة التوثيق القياسية واستشهد بمصادر موثوقة لتعزيز مصداقية عملك.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        // محاولة تحميل البيانات الإحصائية
+        try {
+            const evaluations = await BTECApi.getEvaluations();
+            
+            if (evaluations && evaluations.length > 0) {
+                // إجمالي التقييمات
+                document.getElementById('total-evaluations').textContent = evaluations.length;
+                
+                // متوسط الدرجات (تقريبي بناءً على أول كلمة من الدرجة)
+                let totalGrade = 0;
+                let countWithGrade = 0;
+                
+                evaluations.forEach(eval => {
+                    const firstWord = eval.grade.split(' ')[0];
+                    const numericGrade = parseFloat(firstWord);
+                    
+                    if (!isNaN(numericGrade)) {
+                        totalGrade += numericGrade;
+                        countWithGrade++;
+                    }
+                });
+                
+                const avgGrade = countWithGrade > 0 ? (totalGrade / countWithGrade).toFixed(1) : '-';
+                document.getElementById('average-grade').textContent = avgGrade;
+                
+                // آخر تقييم
+                const latestEval = evaluations.sort((a, b) => 
+                    new Date(b.submitted_at) - new Date(a.submitted_at)
+                )[0];
+                
+                document.getElementById('recent-evaluation').textContent = latestEval.grade.split(' ')[0];
+            }
+        } catch (error) {
+            console.error('Error loading dashboard stats:', error);
+        }
+    });
+</script>
+{% endblock %}

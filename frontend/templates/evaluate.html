@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}تقييم جديد - نظام تقييم BTEC{% endblock %}
+
+{% block header %}تقييم مهمة جديدة{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card card-3d animated">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-file-alt"></i> إدخال المهمة للتقييم</h3>
+            </div>
+            <div class="card-body">
+                <form id="evaluation-form">
+                    <div class="mb-4">
+                        <label for="task-submission" class="form-label">نص المهمة</label>
+                        <textarea class="form-control" id="task-submission" name="task" rows="10" required
+                                  placeholder="أدخل أو انسخ ولصق نص مهمة BTEC الخاصة بك هنا للتقييم..."></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">تنسيق الاستجابة</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="response-format" id="format-text" value="text" checked>
+                                    <label class="form-check-label" for="format-text">
+                                        <strong>تنسيق نصي</strong> - تقييم بسيط مع ملاحظات نصية.
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="response-format" id="format-json" value="json">
+                                    <label class="form-check-label" for="format-json">
+                                        <strong>تنسيق مفصّل</strong> - تقييم مفصل مع معايير وتوصيات محددة.
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" id="btn-evaluate">
+                            <i class="fas fa-robot"></i> تقييم المهمة
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- نتيجة التقييم -->
+        <div id="evaluation-result" class="mt-4" style="display: none;"></div>
+        
+        <!-- ملاحظات ومعلومات إضافية -->
+        <div class="card mt-4">
+            <div class="card-header bg-dark">
+                <h3 class="mb-0"><i class="fas fa-info-circle"></i> معلومات مهمة</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h4><i class="fas fa-lightbulb"></i> نصائح للحصول على أفضل تقييم:</h4>
+                    <ul class="mt-2">
+                        <li>تأكد من تضمين كامل نص المهمة للحصول على تقييم دقيق.</li>
+                        <li>استخدم التنسيق المفصّل للحصول على تحليل أعمق وتوصيات محددة.</li>
+                        <li>يمكنك إعادة تقييم المهمة نفسها أكثر من مرة بعد إجراء التحسينات.</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h4><i class="fas fa-shield-alt"></i> الأمان والخصوصية:</h4>
+                    <p>جميع البيانات المقدمة يتم تشفيرها وتخزينها بشكل آمن. يتم توثيق التقييمات على سلسلة الكتل للتحقق منها لاحقًا.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
