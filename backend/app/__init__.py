@@ -28,6 +28,22 @@ def create_app(config_name='default'):
     @limiter.exempt
     def health():
         return "System operational", 200
+        
+    # Home route
+    @app.route('/')
+    @limiter.exempt
+    def home():
+        return {
+            "name": "BTEC Evaluation System API",
+            "version": "1.0.0",
+            "status": "running",
+            "endpoints": [
+                "/health",
+                "/auth/register",
+                "/auth/login",
+                "/evaluation/*"
+            ]
+        }, 200
 
     # Import and register blueprints
     from .routes import auth_bp, evaluation_bp

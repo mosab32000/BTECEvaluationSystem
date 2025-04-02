@@ -2,6 +2,9 @@
 import sys
 import os
 
+# Add the project root directory to Python's path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 try:
     print("Checking if Flask app loads correctly...")
     
@@ -37,4 +40,4 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-print("\nTest completed.")
+print("\nTest completed")leted.")
