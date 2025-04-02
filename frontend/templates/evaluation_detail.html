@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل التقييم - نظام تقييم BTEC{% endblock %}
+
+{% block header %}تفاصيل التقييم{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="row">
+        <div class="col-md-6">
+            <a href="{{ url_for('frontend.evaluations') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-right"></i> العودة إلى قائمة التقييمات
+            </a>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <a href="{{ url_for('frontend.evaluate') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> إنشاء تقييم جديد
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- تفاصيل التقييم -->
+<div id="detail-container">
+    <div id="evaluation-detail">
+        <div class="text-center py-5">
+            <div class="spinner-border text-info" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+            <p class="mt-2">جاري تحميل تفاصيل التقييم...</p>
+        </div>
+    </div>
+</div>
+
+<!-- نتيجة التحقق -->
+<div id="verification-result" class="mt-4" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // استخراج معرف التقييم من URL
+        const url = window.location.pathname;
+        const evaluationId = url.split('/').pop();
+        
+        // تحميل تفاصيل التقييم
+        if (evaluationId && !isNaN(evaluationId)) {
+            loadEvaluationDetail(evaluationId);
+        } else {
+            document.getElementById('evaluation-detail').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    معرف التقييم غير صالح.
+                </div>
+            `;
+        }
+    });
+</script>
+{% endblock %}

@@ -4,6 +4,7 @@ from ..models import Evaluation
 from ..security.encryption import Vault
 from ..security.token_utils import token_required
 from ..services.ai_service import AIEvaluator
+from ..services.ai_service_direct import AIEvaluatorDirect
 from ..services.blockchain_service import BlockchainService
 import json
 import logging
@@ -34,8 +35,8 @@ def evaluate(user_id):
 
     vault = Vault(current_app.config['ENCRYPTION_KEY'])
     blockchain_service = BlockchainService()
-    ai_evaluator = AIEvaluator()
-
+    ai_evaluator = AIEvaluatorDirect(api_key=current_app.config.get('OPENAI_API_KEY'))
+    
     # Encrypt the task submission
     encrypted_task = vault.encrypt(task)
     
@@ -327,7 +328,7 @@ def evaluate_with_rubric(user_id):
     
     vault = Vault(current_app.config['ENCRYPTION_KEY'])
     blockchain_service = BlockchainService()
-    ai_evaluator = AIEvaluator()
+    ai_evaluator = AIEvaluatorDirect(api_key=current_app.config.get('OPENAI_API_KEY'))
     
     # Encrypt the task submission
     encrypted_task = vault.encrypt(task)
