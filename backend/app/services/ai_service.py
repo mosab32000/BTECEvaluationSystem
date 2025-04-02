@@ -1,46 +1,52 @@
-import os
-import json
-import logging
+import openai
 from flask import current_app
-from openai import OpenAI
+import logging
 
 class AIEvaluator:
     def __init__(self):
         api_key = current_app.config.get('OPENAI_API_KEY')
         if not api_key:
-            logging.error("OpenAI API key is missing!")
-            raise ValueError("OPENAI_API_KEY environment variable not set.")
-        self.client = OpenAI(api_key=api_key)
-    
+            logging.warning("OPENAI_API_KEY is not configured. AI evaluation will be simulated.")
+            self.api_key = None
+        else:
+            openai.api_key = api_key
+            self.api_key = api_key
+
     def evaluate(self, task_submission):
         """
         Evaluates a BTEC task submission using OpenAI's API
         Returns a grade and detailed feedback
         """
+        if not self.api_key:
+            # Simulate AI evaluation if API key is not available
+            return f"Simulated BTEC Grade: Merit. \nThis is a simulated evaluation as OpenAI API key is missing."
+        
         try:
-            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-            # do not change this unless explicitly requested by the user
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
+            # Use the OpenAI client for API v1.0.0+
+            client = openai.OpenAI(api_key=self.api_key)
+            
+            # Create the AI completion using ChatGPT
+            response = client.chat.completions.create(
+                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
                 messages=[
-                    {"role": "system", "content": (
-                        "You are a BTEC evaluation expert. You need to grade the following task submission "
-                        "based on BTEC criteria. Provide a grade (Distinction, Merit, Pass, or Fail) "
-                        "and detailed feedback explaining your evaluation. Focus on the content, "
-                        "structure, evidence of research, technical accuracy, and overall quality."
-                    )},
-                    {"role": "user", "content": task_submission}
+                    {"role": "system", "content": """You are a BTEC evaluator. You assess submissions based on UK BTEC criteria. 
+                     Grade submissions as: Pass, Merit, or Distinction. 
+                     Provide detailed feedback explaining why the grade was given.
+                     Format your response as:
+                     
+                     GRADE: [Pass/Merit/Distinction]
+                     
+                     FEEDBACK:
+                     [Detailed feedback with bullet points]
+                     
+                     AREAS FOR IMPROVEMENT:
+                     [List specific areas where the student could improve]"""},
+                    {"role": "user", "content": f"Evaluate the following BTEC task submission:\n\n{task_submission}"}
                 ],
                 max_tokens=1000
             )
             
-            evaluation = response.choices[0].message.content
-            
-            # Log success but not the actual content for privacy
-            logging.info(f"Successfully evaluated task with {len(task_submission)} characters")
-            
-            return evaluation
-            
+            return response.choices[0].message.content.strip()
         except Exception as e:
-            logging.error(f"AI evaluation failed: {e}")
-            return "Evaluation failed due to a technical issue. Please try again later."
+            logging.error(f"OpenAI API error: {e}")
+            return f"Error during AI evaluation: {str(e)}"

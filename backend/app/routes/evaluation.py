@@ -1,10 +1,10 @@
 from flask import request, jsonify, current_app
-from backend.app.database import db
-from backend.app.models import Evaluation
-from backend.app.security.encryption import Vault
-from backend.app.security.token_utils import token_required
-from backend.app.services.ai_service import AIEvaluator
-from backend.app.services.blockchain_service import BlockchainService
+from ..database import db
+from ..models import Evaluation
+from ..security.encryption import Vault
+from ..security.token_utils import token_required
+from ..services.ai_service import AIEvaluator
+from ..services.blockchain_service import BlockchainService
 from . import evaluation_bp
 
 @evaluation_bp.route('/evaluate', methods=['POST'])
@@ -20,10 +20,16 @@ def evaluate(user_id):
     blockchain_service = BlockchainService()
     ai_evaluator = AIEvaluator()
 
+    # Encrypt the task submission
     encrypted_task = vault.encrypt(task)
-    grade = ai_evaluator.evaluate(task)  # Evaluate the original task for now
+    
+    # Get AI evaluation
+    grade = ai_evaluator.evaluate(task) # Evaluate the original task
+    
+    # Record grade on blockchain (or get simulated hash if blockchain is not configured)
     audit_hash = blockchain_service.record_grade(grade)
 
+    # Save to database
     new_evaluation = Evaluation(task_encrypted=encrypted_task, grade=grade, audit_hash=audit_hash, user_id=user_id)
     db.session.add(new_evaluation)
     db.session.commit()
@@ -39,12 +45,20 @@ def get_evaluations(user_id):
     evaluations = Evaluation.query.filter_by(user_id=user_id).all()
     output = []
     vault = Vault(current_app.config['ENCRYPTION_KEY'])
+    
     for evaluation in evaluations:
+        # Decrypt the task submission for viewing
+        try:
+            decrypted_task = vault.decrypt(evaluation.task_encrypted)
+        except Exception as e:
+            decrypted_task = "Error decrypting task"
+            
         output.append({
             'id': evaluation.id,
-            'task': vault.decrypt(evaluation.task_encrypted),
+            'task': decrypted_task,
             'grade': evaluation.grade,
             'audit_hash': evaluation.audit_hash,
             'submitted_at': evaluation.submitted_at
         })
+    
     return jsonify(output), 200

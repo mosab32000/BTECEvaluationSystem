@@ -1,7 +1,7 @@
 from flask import request, jsonify
-from backend.app.database import db
-from backend.app.models import User
-from backend.app.security.token_utils import generate_token
+from ..database import db
+from ..models import User
+from ..security.token_utils import generate_token
 from . import auth_bp
 from werkzeug.security import generate_password_hash, check_password_hash
 

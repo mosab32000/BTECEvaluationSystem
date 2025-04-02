@@ -20,9 +20,9 @@ class User(db.Model):
 
 class Evaluation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    task_encrypted = db.Column(db.Text, nullable=False)  # Store encrypted task
-    grade = db.Column(db.String(100))  # AI generated grade/feedback
-    audit_hash = db.Column(db.String(66))  # Blockchain transaction hash (e.g., keccak256)
+    task_encrypted = db.Column(db.Text, nullable=False) # Store encrypted task
+    grade = db.Column(db.String(100)) # AI generated grade/feedback
+    audit_hash = db.Column(db.String(66)) # Blockchain transaction hash (e.g., keccak256)
     submitted_at = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
