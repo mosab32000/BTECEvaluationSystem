@@ -40,4 +40,4 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-print("\nTest completed.")
+print("\nTest completed")leted.")
