@@ -3,6 +3,8 @@ from flask import current_app
 import logging
 import json
 import time
+import os
+import httpx
 
 class AIEvaluator:
     def __init__(self):
@@ -43,7 +45,9 @@ class AIEvaluator:
         
         try:
             # Use the OpenAI client for API v1.0.0+
-            client = OpenAI(api_key=self.api_key)
+            # Use environmental API key if available, otherwise use the configured one
+            api_key = os.environ.get('OPENAI_API_KEY') or self.api_key
+            client = OpenAI(api_key=api_key)
             start_time = time.time()
             
             # Create the AI completion using ChatGPT
@@ -124,7 +128,9 @@ class AIEvaluator:
         
         try:
             # Use the OpenAI client for API v1.0.0+
-            client = OpenAI(api_key=self.api_key)
+            # Use environmental API key if available, otherwise use the configured one
+            api_key = os.environ.get('OPENAI_API_KEY') or self.api_key
+            client = OpenAI(api_key=api_key)
             start_time = time.time()
             
             # Create the AI completion using ChatGPT with JSON output
@@ -262,7 +268,9 @@ class AIEvaluator:
         try:
             # Convert rubric to string format for the prompt
             rubric_str = json.dumps(rubric, indent=2)
-            client = OpenAI(api_key=self.api_key)
+            # Use environmental API key if available, otherwise use the configured one
+            api_key = os.environ.get('OPENAI_API_KEY') or self.api_key
+            client = OpenAI(api_key=api_key)
             start_time = time.time()
             
             response = client.chat.completions.create(
