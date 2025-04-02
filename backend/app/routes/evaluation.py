@@ -3,7 +3,7 @@ from ..database import db
 from ..models import Evaluation
 from ..security.encryption import Vault
 from ..security.token_utils import token_required
-from ..services.ai_service_direct import AIEvaluator
+from ..services.ai_service import AIEvaluator
 from ..services.blockchain_service import BlockchainService
 import json
 import logging
