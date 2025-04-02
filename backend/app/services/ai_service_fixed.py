@@ -43,8 +43,10 @@ class AIEvaluator:
             )
         
         try:
-            # Use the OpenAI client for API v1.0.0+
+            # Get API key from environment or config
             api_key = os.environ.get('OPENAI_API_KEY') or self.api_key
+            
+            # Log API key (masked) for debugging
             logging.debug(f"Creating OpenAI client with API key (masked): {api_key[:4] if api_key else 'None'}...")
             
             # Create client with only the required parameter
@@ -128,8 +130,10 @@ class AIEvaluator:
             }
         
         try:
-            # Use the OpenAI client for API v1.0.0+
+            # Get API key from environment or config
             api_key = os.environ.get('OPENAI_API_KEY') or self.api_key
+            
+            # Log API key (masked) for debugging
             logging.debug(f"Creating OpenAI client with API key (masked): {api_key[:4] if api_key else 'None'}...")
             
             # Create client with only the required parameter
@@ -271,7 +275,11 @@ class AIEvaluator:
         try:
             # Convert rubric to string format for the prompt
             rubric_str = json.dumps(rubric, indent=2)
+            
+            # Get API key from environment or config
             api_key = os.environ.get('OPENAI_API_KEY') or self.api_key
+            
+            # Log API key (masked) for debugging
             logging.debug(f"Creating OpenAI client with API key (masked): {api_key[:4] if api_key else 'None'}...")
             
             # Create client with only the required parameter
