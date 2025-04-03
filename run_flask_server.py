@@ -65,4 +65,4 @@ ensure_encryption_key()
 
 # Create and run the application
 app = create_app()
-app.run(host="0.0.0.0", port=8080, debug=True)
+app.run(host="0.0.0.0", port=8000, debug=True)

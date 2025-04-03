@@ -140,4 +140,53 @@ class BTECApi {
     static isLoggedIn() {
         return !!localStorage.getItem('token');
     }
+
+    /**
+     * الحصول على إحصائيات لوحة التحكم الإدارية
+     * @returns {Promise} وعد بالاستجابة
+     */
+    static async getAdminStats() {
+        return this.request('admin/stats', 'GET');
+    }
+
+    /**
+     * الحصول على نشاط التقييمات
+     * @param {string} period الفترة (week, month, year)
+     * @returns {Promise} وعد بالاستجابة
+     */
+    static async getEvaluationActivity(period = 'month') {
+        return this.request(`admin/evaluations/activity?period=${period}`, 'GET');
+    }
+
+    /**
+     * الحصول على توزيع التقديرات
+     * @returns {Promise} وعد بالاستجابة
+     */
+    static async getGradesDistribution() {
+        return this.request('admin/grades/distribution', 'GET');
+    }
+
+    /**
+     * الحصول على أحدث المستخدمين
+     * @returns {Promise} وعد بالاستجابة
+     */
+    static async getRecentUsers() {
+        return this.request('admin/recent/users', 'GET');
+    }
+
+    /**
+     * الحصول على أحدث التقييمات
+     * @returns {Promise} وعد بالاستجابة
+     */
+    static async getRecentEvaluations() {
+        return this.request('admin/recent/evaluations', 'GET');
+    }
+
+    /**
+     * الحصول على مؤشرات أداء النظام
+     * @returns {Promise} وعد بالاستجابة
+     */
+    static async getSystemMetrics() {
+        return this.request('admin/system/metrics', 'GET');
+    }
 }
