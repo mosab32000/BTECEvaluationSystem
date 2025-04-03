@@ -43,9 +43,10 @@ def create_app(config_name='default'):
         return "System operational", 200
     
     # Import API blueprints
-    from .routes import auth_bp, evaluation_bp
+    from .routes import auth_bp, evaluation_bp, admin_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(evaluation_bp)
+    app.register_blueprint(admin_bp)
     
     # Import frontend blueprint
     # تأكد من أن مسار frontend مضاف إلى sys.path
@@ -79,7 +80,8 @@ def create_app(config_name='default'):
                     "/health",
                     "/auth/register",
                     "/auth/login",
-                    "/evaluation/*"
+                    "/evaluation/*",
+                    "/admin/*"
                 ]
             }, 200
 

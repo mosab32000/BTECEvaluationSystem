@@ -74,6 +74,21 @@ def verify():
     """صفحة التحقق من صحة تقييم"""
     return render_template('verify.html')
 
+@frontend.route('/admin')
+def admin_dashboard():
+    """لوحة التحكم الإدارية"""
+    # التحقق من تسجيل الدخول ومن أن المستخدم هو مدير
+    if not session.get('user_id'):
+        flash('يرجى تسجيل الدخول للوصول إلى لوحة التحكم الإدارية', 'error')
+        return redirect(url_for('frontend.login'))
+    
+    # في الإصدار النهائي، يجب التحقق من صلاحيات المستخدم
+    # مثال: if not current_user.is_admin:
+    #           flash('ليس لديك صلاحية للوصول إلى لوحة التحكم الإدارية', 'error')
+    #           return redirect(url_for('frontend.dashboard'))
+    
+    return render_template('admin_dashboard.html')
+
 @frontend.route('/logout')
 def logout():
     """تسجيل الخروج"""

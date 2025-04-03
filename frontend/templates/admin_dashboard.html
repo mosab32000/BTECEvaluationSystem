@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم الإدارية - نظام تقييم BTEC{% endblock %}
+
+{% block header %}لوحة التحكم الإدارية{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <!-- البطاقات الإحصائية -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">إجمالي المستخدمين</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="h1 mb-0" id="total-users">-</div>
+                        <div class="ms-auto">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">إجمالي التقييمات</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="h1 mb-0" id="total-evaluations">-</div>
+                        <div class="ms-auto">
+                            <i class="fas fa-clipboard-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">تقييمات اليوم</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="h1 mb-0" id="today-evaluations">-</div>
+                        <div class="ms-auto">
+                            <i class="fas fa-calendar-day fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">نسبة النجاح</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="h1 mb-0" id="success-rate">-</div>
+                        <div class="ms-auto">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية والجداول -->
+    <div class="row mb-4">
+        <!-- مخطط نشاط التقييم -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">نشاط التقييم</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary period-btn active" data-period="week">أسبوع</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary period-btn" data-period="month">شهر</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary period-btn" data-period="year">سنة</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="activity-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- توزيع التقديرات -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">توزيع التقديرات</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="grades-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- أحدث المستخدمين -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">أحدث المستخدمين</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">البريد الإلكتروني</th>
+                                    <th scope="col">تاريخ التسجيل</th>
+                                    <th scope="col">التقييمات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-users">
+                                <tr><td colspan="4" class="text-center">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- أحدث التقييمات -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">أحدث التقييمات</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">المستخدم</th>
+                                    <th scope="col">الدرجة</th>
+                                    <th scope="col">التاريخ</th>
+                                    <th scope="col">التحقق</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-evaluations">
+                                <tr><td colspan="5" class="text-center">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مؤشرات أداء النظام -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">مؤشرات أداء النظام</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <div>متوسط وقت التقييم</div>
+                                <div class="fw-bold" id="avg-evaluation-time">-</div>
+                            </div>
+                            <div class="progress mt-2">
+                                <div id="avg-time-progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <div>حالة API</div>
+                                <div class="fw-bold" id="api-status">-</div>
+                            </div>
+                            <div class="progress mt-2">
+                                <div id="api-status-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <div>استخدام الموارد</div>
+                                <div class="fw-bold" id="resource-usage">-</div>
+                            </div>
+                            <div class="progress mt-2">
+                                <div id="resource-usage-progress" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+
+<script>
+// الألوان المستخدمة في المخططات
+const chartColors = {
+    primary: '#4e73df',
+    success: '#1cc88a',
+    info: '#36b9cc',
+    warning: '#f6c23e',
+    danger: '#e74a3b',
+    secondary: '#858796',
+    light: '#f8f9fc',
+    dark: '#5a5c69'
+};
+
+// تحديثات DOM
+function updateDashboardStats(data) {
+    document.getElementById('total-users').textContent = data.total_users;
+    document.getElementById('total-evaluations').textContent = data.total_evaluations;
+    document.getElementById('today-evaluations').textContent = data.today_evaluations;
+    document.getElementById('success-rate').textContent = data.success_rate;
+}
+
+function updateSystemMetrics(data) {
+    document.getElementById('avg-evaluation-time').textContent = data.avg_evaluation_time;
+    document.getElementById('avg-time-progress').style.width = `${data.avg_time_percentage}%`;
+    
+    document.getElementById('api-status').textContent = data.api_status;
+    document.getElementById('api-status-progress').style.width = `${data.api_status_percentage}%`;
+    
+    document.getElementById('resource-usage').textContent = data.resource_usage;
+    document.getElementById('resource-usage-progress').style.width = `${data.resource_usage_percentage}%`;
+}
+
+// تحميل قائمة أحدث المستخدمين
+function updateRecentUsers(users) {
+    const tableBody = document.getElementById('recent-users');
+    if (!users || users.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center">لا توجد بيانات</td></tr>';
+        return;
+    }
+    
+    tableBody.innerHTML = '';
+    users.forEach(user => {
+        tableBody.innerHTML += `
+            <tr>
+                <td>${user.id}</td>
+                <td>${user.email}</td>
+                <td>${user.registered}</td>
+                <td>${user.evaluations}</td>
+            </tr>
+        `;
+    });
+}
+
+// تحميل قائمة أحدث التقييمات
+function updateRecentEvaluations(evaluations) {
+    const tableBody = document.getElementById('recent-evaluations');
+    if (!evaluations || evaluations.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد بيانات</td></tr>';
+        return;
+    }
+    
+    tableBody.innerHTML = '';
+    evaluations.forEach(eval => {
+        const verifiedBadge = eval.verified 
+            ? '<span class="badge bg-success">تم التحقق</span>' 
+            : '<span class="badge bg-secondary">غير محقق</span>';
+            
+        tableBody.innerHTML += `
+            <tr>
+                <td>${eval.id}</td>
+                <td>${eval.user}</td>
+                <td>${eval.grade}</td>
+                <td>${eval.date}</td>
+                <td>${verifiedBadge}</td>
+            </tr>
+        `;
+    });
+}
+
+// مخططات Chart.js
+let activityChart = null;
+let gradesChart = null;
+
+function createActivityChart(labels, data) {
+    const ctx = document.getElementById('activity-chart').getContext('2d');
+    
+    // تدمير المخطط السابق إذا كان موجوداً
+    if (activityChart) {
+        activityChart.destroy();
+    }
+    
+    activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'عدد التقييمات',
+                data: data,
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                borderColor: chartColors.primary,
+                borderWidth: 2,
+                pointBackgroundColor: chartColors.primary,
+                pointBorderColor: '#fff',
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: chartColors.primary,
+                pointHoverBorderColor: '#fff',
+                pointHitRadius: 10,
+                pointBorderWidth: 2,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createGradesChart(labels, data) {
+    const ctx = document.getElementById('grades-chart').getContext('2d');
+    
+    // تدمير المخطط السابق إذا كان موجوداً
+    if (gradesChart) {
+        gradesChart.destroy();
+    }
+    
+    const gradeColors = [
+        chartColors.success,
+        chartColors.info,
+        chartColors.primary, 
+        chartColors.warning,
+        chartColors.danger
+    ];
+    
+    gradesChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: gradeColors,
+                hoverBackgroundColor: gradeColors,
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                }
+            }
+        }
+    });
+}
+
+// API طلبات
+async function fetchDashboardStats() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = "{{ url_for('frontend.login') }}";
+            return;
+        }
+        
+        const response = await fetch('/admin/stats', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('فشل استرجاع إحصائيات لوحة التحكم');
+        }
+        
+        const data = await response.json();
+        updateDashboardStats(data);
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('فشل تحميل إحصائيات لوحة التحكم', 'error');
+    }
+}
+
+async function fetchEvaluationActivity(period = 'month') {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch(`/admin/evaluations/activity?period=${period}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('فشل استرجاع بيانات نشاط التقييم');
+        }
+        
+        const data = await response.json();
+        createActivityChart(data.labels, data.data);
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('فشل تحميل بيانات نشاط التقييم', 'error');
+    }
+}
+
+async function fetchGradesDistribution() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch('/admin/grades/distribution', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('فشل استرجاع بيانات توزيع التقديرات');
+        }
+        
+        const data = await response.json();
+        createGradesChart(data.labels, data.data);
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('فشل تحميل بيانات توزيع التقديرات', 'error');
+    }
+}
+
+async function fetchRecentUsers() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch('/admin/recent/users', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('فشل استرجاع بيانات المستخدمين الأخيرة');
+        }
+        
+        const data = await response.json();
+        updateRecentUsers(data);
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('فشل تحميل بيانات المستخدمين الأخيرة', 'error');
+    }
+}
+
+async function fetchRecentEvaluations() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch('/admin/recent/evaluations', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('فشل استرجاع بيانات التقييمات الأخيرة');
+        }
+        
+        const data = await response.json();
+        updateRecentEvaluations(data);
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('فشل تحميل بيانات التقييمات الأخيرة', 'error');
+    }
+}
+
+async function fetchSystemMetrics() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch('/admin/system/metrics', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('فشل استرجاع مؤشرات أداء النظام');
+        }
+        
+        const data = await response.json();
+        updateSystemMetrics(data);
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('فشل تحميل مؤشرات أداء النظام', 'error');
+    }
+}
+
+// معالجة أحداث الفترة الزمنية
+document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // إزالة الفئة النشطة من جميع الأزرار
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        // إضافة الفئة النشطة للزر المحدد
+        e.target.classList.add('active');
+        
+        // تحميل بيانات النشاط للفترة المحددة
+        const period = e.target.dataset.period;
+        fetchEvaluationActivity(period);
+    });
+});
+
+// وظيفة عرض رسائل للمستخدم
+function showMessage(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // إضافة التنبيه في بداية المحتوى
+    const contentContainer = document.querySelector('.content-container');
+    contentContainer.insertBefore(alertDiv, contentContainer.firstChild);
+    
+    // إزالة التنبيه تلقائيًا بعد 5 ثواني
+    setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 5000);
+}
+
+// تحميل البيانات عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+    fetchDashboardStats();
+    fetchEvaluationActivity('month');
+    fetchGradesDistribution();
+    fetchRecentUsers();
+    fetchRecentEvaluations();
+    fetchSystemMetrics();
+    
+    // تحديث البيانات كل دقيقة
+    setInterval(() => {
+        fetchDashboardStats();
+        const activePeriodBtn = document.querySelector('.period-btn.active');
+        if (activePeriodBtn) {
+            fetchEvaluationActivity(activePeriodBtn.dataset.period);
+        }
+        fetchSystemMetrics();
+    }, 60000);
+});
+</script>
+{% endblock %}
