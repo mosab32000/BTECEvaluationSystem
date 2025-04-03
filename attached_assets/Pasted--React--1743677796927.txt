@@ -1,0 +1,214 @@
+فيما يلي الكود الكامل للواجهة الأمامية باستخدام React مع دمج الصفحتين: "الحصص التفاعلية" و"سجل الحضور والغياب". يُفترض أن يكون المشروع مبنيًا باستخدام create-react-app. يُرجى التأكد من تثبيت مكتبة Axios وreact-router-dom عبر الأمر:
+
+```bash
+npm install axios react-router-dom
+```
+
+---
+
+### 1. ملف **InteractiveSessions.js**  
+هذه الصفحة تتيح للمستخدم إنشاء جلسة تفاعلية جديدة وعرض قائمة الجلسات الحالية.
+
+```jsx
+// src/components/InteractiveSessions.js
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const InteractiveSessions = () => {
+  const [title, setTitle] = useState('');
+  const [sessionDate, setSessionDate] = useState('');
+  const [sessionTime, setSessionTime] = useState('');
+  const [description, setDescription] = useState('');
+  const [sessions, setSessions] = useState([]);
+
+  // دالة لجلب جميع الجلسات من السيرفر
+  const fetchSessions = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/sessions');
+      setSessions(response.data);
+    } catch (error) {
+      console.error('خطأ في جلب الجلسات:', error);
+    }
+  };
+
+  // استدعاء الدالة عند تحميل الصفحة
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  // دالة لإنشاء جلسة جديدة
+  const createSession = async (e) => {
+    e.preventDefault();
+    try {
+      // يجب إضافة توكن المصادقة في الهيدر إذا كان النظام يستخدم JWT
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5000/sessions', {
+        title,
+        session_date: sessionDate,
+        session_time: sessionTime,
+        description
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setTitle('');
+      setSessionDate('');
+      setSessionTime('');
+      setDescription('');
+      fetchSessions();
+    } catch (error) {
+      console.error('خطأ في إنشاء الجلسة:', error);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>الحصص التفاعلية</h1>
+      <form onSubmit={createSession} style={{ marginBottom: '20px' }}>
+        <div>
+          <label>عنوان الجلسة:</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>تاريخ الجلسة:</label>
+          <input
+            type="date"
+            value={sessionDate}
+            onChange={(e) => setSessionDate(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>وقت الجلسة:</label>
+          <input
+            type="time"
+            value={sessionTime}
+            onChange={(e) => setSessionTime(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>الوصف:</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          ></textarea>
+        </div>
+        <button type="submit">إنشاء الجلسة</button>
+      </form>
+
+      <h2>قائمة الجلسات</h2>
+      {sessions.length === 0 ? (
+        <p>لا توجد جلسات متاحة.</p>
+      ) : (
+        <table border="1" cellPadding="10">
+          <thead>
+            <tr>
+              <th>المعرف</th>
+              <th>العنوان</th>
+              <th>التاريخ</th>
+              <th>الوقت</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.map((session) => (
+              <tr key={session.id}>
+                <td>{session.id}</td>
+                <td>{session.title}</td>
+                <td>{session.date}</td>
+                <td>{session.time}</td>
+                <td>{session.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
+export default InteractiveSessions;
+```
+
+---
+
+### 2. ملف **AttendanceRecord.js**  
+هذه الصفحة تُسجل الحضور والغياب وتعرض سجل الطلاب.
+
+```jsx
+// src/components/AttendanceRecord.js
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const AttendanceRecord = () => {
+  const [studentId, setStudentId] = useState('');
+  const [attendanceDate, setAttendanceDate] = useState('');
+  const [status, setStatus] = useState('present');
+  const [records, setRecords] = useState([]);
+
+  // دالة لجلب سجلات الحضور من السيرفر
+  const fetchAttendance = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/attendance', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setRecords(response.data);
+    } catch (error) {
+      console.error('خطأ في جلب سجلات الحضور:', error);
+    }
+  };
+
+  // استدعاء الدالة عند تحميل الصفحة
+  useEffect(() => {
+    fetchAttendance();
+  }, []);
+
+  // دالة لتسجيل الحضور أو الغياب
+  const recordAttendance = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:5000/attendance', {
+        student_id: studentId,
+        attendance_date: attendanceDate || new Date().toISOString().split('T')[0],
+        status
+      }, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setStudentId('');
+      setAttendanceDate('');
+      setStatus('present');
+      fetchAttendance();
+    } catch (error) {
+      console.error('خطأ في تسجيل الحضور:', error);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>سجل الحضور والغياب</h1>
+      <form onSubmit={recordAttendance} style={{ marginBottom: '20px' }}>
+        <div>
+          <label>معرف الطالب:</label>
+          <input
+            type="number"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>تاريخ الحضور:</label>
+          <input
+            type="date"
+            value={attendanceDate}
+            onChange={(e) => setAttendanceDate(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>الحالة:</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>\n            <option value=\"present\">حاضر</option>\n            <option value=\"absent\">غائب</option>\n          </select>\n        </div>\n        <button type=\"submit\">تسجيل الحضور</button>\n      </form>\n      <h2>سجلات الحضور</h2>\n      {records.length === 0 ? (\n        <p>لا توجد سجلات متاحة.</p>\n      ) : (\n        <table border=\"1\" cellPadding=\"10\">\n          <thead>\n            <tr>\n              <th>معرف الطالب</th>\n              <th>التاريخ</th>\n              <th>الحالة</th>\n            </tr>\n          </thead>\n          <tbody>\n            {records.map((record, index) => (\n              <tr key={index}>\n                <td>{record.student_id}</td>\n                <td>{record.date}</td>\n                <td>{record.status}</td>\n              </tr>\n            ))}\n          </tbody>\n        </table>\n      )}\n    </div>\n  );\n};\n\nexport default AttendanceRecord;\n"}

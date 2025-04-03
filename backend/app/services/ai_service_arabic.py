@@ -92,15 +92,16 @@ class AIEvaluatorArabic:
             
             return response.choices[0].message.content.strip()
         
-        except openai.error.RateLimitError:
-            logger.error("تم تجاوز حد معدل OpenAI API")
-            return "خطأ: تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا."
-        except openai.error.AuthenticationError:
-            logger.error("خطأ في مصادقة OpenAI API")
-            return "خطأ: فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API."
         except Exception as e:
-            logger.error(f"خطأ في OpenAI API: {e}")
-            return f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}"
+            if "RateLimitError" in str(e) or "rate_limit" in str(e).lower():
+                logger.error("تم تجاوز حد معدل OpenAI API")
+                return "خطأ: تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا."
+            elif "AuthenticationError" in str(e) or "authentication" in str(e).lower():
+                logger.error("خطأ في مصادقة OpenAI API")
+                return "خطأ: فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API."
+            else:
+                logger.error(f"خطأ في OpenAI API: {e}")
+                return f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}"
     
     def evaluate_arabic_json(self, task: str) -> Dict[str, Any]:
         """
@@ -158,33 +159,34 @@ class AIEvaluatorArabic:
             content = response.choices[0].message.content.strip()
             return json.loads(content)
         
-        except openai.error.RateLimitError:
-            logger.error("تم تجاوز حد معدل OpenAI API")
-            return {
-                "درجة": "خطأ",
-                "تلخيص": "تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا.",
-                "نقاط_القوة": [],
-                "مجالات_التحسين": [],
-                "توصيات": ["حاول مرة أخرى لاحقًا"]
-            }
-        except openai.error.AuthenticationError:
-            logger.error("خطأ في مصادقة OpenAI API")
-            return {
-                "درجة": "خطأ",
-                "تلخيص": "فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API.",
-                "نقاط_القوة": [],
-                "مجالات_التحسين": [],
-                "توصيات": ["تحقق من صلاحية مفتاح API"]
-            }
         except Exception as e:
-            logger.error(f"خطأ في OpenAI API: {e}")
-            return {
-                "درجة": "خطأ",
-                "تلخيص": f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}",
-                "نقاط_القوة": [],
-                "مجالات_التحسين": [],
-                "توصيات": ["حاول مرة أخرى لاحقًا"]
-            }
+            if "RateLimitError" in str(e) or "rate_limit" in str(e).lower():
+                logger.error("تم تجاوز حد معدل OpenAI API")
+                return {
+                    "درجة": "خطأ",
+                    "تلخيص": "تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا.",
+                    "نقاط_القوة": [],
+                    "مجالات_التحسين": [],
+                    "توصيات": ["حاول مرة أخرى لاحقًا"]
+                }
+            elif "AuthenticationError" in str(e) or "authentication" in str(e).lower():
+                logger.error("خطأ في مصادقة OpenAI API")
+                return {
+                    "درجة": "خطأ",
+                    "تلخيص": "فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API.",
+                    "نقاط_القوة": [],
+                    "مجالات_التحسين": [],
+                    "توصيات": ["تحقق من صلاحية مفتاح API"]
+                }
+            else:
+                logger.error(f"خطأ في OpenAI API: {e}")
+                return {
+                    "درجة": "خطأ",
+                    "تلخيص": f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}",
+                    "نقاط_القوة": [],
+                    "مجالات_التحسين": [],
+                    "توصيات": ["حاول مرة أخرى لاحقًا"]
+                }
     
     def detect_language(self, text: str) -> str:
         """
