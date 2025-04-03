@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أرشيف المحادثة الكامل: تطوير تطبيق التدقيق والتقييم</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        
+        /* تصميم الرأس العلوي */
+        .header {
+            background-color: #0056b3;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        /* المحتوى الرئيسي */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            color: #0056b3; /* Blue color for headers */
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        
+        h1 {
+            font-size: 2em;
+            border-bottom: 2px solid #0056b3;
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            font-size: 1.7em;
+            color: #004085;
+        }
+        
+        h3 {
+            font-size: 1.4em;
+            color: #0062cc;
+        }
+        
+        pre {
+            background-color: #282c34; /* Dark background for code */
+            color: #e6e6e6; /* Light text for contrast */
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto; /* Handle long lines of code */
+            white-space: pre-wrap; /* Wrap long lines */
+            word-wrap: break-word; /* Break long words/lines */
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin: 15px 0;
+        }
+        
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #282c34;
+            color: #e6e6e6;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        /* نمط كتل الكود */
+        .code-block {
+            margin: 20px 0;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        
+        .code-language {
+            background-color: #444;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px 5px 0 0;
+            font-size: 0.8em;
+        }
+        
+        blockquote {
+            background-color: #f8f9fa;
+            border-right: 5px solid #0056b3; /* Changed border side for RTL */
+            padding: 15px;
+            padding-right: 20px; /* Changed padding side for RTL */
+            margin-right: 0; /* Reset margin for RTL */
+            margin-left: 15px; /* Add left margin for RTL */
+            font-style: italic;
+            color: #555;
+            border-radius: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: right; /* Align text to right for RTL */
+        }
+        
+        th {
+            background-color: #0056b3;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        tr:hover {
+            background-color: #e0e0e0;
+        }
+        
+        /* أنماط الرسائل */
+        .user-message {
+            background-color: #e7f3ff; /* Light blue background for user messages */
+            padding: 15px;
+            margin-bottom: 20px;
+            border-right: 5px solid #0056b3; /* Blue border on right */
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .assistant-message {
+            background-color: #f9f9f9; /* Light grey background for assistant messages */
+            padding: 15px;
+            margin-bottom: 20px;
+            border-right: 5px solid #6c757d; /* Grey border on right */
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        /* عنوان الملف */
+        .file-header {
+            font-weight: bold;
+            color: #d9534f; /* Reddish color for file names */
+            margin-top: 20px;
+            margin-bottom: 5px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border-right: 3px solid #d9534f;
+        }
+        
+        /* القسم */
+        .section {
+            margin-bottom: 40px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* مقدمة */
+        .intro {
+            background-color: #e8f4f8;
+            border-right: 5px solid #17a2b8;
+        }
+        
+        /* فاصل */
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            font-weight: bold;
+            color: #0275d8;
+            position: relative;
+        }
+        
+        .divider::before {
+            content: "";
+            display: block;
+            width: 100%;
+            height: 1px;
+            background-color: #ccc;
+            position: absolute;
+            top: 50%;
+            z-index: -1;
+        }
+        
+        .divider span {
+            background-color: #f4f4f4;
+            padding: 0 20px;
+        }
+        
+        /* تحذير */
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            position: relative;
+            padding-right: 35px;
+        }
+        
+        .warning::before {
+            content: "⚠";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5em;
+        }
+        
+        /* سياقات المشروع */
+        .context-task-audit { 
+            border-right: 5px solid #dc3545; 
+            padding: 15px;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .context-btec { 
+            border-right: 5px solid #20c997; 
+            padding: 15px;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        /* أزرار التنقل */
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+        
+        .nav-button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5em;
+            cursor: pointer;
+            margin-right: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .nav-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        
+        .top-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .top-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        
+        /* تصميم متجاوب */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            h2 {
+                font-size: 1.5em;
+            }
+            
+            h3 {
+                font-size: 1.3em;
+            }
+            
+            pre {
+                font-size: 0.8em;
+            }
+            
+            .nav-buttons {
+                bottom: 10px;
+                left: 10px;
+            }
+            
+            .nav-button {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2em;
+            }
+            
+            .top-button {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2em;
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+        
+        /* تحميل */
+        #loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #0056b3;
+        }
+        
+        /* جعل الصفحة تستجيب لحجم النص */
+        .chat-archive {
+            max-width: 100%;
+        }
+        
+        /* فهرس المحتويات */
+        .table-of-contents {
+            background-color: #f8f9fa;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .table-of-contents h2 {
+            margin-top: 0;
+            color: #0056b3;
+            font-size: 1.4em;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .table-of-contents ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .table-of-contents li {
+            margin-bottom: 8px;
+            padding-right: 15px;
+            position: relative;
+        }
+        
+        .table-of-contents li:before {
+            content: "►";
+            color: #0056b3;
+            position: absolute;
+            right: 0;
+            font-size: 0.7em;
+            top: 5px;
+        }
+        
+        .table-of-contents a {
+            color: #0056b3;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: block;
+            padding: 5px 0;
+        }
+        
+        .table-of-contents a:hover {
+            color: #003d82;
+            text-decoration: underline;
+            transform: translateX(-5px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>أرشيف المحادثة الكامل: تطوير تطبيق التدقيق والتقييم</h1>
+</div>
+
+<div class="container">
+    <p>هذه الصفحة تحتوي على النص الكامل للمحادثة، بما في ذلك الأكواد والشروحات المتعلقة بتطوير "Task Audit App" (Django/React) و"نظام تقييم BTEC" (Flask).</p>
+
+    <div id="content">
+        <div id="loading">جاري تحميل المحتوى...</div>
+    </div>
+</div>
+
+<!-- زر العودة إلى الأعلى -->
+<div class="top-button" id="topButton" style="display:none;">↑</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تفعيل زر العودة إلى الأعلى
+        const topButton = document.getElementById('topButton');
+        
+        // عرض/إخفاء زر العودة إلى الأعلى عند التمرير
+        window.onscroll = function() {
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                topButton.style.display = "flex";
+            } else {
+                topButton.style.display = "none";
+            }
+        };
+        
+        // وظيفة العودة إلى الأعلى عند النقر على الزر
+        topButton.addEventListener('click', function() {
+            document.body.scrollTop = 0; // للمتصفحات القديمة
+            document.documentElement.scrollTop = 0; // للمتصفحات الحديثة
+        });
+        
+        // يتم تحميل المحتوى من ملف نصي
+        fetch('attached_assets/Pasted---1743640638958.txt')
+            .then(response => response.text())
+            .then(content => {
+                const contentDiv = document.getElementById('content');
+                
+                // إنشاء عناصر لعرض المحتوى
+                let htmlContent = '<div class="chat-archive">';
+                
+                // تقسيم المحتوى إلى أجزاء بناءً على --- START OF HTML FILE --- وما إلى ذلك
+                if (content.includes('--- START OF HTML FILE ---')) {
+                    // استخراج محتوى HTML إذا كان موجودًا
+                    const htmlMatch = content.match(/--- START OF HTML FILE ---\s*([\s\S]*?)(\n*?--- END OF HTML FILE ---|$)/);
+                    if (htmlMatch && htmlMatch[1]) {
+                        htmlContent += '<div class="section">';
+                        htmlContent += '<h2>محتوى ملف HTML المجمّع</h2>';
+                        htmlContent += '<div class="code-block">';
+                        htmlContent += '<pre>' + htmlMatch[1].replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+                        htmlContent += '</div>';
+                        htmlContent += '</div>';
+                    }
+                } else {
+                    // معالجة المحتوى العادي
+                    const cleanContent = content.replace(/^.*?--- START OF FILE App\.py ---/s, '--- START OF FILE App.py ---');
+                    
+                    // تقسيم المحتوى إلى فقرات وتحليلها
+                    const paragraphs = cleanContent.split(/\n\n+/);
+                    let inCodeBlock = false;
+                    let currentCodeBlock = '';
+                    let currentSection = null;
+                    
+                    htmlContent += '<div class="section intro">';
+                    
+                    paragraphs.forEach(paragraph => {
+                        if (!paragraph.trim()) return;
+                        
+                        // التحقق من عناوين الأقسام الكبيرة
+                        if (paragraph.startsWith('# ')) {
+                            if (currentSection) {
+                                htmlContent += '</div>'; // إغلاق القسم السابق
+                            }
+                            currentSection = paragraph.substring(2);
+                            htmlContent += `<div class="section"><h2>${currentSection}</h2>`;
+                            return;
+                        }
+                        
+                        // إذا كنا في بداية كتلة كود
+                        if (paragraph.includes('```') && !inCodeBlock) {
+                            inCodeBlock = true;
+                            currentCodeBlock = paragraph;
+                            return;
+                        }
+                        
+                        // إذا كنا في نهاية كتلة كود
+                        if (paragraph.includes('```') && inCodeBlock) {
+                            inCodeBlock = false;
+                            currentCodeBlock += '\n\n' + paragraph;
+                            htmlContent += processCode(currentCodeBlock);
+                            currentCodeBlock = '';
+                            return;
+                        }
+                        
+                        // إذا كنا داخل كتلة كود
+                        if (inCodeBlock) {
+                            currentCodeBlock += '\n\n' + paragraph;
+                            return;
+                        }
+                        
+                        // معالجة أنواع المحتوى المختلفة
+                        htmlContent += processContent(paragraph);
+                    });
+                    
+                    // إغلاق القسم الأخير إذا لزم الأمر
+                    if (currentSection) {
+                        htmlContent += '</div>';
+                    } else {
+                        htmlContent += '</div>'; // إغلاق قسم المقدمة
+                    }
+                }
+                
+                htmlContent += '</div>'; // إغلاق .chat-archive
+                
+                // عرض المحتوى
+                contentDiv.innerHTML = htmlContent;
+                
+                // إضافة فهرس للمحتوى
+                addTableOfContents();
+            })
+            .catch(error => {
+                console.error('خطأ في تحميل المحتوى:', error);
+                document.getElementById('content').innerHTML = '<p class="warning">حدث خطأ أثناء تحميل المحتوى. الرجاء المحاولة مرة أخرى لاحقاً.</p>';
+            });
+    });
+    
+    // دالة لمعالجة الفقرات العادية وتحويلها إلى HTML
+    function processContent(paragraph) {
+        // التعامل مع أنماط مختلفة من المحتوى
+        if (paragraph.includes('class=') || 
+            paragraph.includes('function ') || paragraph.includes('def ') ||
+            paragraph.includes('import ') || paragraph.includes('<script>') ||
+            paragraph.includes('<style>') || paragraph.includes('@app.route')) {
+            
+            // محتوى كود
+            return '<div class="code-block"><pre><code>' + 
+                   paragraph.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
+                   '</code></pre></div>';
+        } else if (paragraph.startsWith('## ')) {
+            // العناوين الفرعية
+            return '<h3>' + paragraph.substring(3) + '</h3>';
+        } else if (paragraph.startsWith('### ')) {
+            // العناوين الفرعية المستوى الثالث
+            return '<h4>' + paragraph.substring(4) + '</h4>';
+        } else if (paragraph.startsWith('- ') || paragraph.startsWith('* ')) {
+            // القوائم غير المرتبة
+            const items = paragraph.split(/\n- |\n\* /g);
+            let html = '<ul>';
+            items.forEach(item => {
+                if (item.trim()) {
+                    let cleanItem = item;
+                    if (cleanItem.startsWith('- ') || cleanItem.startsWith('* ')) {
+                        cleanItem = cleanItem.substring(2);
+                    }
+                    html += '<li>' + cleanItem + '</li>';
+                }
+            });
+            html += '</ul>';
+            return html;
+        } else if (/^\d+\.\s/.test(paragraph)) {
+            // القوائم المرتبة
+            const items = paragraph.split(/\n\d+\.\s/g);
+            let html = '<ol>';
+            items.forEach(item => {
+                if (item.trim()) {
+                    let cleanItem = item;
+                    if (/^\d+\.\s/.test(cleanItem)) {
+                        cleanItem = cleanItem.replace(/^\d+\.\s/, '');
+                    }
+                    html += '<li>' + cleanItem + '</li>';
+                }
+            });
+            html += '</ol>';
+            return html;
+        } else if (paragraph.startsWith('> ')) {
+            // اقتباسات
+            return '<blockquote>' + paragraph.substring(2).replace(/\n> /g, '<br>') + '</blockquote>';
+        } else if (paragraph.startsWith('Task:') || paragraph.startsWith('File:') || 
+                  paragraph.includes('requirements.txt:') || paragraph.includes('/models.py:')) {
+            // عناوين الملفات أو المهام
+            return '<div class="file-header">' + paragraph + '</div>';
+        } else {
+            // فقرات نصية عادية
+            return '<p>' + paragraph + '</p>';
+        }
+    }
+    
+    // دالة لمعالجة كتل الكود بشكل خاص
+    function processCode(codeBlock) {
+        const codeMatch = codeBlock.match(/```(?:(\w+))?\s*([\s\S]*?)```/);
+        if (codeMatch) {
+            let html = '<div class="code-block">';
+            if (codeMatch[1]) { // لغة الكود معرفة
+                html += '<div class="code-language">' + codeMatch[1] + '</div>';
+            }
+            html += '<pre><code>' + codeMatch[2].replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
+            html += '</div>';
+            return html;
+        } else {
+            return '<div class="code-block"><pre><code>' + 
+                   codeBlock.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
+                   '</code></pre></div>';
+        }
+    }
+    
+    // دالة لإنشاء فهرس المحتويات
+    function addTableOfContents() {
+        const sections = document.querySelectorAll('.section h2');
+        if (sections.length <= 1) return; // لا داعي للفهرس إذا كان هناك قسم واحد فقط
+        
+        const content = document.getElementById('content');
+        const toc = document.createElement('div');
+        toc.className = 'table-of-contents';
+        toc.innerHTML = '<h2>فهرس المحتويات</h2><ul></ul>';
+        
+        sections.forEach((section, index) => {
+            if (section.textContent && section.textContent !== "فهرس المحتويات") {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                
+                // إضافة معرف للقسم للربط به
+                const id = 'section-' + index;
+                section.id = id;
+                
+                a.href = '#' + id;
+                a.textContent = section.textContent;
+                li.appendChild(a);
+                toc.querySelector('ul').appendChild(li);
+            }
+        });
+        
+        // إضافة الفهرس في بداية المحتوى بعد المقدمة
+        const firstSection = document.querySelector('.section');
+        if (firstSection) {
+            content.insertBefore(toc, firstSection.nextSibling);
+        } else {
+            content.insertBefore(toc, content.firstChild);
+        }
+    }
+</script>
+
+</body>
+</html>
