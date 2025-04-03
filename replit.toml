@@ -1,17 +1,12 @@
-# replit.toml
-run = "bash -c 'python -c \"import os; print(f\\\"Running BTEC Evaluation System on port 8000\\nServer URL: https://{os.environ.get(\\'REPL_SLUG\\', \\'btec-evaluation-system\\')}.{os.environ.get(\\'REPL_OWNER\\', \\'user\\')}.repl.co\\\")\"'; cd \"$(dirname \"$0\")\" && python backend/wsgi.py'"
+[run]
+command = ["./run_btec_server.sh"]
 language = "python3"
-hidden = [".config", "venv", ".upm", ".pythonlibs"]
-entrypoint = "app.py"
 
 [env]
-FLASK_APP = "backend.wsgi"
+PYTHONUNBUFFERED = "1"
+PORT = "3000"
+FLASK_APP = "main.py"
 FLASK_ENV = "development"
-PYTHONPATH = "."
 
-[nix]
-channel = "stable-22_11"
-
-[deployment]
-run = ["sh", "-c", "python backend/wsgi.py"]
-deploymentTarget = "cloudrun"
+[dev]
+port = 3000
