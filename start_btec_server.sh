@@ -1,5 +1,5 @@
 #!/bin/bash
 
-# Start the BTEC Evaluation System server
-echo "Starting BTEC Evaluation System server..."
-exec python start_server.py
+# تشغيل خادم التقييم BTEC
+echo "Starting BTEC Evaluation Server..."
+python run_flask_server.py
