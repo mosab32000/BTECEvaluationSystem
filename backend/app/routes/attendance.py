@@ -2,14 +2,13 @@
 وحدة واجهة برمجة التطبيقات لإدارة سجل الحضور والغياب في نظام تقييم BTEC
 """
 
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from backend.app.database import db
-from backend.app.models import User, Student, Attendance
+from ..database import db
+from ..models import User
+from ..models.attendance import Student, Attendance
 from datetime import datetime
-
-# إنشاء مخطط Blueprint
-attendance_bp = Blueprint('attendance', __name__)
+from . import attendance_bp
 
 @attendance_bp.route('/attendance', methods=['GET'])
 @jwt_required()
