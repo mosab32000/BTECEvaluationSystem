@@ -209,6 +209,13 @@ def setup_database():
             db.create_all()
             logger.info("تم إنشاء جداول قاعدة البيانات بنجاح.")
             
+            # إنشاء المسؤول الرئيسي (مصعب الحلالة)
+            from backend.app.seeds.admin_user import create_admin_user
+            if create_admin_user():
+                logger.info("تم إنشاء/تحديث حساب المسؤول الرئيسي بنجاح.")
+            else:
+                logger.warning("فشل في إنشاء/تحديث حساب المسؤول الرئيسي.")
+            
             # إنشاء المسؤول الافتراضي
             create_default_admin()
             

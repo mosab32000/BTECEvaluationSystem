@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import time
-from openai import OpenAI
+import openai
 
 class AIEvaluatorDirect:
     """
@@ -53,12 +53,12 @@ class AIEvaluatorDirect:
             )
         
         try:
-            # Initialize the OpenAI client with just the API key
-            client = OpenAI(api_key=self.api_key)
+            # Set the API key for OpenAI
+            openai.api_key = self.api_key
             start_time = time.time()
             
             # Create the AI completion using ChatGPT
-            response = client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
                 # do not change this unless explicitly requested by the user
                 messages=[
@@ -134,12 +134,12 @@ class AIEvaluatorDirect:
             }
         
         try:
-            # Initialize the OpenAI client with just the API key
-            client = OpenAI(api_key=self.api_key)
+            # Set the API key for OpenAI
+            openai.api_key = self.api_key
             start_time = time.time()
             
             # Create the AI completion using ChatGPT with JSON output
-            response = client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
                 # do not change this unless explicitly requested by the user
                 messages=[
@@ -274,11 +274,11 @@ class AIEvaluatorDirect:
             # Convert rubric to string format for the prompt
             rubric_str = json.dumps(rubric, indent=2)
             
-            # Initialize the OpenAI client with just the API key
-            client = OpenAI(api_key=self.api_key)
+            # Set the API key for OpenAI
+            openai.api_key = self.api_key
             start_time = time.time()
             
-            response = client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
                 # do not change this unless explicitly requested by the user
                 messages=[
