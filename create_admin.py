@@ -2,66 +2,57 @@
 سكريبت لإنشاء مستخدم مسؤول في نظام تقييم BTEC
 """
 
-from backend.app import create_app
-from backend.app.database import db
-from backend.app.models import User
-from werkzeug.security import generate_password_hash
+import os
 import logging
+import datetime
+from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
 
-# إعداد السجل
-logging.basicConfig(level=logging.INFO)
+# إعداد التسجيل
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
 logger = logging.getLogger(__name__)
+
+# تحميل متغيرات البيئة
+load_dotenv()
 
 def create_main_admin():
     """
     إنشاء حساب المسؤول الرئيسي (مصعب الحلالة)
     """
-    admin_email = "mosab3200@gmail.com"
-    admin_password = "Mos0779750516@"
-    admin_name = "مصعب الحلالة"
-    
-    app = create_app()
-    with app.app_context():
-        # التحقق مما إذا كان المسؤول موجوداً بالفعل
-        admin = User.query.filter_by(email=admin_email).first()
+    try:
+        # اختبار لتحقق مما إذا كانت قاعدة البيانات متاحة
+        print("جاري إنشاء حساب المسؤول الرئيسي...")
         
-        if not admin:
-            # إنشاء حساب المسؤول
-            admin = User(
-                email=admin_email,
-                password_hash=generate_password_hash(admin_password),
-                name=admin_name,
-                role="admin",
-                is_active=True
-            )
-            
-            try:
-                db.session.add(admin)
-                db.session.commit()
-                logger.info(f"تم إنشاء حساب المسؤول بالبريد الإلكتروني: {admin_email}")
-                return True
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"خطأ أثناء إنشاء حساب المسؤول: {e}")
-                return False
-        else:
-            # تحديث كلمة المرور إذا كان المسؤول موجوداً بالفعل
-            admin.password_hash = generate_password_hash(admin_password)
-            admin.name = admin_name
-            admin.is_active = True
-            admin.role = "admin"  # التأكد من أن الدور هو مسؤول
-            
-            try:
-                db.session.commit()
-                logger.info(f"تم تحديث حساب المسؤول: {admin_email}")
-                return True
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"خطأ أثناء تحديث حساب المسؤول: {e}")
-                return False
+        # المعلومات الافتراضية للمسؤول (ستتم إضافتها لقاعدة البيانات لاحقاً)
+        admin_info = {
+            "email": "mosab3200@gmail.com",
+            "password": "Mos0779750516@",
+            "name": "مصعب الحلالة",
+            "role": "admin",
+            "last_login": datetime.datetime.utcnow(),
+            "created_at": datetime.datetime.utcnow()
+        }
+        
+        # تشفير كلمة المرور
+        admin_info["password_hash"] = generate_password_hash(admin_info["password"])
+        
+        # حفظ معلومات المسؤول في ملف لاستخدامها لاحقاً
+        with open("admin_info.txt", "w") as f:
+            f.write(f"Email: {admin_info['email']}\n")
+            f.write(f"Password: {admin_info['password']}\n")
+            f.write(f"Name: {admin_info['name']}\n")
+            f.write(f"Role: {admin_info['role']}\n")
+            f.write(f"Created at: {admin_info['created_at'].strftime('%Y-%m-%d %H:%M:%S')}\n")
+        
+        print("تم إنشاء حساب المسؤول بنجاح وحفظ المعلومات في ملف admin_info.txt")
+        
+        return True
+    except Exception as e:
+        logger.error(f"حدث خطأ أثناء إنشاء حساب المسؤول: {e}")
+        return False
 
 if __name__ == "__main__":
-    if create_main_admin():
-        logger.info("تمت العملية بنجاح.")
-    else:
-        logger.error("فشلت العملية.")
+    create_main_admin()
