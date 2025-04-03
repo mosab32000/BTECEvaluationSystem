@@ -1,220 +1,172 @@
 """
 هذا البرنامج يقوم بإنشاء قواعد البيانات المطلوبة لنظام تقييم BTEC
 """
-
 import os
-import sys
-from flask_migrate import Migrate, init, migrate, upgrade
-from dotenv import load_dotenv
 import logging
 import base64
-from cryptography.fernet import Fernet
-
-# تكوين التسجيل
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# تحميل متغيرات البيئة
-load_dotenv()
-
-# استيراد التطبيق ونماذج قاعدة البيانات
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import json
+from dotenv import load_dotenv
 from backend.app import create_app
 from backend.app.database import db
-from backend.app.models import User, Evaluation, RubricTemplate, SystemMetrics
+from backend.app.models.user import User
+from backend.app.models.rubric import RubricTemplate
+from werkzeug.security import generate_password_hash
+
+# إعداد التسجيل
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def ensure_encryption_key():
     """التأكد من وجود مفتاح التشفير، وإنشاء واحد جديد إذا لم يكن موجودًا"""
     if not os.environ.get('ENCRYPTION_KEY'):
-        logger.info("إنشاء مفتاح تشفير جديد...")
+        # إنشاء مفتاح فيرنت جديد وتحويله إلى base64
+        from cryptography.fernet import Fernet
         key = Fernet.generate_key()
-        with open('.env', 'a') as f:
-            f.write(f"\nENCRYPTION_KEY={key.decode()}\n")
-        logger.info("تم إنشاء مفتاح التشفير وحفظه في ملف .env")
-        # تحديث متغيرات البيئة الحالية
-        os.environ['ENCRYPTION_KEY'] = key.decode()
-        return key.decode()
-    return os.environ.get('ENCRYPTION_KEY')
+        key_str = key.decode('utf-8')
+        
+        # تحديث ملف .env
+        with open('.env', 'r') as f:
+            lines = f.readlines()
+            
+        with open('.env', 'w') as f:
+            for line in lines:
+                if line.startswith('ENCRYPTION_KEY='):
+                    f.write(f'ENCRYPTION_KEY={key_str}\n')
+                else:
+                    f.write(line)
+        
+        os.environ['ENCRYPTION_KEY'] = key_str
+        logger.info("تم إنشاء مفتاح تشفير جديد وتخزينه")
+    else:
+        logger.info("مفتاح التشفير موجود بالفعل")
 
 def ensure_secret_key(env_var, length=32):
     """التأكد من وجود مفتاح سري، وإنشاء واحد جديد إذا لم يكن موجودًا"""
     if not os.environ.get(env_var):
-        logger.info(f"إنشاء {env_var} جديد...")
         import secrets
-        secret_key = secrets.token_hex(length)
-        with open('.env', 'a') as f:
-            f.write(f"\n{env_var}={secret_key}\n")
-        logger.info(f"تم إنشاء {env_var} وحفظه في ملف .env")
-        # تحديث متغيرات البيئة الحالية
-        os.environ[env_var] = secret_key
-        return secret_key
-    return os.environ.get(env_var)
+        key = secrets.token_hex(length)
+        
+        # تحديث ملف .env
+        with open('.env', 'r') as f:
+            lines = f.readlines()
+            
+        with open('.env', 'w') as f:
+            for line in lines:
+                if line.startswith(f'{env_var}='):
+                    f.write(f'{env_var}={key}\n')
+                else:
+                    f.write(line)
+        
+        os.environ[env_var] = key
+        logger.info(f"تم إنشاء مفتاح {env_var} جديد وتخزينه")
+    else:
+        logger.info(f"مفتاح {env_var} موجود بالفعل")
 
 def create_default_admin():
     """إنشاء حساب مسؤول افتراضي إذا لم يكن موجودًا"""
-    from backend.app.models import User
-    admin_email = "admin@btec.edu"
-    
-    with app.app_context():
-        if not User.query.filter_by(email=admin_email).first():
-            logger.info("إنشاء حساب المسؤول الافتراضي...")
-            admin = User(email=admin_email, role='admin', name='BTEC System Admin')
-            admin.set_password("admin12345")  # كلمة مرور مؤقتة يجب تغييرها
-            db.session.add(admin)
-            db.session.commit()
-            logger.info(f"تم إنشاء حساب المسؤول: {admin_email}")
-            logger.warning("يرجى تغيير كلمة المرور الافتراضية!")
-        else:
-            logger.info("حساب المسؤول موجود بالفعل.")
+    from create_admin import create_main_admin
+    if create_main_admin():
+        logger.info("تم إنشاء حساب المسؤول الرئيسي بنجاح")
+    else:
+        logger.info("حساب المسؤول الرئيسي موجود بالفعل")
 
 def create_default_rubrics():
     """إنشاء قوالب معايير تقييم افتراضية"""
-    with app.app_context():
-        admin = User.query.filter_by(role='admin').first()
+    try:
+        # التحقق مما إذا كانت هناك قوالب موجودة بالفعل
+        if RubricTemplate.query.filter_by(is_default=True).first():
+            logger.info("قوالب المعايير الافتراضية موجودة بالفعل")
+            return True
         
-        if not admin:
-            logger.error("لم يتم العثور على مسؤول لإنشاء قوالب المعايير!")
-            return
-            
-        if RubricTemplate.query.filter_by(is_default=True).count() == 0:
-            logger.info("إنشاء قوالب معايير التقييم الافتراضية...")
-            
-            default_rubric = {
-                "sections": [
-                    {
-                        "name": "الفهم والتحليل",
-                        "weight": 25,
-                        "criteria": [
-                            "فهم عميق لمتطلبات المهمة",
-                            "قدرة على تحليل المشكلة أو السؤال",
-                            "تطبيق المفاهيم النظرية بشكل صحيح"
-                        ]
-                    },
-                    {
-                        "name": "التنفيذ والمهارات العملية",
-                        "weight": 35,
-                        "criteria": [
-                            "إظهار المهارات العملية المطلوبة",
-                            "اتباع الإجراءات الصحيحة",
-                            "استخدام الأدوات والتقنيات بشكل مناسب",
-                            "الدقة في التنفيذ"
-                        ]
-                    },
-                    {
-                        "name": "البحث والاستدلال",
-                        "weight": 20,
-                        "criteria": [
-                            "استخدام مصادر متنوعة وموثوقة",
-                            "الاستدلال المنطقي",
-                            "تقديم الأدلة المناسبة"
-                        ]
-                    },
-                    {
-                        "name": "التواصل والعرض",
-                        "weight": 20,
-                        "criteria": [
-                            "وضوح العرض والتنسيق",
-                            "استخدام اللغة المهنية المناسبة",
-                            "تنظيم الأفكار بشكل منطقي",
-                            "الالتزام بإرشادات التوثيق"
-                        ]
-                    }
-                ]
-            }
-            
-            technical_rubric = {
-                "sections": [
-                    {
-                        "name": "الأساسيات التقنية",
-                        "weight": 30,
-                        "criteria": [
-                            "فهم المبادئ الأساسية للموضوع",
-                            "تطبيق المفاهيم التقنية بشكل صحيح",
-                            "استخدام المصطلحات التقنية بدقة"
-                        ]
-                    },
-                    {
-                        "name": "حل المشكلات",
-                        "weight": 35,
-                        "criteria": [
-                            "تحديد المشكلة بشكل صحيح",
-                            "تطوير حلول منهجية",
-                            "تقييم البدائل",
-                            "تنفيذ الحل الأمثل"
-                        ]
-                    },
-                    {
-                        "name": "التوثيق والعرض",
-                        "weight": 20,
-                        "criteria": [
-                            "توثيق العمليات بشكل صحيح",
-                            "شرح الخطوات المتبعة بوضوح",
-                            "تقديم الأدلة بطريقة منظمة"
-                        ]
-                    },
-                    {
-                        "name": "التفكير النقدي",
-                        "weight": 15,
-                        "criteria": [
-                            "تقييم نقدي للحلول",
-                            "تحديد نقاط القوة والضعف",
-                            "اقتراح تحسينات"
-                        ]
-                    }
-                ]
-            }
-            
-            # إنشاء قالب المعيار الافتراضي
-            default_template = RubricTemplate(
-                name="معيار BTEC العام",
-                description="معيار تقييم عام لمهام BTEC",
-                is_default=True,
-                created_by=admin.id
-            )
-            default_template.set_rubric_data(default_rubric)
-            
-            # إنشاء قالب المعيار التقني
-            tech_template = RubricTemplate(
-                name="معيار BTEC التقني",
-                description="معيار تقييم للمهام التقنية",
-                is_default=False,
-                created_by=admin.id
-            )
-            tech_template.set_rubric_data(technical_rubric)
-            
-            db.session.add(default_template)
-            db.session.add(tech_template)
-            db.session.commit()
-            
-            logger.info("تم إنشاء قوالب معايير التقييم الافتراضية.")
-        else:
-            logger.info("قوالب معايير التقييم الافتراضية موجودة بالفعل.")
+        # إنشاء قالب معايير BTEC الافتراضي
+        btec_rubric = {
+            "criteria": [
+                {
+                    "name": "فهم المفاهيم",
+                    "description": "فهم المفاهيم الأساسية والمتقدمة",
+                    "weight": 0.25,
+                    "levels": [
+                        {"name": "ممتاز", "score": 4, "description": "فهم ممتاز للمفاهيم المعقدة"},
+                        {"name": "جيد جداً", "score": 3, "description": "فهم واضح لمعظم المفاهيم"},
+                        {"name": "جيد", "score": 2, "description": "فهم أساسي مع بعض الفجوات"},
+                        {"name": "مقبول", "score": 1, "description": "فهم محدود للمفاهيم الأساسية"}
+                    ]
+                },
+                {
+                    "name": "تطبيق المهارات",
+                    "description": "القدرة على تطبيق المهارات العملية",
+                    "weight": 0.25,
+                    "levels": [
+                        {"name": "ممتاز", "score": 4, "description": "تطبيق متقن للمهارات في حالات معقدة"},
+                        {"name": "جيد جداً", "score": 3, "description": "تطبيق فعال للمهارات بشكل عام"},
+                        {"name": "جيد", "score": 2, "description": "تطبيق أساسي مع أخطاء بسيطة"},
+                        {"name": "مقبول", "score": 1, "description": "صعوبة في تطبيق المهارات الأساسية"}
+                    ]
+                },
+                {
+                    "name": "التحليل والتقييم",
+                    "description": "القدرة على تحليل المعلومات وتقييمها",
+                    "weight": 0.25,
+                    "levels": [
+                        {"name": "ممتاز", "score": 4, "description": "تحليل وتقييم شامل ومتعمق"},
+                        {"name": "جيد جداً", "score": 3, "description": "تحليل جيد مع بعض الاستنتاجات"},
+                        {"name": "جيد", "score": 2, "description": "تحليل أساسي مع تقييم محدود"},
+                        {"name": "مقبول", "score": 1, "description": "تحليل سطحي مع ضعف في التقييم"}
+                    ]
+                },
+                {
+                    "name": "عرض وتواصل",
+                    "description": "جودة العرض والتواصل",
+                    "weight": 0.25,
+                    "levels": [
+                        {"name": "ممتاز", "score": 4, "description": "عرض منظم واضح مع تواصل فعال"},
+                        {"name": "جيد جداً", "score": 3, "description": "عرض منظم مع تواصل جيد بشكل عام"},
+                        {"name": "جيد", "score": 2, "description": "عرض مفهوم مع بعض مشاكل التواصل"},
+                        {"name": "مقبول", "score": 1, "description": "عرض غير منظم مع ضعف في التواصل"}
+                    ]
+                }
+            ]
+        }
+        
+        # الحصول على معرف المسؤول (إذا كان موجودًا)
+        admin = User.query.filter_by(role='admin').first()
+        admin_id = admin.id if admin else None
+        
+        # إنشاء قالب معايير BTEC
+        btec_template = RubricTemplate(
+            name="معايير تقييم BTEC الافتراضية",
+            description="قالب افتراضي لتقييم مهام BTEC بناءً على معايير BTEC القياسية",
+            content=json.dumps(btec_rubric, ensure_ascii=False),
+            is_default=True,
+            created_by=admin_id
+        )
+        
+        db.session.add(btec_template)
+        db.session.commit()
+        
+        logger.info("تم إنشاء قوالب المعايير الافتراضية بنجاح")
+        return True
+    except Exception as e:
+        logger.error(f"خطأ أثناء إنشاء قوالب المعايير الافتراضية: {e}")
+        return False
 
 def setup_database():
     """إعداد وتهيئة قاعدة البيانات بالكامل"""
-    logger.info("بدء إعداد قاعدة البيانات...")
-    
-    # التأكد من وجود المفاتيح السرية
-    ensure_secret_key('SECRET_KEY')
-    ensure_secret_key('JWT_SECRET_KEY')
-    ensure_encryption_key()
-    
     try:
-        # إنشاء مجلد الهجرات إذا لم يكن موجودًا
-        migrations_dir = os.path.join('migrations')
-        os.makedirs(migrations_dir, exist_ok=True)
+        # تحميل متغيرات البيئة
+        load_dotenv()
         
+        # التأكد من وجود مفاتيح الأمان
+        ensure_secret_key('SECRET_KEY')
+        ensure_secret_key('JWT_SECRET_KEY')
+        ensure_encryption_key()
+        
+        # إنشاء تطبيق Flask مع مع سياق التطبيق
+        app = create_app()
         with app.app_context():
-            # تهيئة قاعدة البيانات
+            # إنشاء جداول قاعدة البيانات
             db.create_all()
-            logger.info("تم إنشاء جداول قاعدة البيانات بنجاح.")
-            
-            # إنشاء المسؤول الرئيسي (مصعب الحلالة)
-            from backend.app.seeds.admin_user import create_admin_user
-            if create_admin_user():
-                logger.info("تم إنشاء/تحديث حساب المسؤول الرئيسي بنجاح.")
-            else:
-                logger.warning("فشل في إنشاء/تحديث حساب المسؤول الرئيسي.")
+            logger.info("تم إنشاء جداول قاعدة البيانات بنجاح")
             
             # إنشاء المسؤول الافتراضي
             create_default_admin()
@@ -222,19 +174,12 @@ def setup_database():
             # إنشاء قوالب المعايير الافتراضية
             create_default_rubrics()
             
-        logger.info("تم إعداد قاعدة البيانات بنجاح!")
+            logger.info("اكتمل إعداد قاعدة البيانات بنجاح")
+        
         return True
     except Exception as e:
-        logger.error(f"حدث خطأ أثناء إعداد قاعدة البيانات: {e}")
+        logger.error(f"خطأ أثناء إعداد قاعدة البيانات: {e}")
         return False
 
 if __name__ == "__main__":
-    # إنشاء تطبيق Flask
-    app = create_app()
-    
-    if setup_database():
-        logger.info("تم تهيئة قاعدة البيانات بنجاح. النظام جاهز للاستخدام.")
-        sys.exit(0)
-    else:
-        logger.error("فشل في إعداد قاعدة البيانات.")
-        sys.exit(1)
+    setup_database()
