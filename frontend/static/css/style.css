@@ -38,6 +38,36 @@ body {
   right: 0;
 }
 
+/* تنسيق قسم حول المشروع */
+.about-project {
+  background-color: rgba(108, 99, 255, 0.05);
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.about-project:hover {
+  background-color: rgba(108, 99, 255, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.project-description {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+.contact-info {
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+}
+
+.contact-info .fas {
+  width: 20px;
+  text-align: center;
+}
+
 .sidebar .nav-link {
   color: var(--text-secondary);
   margin-bottom: 0.5rem;
