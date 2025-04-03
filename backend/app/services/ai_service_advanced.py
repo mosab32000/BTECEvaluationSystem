@@ -1,417 +1,438 @@
 """
-خدمة تقييم الذكاء الاصطناعي المتقدمة في نظام تقييم BTEC
-تركز على تقييم مشاريع برمجية أكثر تعقيدًا وتوفر قدرات تحليل شاملة
+خدمة الذكاء الاصطناعي المتقدمة لتقييم BTEC
+توفر قدرات متقدمة للتحليل والتقييم
 """
 
-from openai import OpenAI
-from flask import current_app
-import logging
-import json
-import time
 import os
-import re
-import base64
-import tempfile
-from pathlib import Path
+import json
+import logging
+import openai
+from flask import current_app
+from typing import Dict, Any, Optional, List, Union
+
+# إعداد السجل
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AIEvaluatorAdvanced:
-    """
-    مُقيِّم الذكاء الاصطناعي المتقدم لتحليل وتقييم المشاريع البرمجية والمهام المعقدة
-    """
-    
-    def __init__(self):
-        """تهيئة المُقيِّم باستخدام مفتاح OpenAI API"""
-        api_key = current_app.config.get('OPENAI_API_KEY')
-        if not api_key:
-            logging.warning("لم يتم تكوين OPENAI_API_KEY. سيتم محاكاة التقييم المتقدم.")
-            self.api_key = None
-        else:
+    """صنف متقدم لتقييم مهام BTEC باستخدام الذكاء الاصطناعي"""
+
+    def __init__(self, api_key: Optional[str] = None, use_context: bool = False):
+        """
+        تهيئة مقيم الذكاء الاصطناعي المتقدم
+        
+        Args:
+            api_key: مفتاح API الخاص بـ OpenAI (اختياري، سيتم استخدام المتغير البيئي أو سياق التطبيق)
+            use_context: استخدام سياق تطبيق Flask (اختياري، افتراضيًا False)
+        """
+        # استخدام مفتاح API المقدم أو البحث عنه في سياق التطبيق أو المتغيرات البيئية
+        if api_key:
             self.api_key = api_key
-            logging.info("تم تهيئة مُقيِّم الذكاء الاصطناعي المتقدم بمفتاح API صالح")
-
-    def evaluate_code_project(self, project_files, project_description):
+        elif use_context:
+            self.api_key = current_app.config.get('OPENAI_API_KEY')
+        else:
+            self.api_key = os.environ.get('OPENAI_API_KEY')
+        
+        if self.api_key:
+            logger.info("تم تهيئة AIEvaluatorAdvanced بمفتاح API صالح")
+            openai.api_key = self.api_key
+            self.simulation_mode = False
+        else:
+            logger.warning("تحذير: لم يتم توفير مفتاح OpenAI API. سيتم استخدام وضع المحاكاة.")
+            self.simulation_mode = True
+        
+        # ضبط نموذج OpenAI المستخدم
+        self.model = "gpt-4o"  # استخدام نموذج GPT-4o الأحدث
+    
+    def evaluate_with_detailed_feedback(self, task: str, criteria: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        تقييم مشروع برمجي كامل يتكون من ملفات متعددة
+        تقييم مهمة BTEC مع تعليقات تفصيلية لكل معيار
         
         Args:
-            project_files (dict): قاموس بمسارات الملفات ومحتوياتها
-            project_description (str): وصف المشروع والمهمة المطلوبة
+            task: نص المهمة للتقييم
+            criteria: معايير التقييم المخصصة (اختياري)
             
         Returns:
-            dict: تقييم شامل للمشروع مع ملاحظات مفصلة
+            نتيجة التقييم مع تعليقات تفصيلية كقاموس
         """
-        if not self.api_key:
-            # محاكاة تقييم المشروع البرمجي
-            logging.warning("استخدام تقييم محاكى للمشروع البرمجي (لا يوجد مفتاح API)")
+        if self.simulation_mode:
             return {
-                "grade": "جيد",
-                "overall_score": 75,
-                "summary": "هذا تقييم محاكى للمشروع البرمجي المقدم.",
-                "code_quality": {
-                    "score": 70,
-                    "strengths": ["الكود منظم بشكل جيد", "استخدام التعليقات بشكل مناسب"],
-                    "weaknesses": ["بعض التكرار في الكود", "يمكن تحسين معالجة الأخطاء"]
+                "grade": "محاكاة",
+                "overall_feedback": "هذا تقييم محاكي. لم يتم إجراء استدعاء فعلي لـ OpenAI API.",
+                "criteria_feedback": {
+                    "المعرفة": "تقييم محاكي للمعرفة",
+                    "التطبيق": "تقييم محاكي للتطبيق",
+                    "التحليل": "تقييم محاكي للتحليل",
+                    "التقييم": "تقييم محاكي للتقييم"
                 },
-                "functionality": {
-                    "score": 80,
-                    "working_features": ["المزايا الأساسية تعمل بشكل صحيح", "واجهة المستخدم مستجيبة"],
-                    "issues": ["بعض حالات الحافة غير معالجة"]
-                },
-                "documentation": {
-                    "score": 75,
-                    "feedback": "التوثيق كافٍ ولكن يمكن تحسينه"
-                },
-                "innovation": {
-                    "score": 65,
-                    "feedback": "يظهر المشروع فهمًا جيدًا للمفاهيم ولكن مع ابتكار محدود"
-                },
-                "file_specific_feedback": {
-                    "main.py": "الملف منظم بشكل جيد لكن يمكن تحسين التعليقات",
-                    "utils.py": "وظائف مساعدة مفيدة، يمكن إضافة اختبارات إضافية"
-                },
-                "improvement_suggestions": [
-                    "تحسين معالجة الأخطاء في جميع الملفات",
-                    "إضافة اختبارات وحدة للوظائف الرئيسية",
-                    "تحسين التوثيق بإضافة أمثلة للاستخدام"
-                ],
-                "simulated": True
+                "strengths": ["نقطة قوة محاكية 1", "نقطة قوة محاكية 2"],
+                "improvements": ["مجال تحسين محاكي 1", "مجال تحسين محاكي 2"],
+                "total_score": 75
             }
         
         try:
-            # تحضير محتوى الملفات للتقييم
-            files_content = "\n\n".join([
-                f"### {file_path} ###\n```\n{content}\n```"
-                for file_path, content in project_files.items()
-            ])
+            # تحضير معايير التقييم
+            criteria_text = ""
+            if criteria:
+                criteria_text = f"\n\nمعايير التقييم المخصصة:\n```json\n{json.dumps(criteria, ensure_ascii=False)}\n```"
+            else:
+                criteria_text = """
+                معايير التقييم القياسية لـ BTEC:
+                1. المعرفة (Knowledge): فهم وتذكر المفاهيم والمصطلحات الأساسية
+                2. التطبيق (Application): تطبيق المعرفة في سياقات عملية
+                3. التحليل (Analysis): تحليل المعلومات وتفكيكها إلى أجزاء
+                4. التقييم (Evaluation): تقييم الأفكار والحلول وإصدار أحكام مبررة
+                """
             
-            # استخدام عميل OpenAI للإصدار 1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت مقيّم تعليمي متخصص في تقييم مهام BTEC. قم بتحليل المهمة التالية بدقة وموضوعية وقدم تعليقات تفصيلية لكل معيار:
             
-            # إنشاء إكمال الذكاء الاصطناعي لتقييم المشروع
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            المهمة:
+            ```
+            {task}
+            ```
+            {criteria_text}
+            
+            قم بتقديم تقييم شامل بتنسيق JSON يتضمن الحقول التالية:
+            1. grade: الدرجة النهائية حسب معايير BTEC (P, M, D)
+            2. overall_feedback: تعليق عام شامل عن المهمة
+            3. criteria_feedback: كائن يحتوي على تعليقات تفصيلية لكل معيار (المعرفة، التطبيق، التحليل، التقييم)
+            4. strengths: قائمة بنقاط القوة الرئيسية (3-5 نقاط)
+            5. improvements: قائمة بمجالات التحسين (3-5 مجالات)
+            6. total_score: درجة رقمية من 0 إلى 100
+            
+            كن دقيقًا وموضوعيًا وقدم تعليقات بناءة ومفيدة.
+            """
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": """أنت خبير تقييم مشاريع برمجية BTEC.
-                     مهمتك هي تحليل وتقييم كود المشروع المقدم بناءً على وصف المشروع والمعايير التالية:
-                     
-                     1. جودة الكود (التنظيم، الأسلوب، الكفاءة)
-                     2. الوظائف (المزايا العاملة والمشكلات)
-                     3. التوثيق (التعليقات، الأسماء المعبرة، الوضوح)
-                     4. الابتكار (الإبداع، استخدام التقنيات الحديثة)
-                     
-                     قم بتصنيف المشروع كـ: مقبول، جيد، أو ممتاز.
-                     
-                     قدم تقييمك بتنسيق JSON التالي:
-                     {
-                       "grade": "مقبول/جيد/ممتاز",
-                       "overall_score": 0-100,
-                       "summary": "ملخص عام للتقييم",
-                       "code_quality": {
-                         "score": 0-100,
-                         "strengths": ["نقطة قوة 1", "نقطة قوة 2"],
-                         "weaknesses": ["نقطة ضعف 1", "نقطة ضعف 2"]
-                       },
-                       "functionality": {
-                         "score": 0-100,
-                         "working_features": ["ميزة 1", "ميزة 2"],
-                         "issues": ["مشكلة 1", "مشكلة 2"]
-                       },
-                       "documentation": {
-                         "score": 0-100,
-                         "feedback": "ملاحظات حول التوثيق"
-                       },
-                       "innovation": {
-                         "score": 0-100,
-                         "feedback": "ملاحظات حول الابتكار"
-                       },
-                       "file_specific_feedback": {
-                         "اسم_الملف_1": "ملاحظات خاصة بالملف",
-                         "اسم_الملف_2": "ملاحظات خاصة بالملف"
-                       },
-                       "improvement_suggestions": [
-                         "اقتراح 1", "اقتراح 2", "اقتراح 3"
-                       ]
-                     }
-                     
-                     تأكد من أن تقييمك محدد ومفصل ويوفر ملاحظات عملية للتحسين.
-                     """},
-                    {"role": "user", "content": f"وصف المشروع:\n{project_description}\n\nملفات المشروع:\n{files_content}"}
+                    {"role": "system", "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC. تقييماتك شاملة ودقيقة وموضوعية."},
+                    {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
-                max_tokens=4000,
-                temperature=0.7
+                temperature=0.3,  # درجة حرارة منخفضة للحصول على نتائج متسقة
+                max_tokens=2500,   # زيادة الحد الأقصى للرموز للسماح بتقييمات مفصلة
+                response_format={"type": "json_object"}  # طلب تنسيق JSON
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تقييم المشروع البرمجي باستخدام OpenAI API في {elapsed_time:.2f} ثانية")
+            # تحليل الاستجابة
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
             
-            result = json.loads(response.choices[0].message.content)
-            return result
         except Exception as e:
-            logging.error(f"خطأ في OpenAI API أثناء تقييم المشروع البرمجي: {e}")
+            logger.error(f"خطأ في تقييم المهمة: {e}")
             return {
                 "grade": "خطأ",
-                "overall_score": 0,
-                "summary": f"حدث خطأ أثناء تقييم المشروع: {str(e)}",
-                "code_quality": {"score": 0, "strengths": [], "weaknesses": []},
-                "functionality": {"score": 0, "working_features": [], "issues": []},
-                "documentation": {"score": 0, "feedback": ""},
-                "innovation": {"score": 0, "feedback": ""},
-                "file_specific_feedback": {},
-                "improvement_suggestions": ["حاول مرة أخرى لاحقًا"],
-                "error": True
+                "overall_feedback": f"حدث خطأ أثناء التقييم: {str(e)}",
+                "criteria_feedback": {
+                    "المعرفة": "غير متوفر بسبب خطأ",
+                    "التطبيق": "غير متوفر بسبب خطأ",
+                    "التحليل": "غير متوفر بسبب خطأ",
+                    "التقييم": "غير متوفر بسبب خطأ"
+                },
+                "strengths": [],
+                "improvements": ["حاول مرة أخرى لاحقًا"],
+                "total_score": 0
             }
-            
-    def evaluate_database_design(self, er_diagram_path, schema_definition):
+    
+    def analyze_group_work(self, task: str, member_contributions: Dict[str, str]) -> Dict[str, Any]:
         """
-        تقييم تصميم قاعدة البيانات باستخدام مخطط ER والتعريف النصي للمخطط
+        تحليل عمل المجموعة وتقييم مساهمات كل عضو
         
         Args:
-            er_diagram_path (str): مسار ملف مخطط ER
-            schema_definition (str): تعريف نصي لمخطط قاعدة البيانات (SQL DDL أو وصف)
+            task: نص المهمة الجماعية للتقييم
+            member_contributions: قاموس يحتوي على اسم كل عضو ووصف مساهمته
             
         Returns:
-            dict: تقييم شامل لتصميم قاعدة البيانات
+            تقييم للعمل الجماعي وتقييم فردي لكل عضو
         """
-        if not self.api_key:
-            # محاكاة تقييم تصميم قاعدة البيانات
-            logging.warning("استخدام تقييم محاكى لتصميم قاعدة البيانات (لا يوجد مفتاح API)")
+        if self.simulation_mode:
+            members = list(member_contributions.keys())
             return {
-                "grade": "جيد",
-                "overall_score": 75,
-                "summary": "هذا تقييم محاكى لتصميم قاعدة البيانات المقدم.",
-                "design_quality": {
-                    "score": 80,
-                    "strengths": ["تصميم منطقي للعلاقات", "التحقق من سلامة البيانات"],
-                    "weaknesses": ["بعض المشكلات في التطبيع", "يمكن تحسين تصميم المفاتيح الأجنبية"]
-                },
-                "normalization": {
-                    "score": 70,
-                    "level": "3NF",
-                    "issues": ["بعض الجداول لا تلبي متطلبات 3NF"]
-                },
-                "performance": {
-                    "score": 75,
-                    "feedback": "التصميم يدعم معظم استعلامات النظام لكن قد تكون هناك مشكلات أداء مع البيانات الكبيرة"
-                },
-                "diagram_quality": {
-                    "score": 80,
-                    "feedback": "المخطط واضح ومنظم بشكل عام"
-                },
-                "improvement_suggestions": [
-                    "تطبيق قواعد التطبيع على جدول X",
-                    "إضافة فهارس للاستعلامات الشائعة",
-                    "تحسين تصميم المفاتيح الأجنبية للحفاظ على سلامة البيانات"
-                ],
-                "simulated": True
+                "group_grade": "محاكاة",
+                "group_feedback": "هذا تقييم محاكي للعمل الجماعي. لم يتم إجراء استدعاء فعلي لـ OpenAI API.",
+                "individual_grades": {member: "محاكاة" for member in members},
+                "individual_feedback": {member: f"تقييم محاكي لمساهمة {member}" for member in members},
+                "collaboration_score": 75,
+                "recommendations": ["توصية محاكية 1", "توصية محاكية 2"]
             }
         
         try:
-            # تشفير مخطط ER
-            er_base64 = None
-            if er_diagram_path and os.path.exists(er_diagram_path):
-                with open(er_diagram_path, "rb") as img_file:
-                    er_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+            # تحويل مساهمات الأعضاء إلى نص
+            contributions_text = "\n\n".join([f"### {member}:\n{contribution}" for member, contribution in member_contributions.items()])
             
-            # تحضير المحتوى للتقييم
-            content_parts = []
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت محلل متخصص في تقييم العمل الجماعي لمهام BTEC. قم بتحليل المهمة الجماعية التالية ومساهمات كل عضو:
             
-            # إضافة النص الوصفي
-            content_parts.append({
-                "type": "text",
-                "text": f"قيّم تصميم قاعدة البيانات التالي:\n\nتعريف المخطط:\n{schema_definition}"
-            })
+            المهمة الجماعية:
+            ```
+            {task}
+            ```
             
-            # إضافة المخطط إذا كان متاحًا
-            if er_base64:
-                content_parts.append({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{er_base64}",
-                        "detail": "high"
-                    }
-                })
+            مساهمات الأعضاء:
+            {contributions_text}
             
-            # استخدام عميل OpenAI للإصدار 1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            قم بتقديم تحليل شامل بتنسيق JSON يتضمن الحقول التالية:
+            1. group_grade: تقييم المجموعة ككل حسب معايير BTEC (P, M, D)
+            2. group_feedback: تعليق عام على أداء المجموعة
+            3. individual_grades: كائن يحتوي على تقييم كل عضو (P, M, D)
+            4. individual_feedback: كائن يحتوي على تعليق مفصل لكل عضو
+            5. collaboration_score: درجة التعاون بين أعضاء المجموعة (0-100)
+            6. recommendations: قائمة بالتوصيات لتحسين العمل الجماعي (3-5 توصيات)
             
-            # إنشاء إكمال الذكاء الاصطناعي لتقييم تصميم قاعدة البيانات
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            ركز على:
+            - توازن المساهمات بين أعضاء المجموعة
+            - جودة مساهمة كل عضو
+            - التكامل بين المساهمات المختلفة
+            - فعالية العمل الجماعي ككل
+            """
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": """أنت خبير في تصميم قواعد البيانات وتقييمها لمشاريع BTEC.
-                     مهمتك هي تحليل وتقييم تصميم قاعدة البيانات المقدم بناءً على المعايير التالية:
-                     
-                     1. جودة التصميم (العلاقات، القيود، التماسك)
-                     2. التطبيع (مستوى التطبيع، تجنب التكرار)
-                     3. الأداء (دعم الاستعلامات، الفهارس، التحسين)
-                     4. جودة المخطط (الوضوح، التنظيم، الاكتمال)
-                     
-                     قم بتصنيف التصميم كـ: مقبول، جيد، أو ممتاز.
-                     
-                     قدم تقييمك بتنسيق JSON التالي:
-                     {
-                       "grade": "مقبول/جيد/ممتاز",
-                       "overall_score": 0-100,
-                       "summary": "ملخص عام للتقييم",
-                       "design_quality": {
-                         "score": 0-100,
-                         "strengths": ["نقطة قوة 1", "نقطة قوة 2"],
-                         "weaknesses": ["نقطة ضعف 1", "نقطة ضعف 2"]
-                       },
-                       "normalization": {
-                         "score": 0-100,
-                         "level": "1NF/2NF/3NF/BCNF",
-                         "issues": ["مشكلة 1", "مشكلة 2"]
-                       },
-                       "performance": {
-                         "score": 0-100,
-                         "feedback": "ملاحظات حول الأداء"
-                       },
-                       "diagram_quality": {
-                         "score": 0-100,
-                         "feedback": "ملاحظات حول جودة المخطط"
-                       },
-                       "improvement_suggestions": [
-                         "اقتراح 1", "اقتراح 2", "اقتراح 3"
-                       ]
-                     }
-                     
-                     تأكد من أن تقييمك محدد ومفصل ويوفر ملاحظات عملية للتحسين.
-                     """},
-                    {"role": "user", "content": content_parts}
+                    {"role": "system", "content": "أنت محلل متخصص في تقييم العمل الجماعي لمهام BTEC. تحليلاتك شاملة وموضوعية وعادلة."},
+                    {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
+                temperature=0.3,
                 max_tokens=3000,
-                temperature=0.7
+                response_format={"type": "json_object"}
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تقييم تصميم قاعدة البيانات باستخدام OpenAI API في {elapsed_time:.2f} ثانية")
+            # تحليل الاستجابة
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
             
-            result = json.loads(response.choices[0].message.content)
-            return result
         except Exception as e:
-            logging.error(f"خطأ في OpenAI API أثناء تقييم تصميم قاعدة البيانات: {e}")
+            logger.error(f"خطأ في تحليل العمل الجماعي: {e}")
+            members = list(member_contributions.keys())
             return {
-                "grade": "خطأ",
-                "overall_score": 0,
-                "summary": f"حدث خطأ أثناء تقييم تصميم قاعدة البيانات: {str(e)}",
-                "design_quality": {"score": 0, "strengths": [], "weaknesses": []},
-                "normalization": {"score": 0, "level": "غير محدد", "issues": []},
-                "performance": {"score": 0, "feedback": ""},
-                "diagram_quality": {"score": 0, "feedback": ""},
-                "improvement_suggestions": ["حاول مرة أخرى لاحقًا"],
-                "error": True
+                "group_grade": "خطأ",
+                "group_feedback": f"حدث خطأ أثناء التحليل: {str(e)}",
+                "individual_grades": {member: "خطأ" for member in members},
+                "individual_feedback": {member: "غير متوفر بسبب خطأ" for member in members},
+                "collaboration_score": 0,
+                "recommendations": ["حاول مرة أخرى لاحقًا"]
             }
-
-    def analyze_code_segment(self, code, language, assessment_criteria=None):
+    
+    def compare_submissions(self, submissions: List[Dict[str, str]], criteria: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        تحليل مقطع برمجي محدد وتقييمه وفقًا لمعايير التقييم
+        مقارنة عدة مهام وترتيبها حسب الجودة
         
         Args:
-            code (str): الكود المراد تحليله
-            language (str): لغة البرمجة (مثل Python، Java، إلخ)
-            assessment_criteria (dict, optional): معايير التقييم المخصصة
+            submissions: قائمة من المهام (كل مهمة هي قاموس يحتوي على 'id' و 'content')
+            criteria: معايير التقييم المخصصة (اختياري)
             
         Returns:
-            dict: تحليل مفصل للكود مع اقتراحات التحسين
+            مقارنة وترتيب للمهام المقدمة
         """
-        if not assessment_criteria:
-            assessment_criteria = {
-                "efficiency": {"weight": 25, "description": "كفاءة الكود من حيث الوقت والذاكرة"},
-                "readability": {"weight": 25, "description": "سهولة قراءة وفهم الكود"},
-                "functionality": {"weight": 30, "description": "أداء الوظائف المطلوبة بشكل صحيح"},
-                "best_practices": {"weight": 20, "description": "اتباع أفضل الممارسات في لغة البرمجة"}
-            }
-        
-        if not self.api_key:
-            # محاكاة تحليل الكود
-            logging.warning("استخدام تحليل محاكى للكود (لا يوجد مفتاح API)")
+        if self.simulation_mode:
+            submission_ids = [sub["id"] for sub in submissions]
             return {
-                "grade": "جيد",
-                "overall_score": 72,
-                "summary": "هذا تحليل محاكى لمقطع الكود المقدم.",
-                "criteria_scores": {
-                    "efficiency": {"score": 70, "feedback": "الكود يعمل بكفاءة مقبولة، لكن هناك مجال للتحسين"},
-                    "readability": {"score": 75, "feedback": "الكود منظم بشكل جيد، مع تعليقات كافية"},
-                    "functionality": {"score": 80, "feedback": "الكود يؤدي الوظائف المطلوبة بشكل صحيح"},
-                    "best_practices": {"score": 60, "feedback": "بعض الانحرافات عن أفضل الممارسات"}
-                },
-                "issues": [
-                    {"line": 5, "severity": "متوسط", "description": "استخدام متغير غير ضروري"},
-                    {"line": 12, "severity": "منخفض", "description": "يمكن تبسيط الشرط"}
-                ],
-                "improvement_suggestions": [
-                    "استخدام تعابير أكثر كفاءة في السطر 5",
-                    "تحسين أسماء المتغيرات لتكون أكثر وصفية",
-                    "إضافة معالجة للاستثناءات"
-                ],
-                "simulated": True
+                "rankings": [{
+                    "id": sub_id,
+                    "rank": i+1,
+                    "grade": "محاكاة",
+                    "score": 100 - (i * 10),
+                    "feedback": f"تقييم محاكي للمهمة {sub_id}"
+                } for i, sub_id in enumerate(submission_ids)],
+                "comparison_notes": "هذه مقارنة محاكية. لم يتم إجراء استدعاء فعلي لـ OpenAI API.",
+                "criteria_weights": {"المعرفة": 25, "التطبيق": 25, "التحليل": 25, "التقييم": 25}
             }
         
         try:
-            # استخدام عميل OpenAI للإصدار 1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            # تجميع المهام في نص واحد
+            submissions_text = "\n\n".join([f"### المهمة {sub['id']}:\n```\n{sub['content']}\n```" for sub in submissions])
             
-            # إنشاء إكمال الذكاء الاصطناعي لتحليل الكود
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            # تحضير معايير التقييم
+            criteria_text = ""
+            if criteria:
+                criteria_text = f"\n\nمعايير التقييم المخصصة:\n```json\n{json.dumps(criteria, ensure_ascii=False)}\n```"
+            
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت مقيّم متخصص في مقارنة وترتيب مهام BTEC. قم بتحليل ومقارنة المهام التالية:
+            
+            {submissions_text}
+            {criteria_text}
+            
+            قم بمقارنة المهام باستخدام معايير BTEC:
+            1. المعرفة (Knowledge): فهم وتذكر المفاهيم والمصطلحات الأساسية
+            2. التطبيق (Application): تطبيق المعرفة في سياقات عملية
+            3. التحليل (Analysis): تحليل المعلومات وتفكيكها إلى أجزاء
+            4. التقييم (Evaluation): تقييم الأفكار والحلول وإصدار أحكام مبررة
+            
+            قم بتقديم مقارنة شاملة بتنسيق JSON يتضمن الحقول التالية:
+            1. rankings: قائمة بترتيب المهام حسب الجودة، كل عنصر يتضمن (id, rank, grade, score, feedback)
+            2. comparison_notes: ملاحظات عامة حول المقارنة وأسباب الترتيب
+            3. criteria_weights: الأوزان المستخدمة لكل معيار من معايير التقييم
+            
+            كن موضوعيًا وعادلًا في المقارنة، وقدم أسبابًا واضحة لترتيب المهام.
+            """
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": f"""أنت محلل كود خبير متخصص في لغة {language}.
-                     مهمتك هي تحليل وتقييم مقطع الكود المقدم بناءً على المعايير التالية:
-                     
-                     {json.dumps(assessment_criteria, ensure_ascii=False, indent=2)}
-                     
-                     قم بتصنيف الكود كـ: مقبول، جيد، أو ممتاز.
-                     
-                     قدم تحليلك بتنسيق JSON التالي:
-                     {{
-                       "grade": "مقبول/جيد/ممتاز",
-                       "overall_score": 0-100,
-                       "summary": "ملخص عام للتحليل",
-                       "criteria_scores": {{
-                         "معيار1": {{ "score": 0-100, "feedback": "ملاحظات" }},
-                         "معيار2": {{ "score": 0-100, "feedback": "ملاحظات" }},
-                         ...
-                       }},
-                       "issues": [
-                         {{ "line": رقم_السطر, "severity": "مرتفع/متوسط/منخفض", "description": "وصف المشكلة" }},
-                         ...
-                       ],
-                       "improvement_suggestions": [
-                         "اقتراح 1", "اقتراح 2", "اقتراح 3"
-                       ]
-                     }}
-                     
-                     تأكد من تقديم تحليل دقيق ومفصل مع اقتراحات عملية للتحسين.
-                     """},
-                    {"role": "user", "content": f"قم بتحليل وتقييم مقطع الكود التالي بلغة {language}:\n\n```{language}\n{code}\n```"}
+                    {"role": "system", "content": "أنت مقيّم متخصص في مقارنة وترتيب مهام BTEC. مقارناتك موضوعية وعادلة ومبنية على معايير واضحة."},
+                    {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
-                max_tokens=2500,
-                temperature=0.7
+                temperature=0.2,  # درجة حرارة منخفضة جدًا للحصول على تقييم متسق
+                max_tokens=4000,
+                response_format={"type": "json_object"}
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تحليل الكود باستخدام OpenAI API في {elapsed_time:.2f} ثانية")
+            # تحليل الاستجابة
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
             
-            result = json.loads(response.choices[0].message.content)
-            return result
         except Exception as e:
-            logging.error(f"خطأ في OpenAI API أثناء تحليل الكود: {e}")
+            logger.error(f"خطأ في مقارنة المهام: {e}")
+            submission_ids = [sub["id"] for sub in submissions]
             return {
-                "grade": "خطأ",
-                "overall_score": 0,
-                "summary": f"حدث خطأ أثناء تحليل الكود: {str(e)}",
-                "criteria_scores": {},
-                "issues": [],
-                "improvement_suggestions": ["حاول مرة أخرى لاحقًا"],
-                "error": True
+                "rankings": [{
+                    "id": sub_id,
+                    "rank": i+1,
+                    "grade": "خطأ",
+                    "score": 0,
+                    "feedback": "غير متوفر بسبب خطأ"
+                } for i, sub_id in enumerate(submission_ids)],
+                "comparison_notes": f"حدث خطأ أثناء المقارنة: {str(e)}",
+                "criteria_weights": {"المعرفة": 0, "التطبيق": 0, "التحليل": 0, "التقييم": 0}
+            }
+    
+    def generate_custom_feedback(self, task: str, evaluation_result: Dict[str, Any], feedback_style: str = "مفصل") -> str:
+        """
+        إنشاء تعليقات مخصصة بناءً على نتيجة التقييم وأسلوب التعليق المطلوب
+        
+        Args:
+            task: نص المهمة المقيمة
+            evaluation_result: نتيجة التقييم السابق للمهمة
+            feedback_style: أسلوب التعليق ('موجز'، 'مفصل'، 'إيجابي'، 'بناء')
+            
+        Returns:
+            نص التعليق المخصص
+        """
+        if self.simulation_mode:
+            return f"هذا تعليق محاكي بأسلوب {feedback_style}. لم يتم إجراء استدعاء فعلي لـ OpenAI API."
+        
+        try:
+            # تحويل نتيجة التقييم إلى نص
+            evaluation_text = json.dumps(evaluation_result, ensure_ascii=False, indent=2)
+            
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت متخصص في كتابة تعليقات تعليمية. قم بإنشاء تعليق مخصص على المهمة التالية بناءً على نتيجة التقييم وبأسلوب {feedback_style}:
+            
+            المهمة:
+            ```
+            {task[:500]}...  # استخدام جزء من المهمة فقط للتوفير
+            ```
+            
+            نتيجة التقييم:
+            ```json
+            {evaluation_text}
+            ```
+            
+            أسلوب التعليق المطلوب: {feedback_style}
+            
+            إرشادات حسب الأسلوب:
+            - موجز: تعليق قصير ومباشر يلخص النقاط الرئيسية (100-150 كلمة)
+            - مفصل: تعليق شامل يتناول جميع جوانب المهمة بالتفصيل (300-500 كلمة)
+            - إيجابي: التركيز على نقاط القوة والجوانب الإيجابية مع تشجيع الطالب
+            - بناء: تقديم نقد بناء مع اقتراحات عملية للتحسين
+            
+            قدم تعليقًا مفيدًا يساعد الطالب على فهم تقييمه والتحسن في المستقبل.
+            """
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": f"أنت متخصص في كتابة تعليقات تعليمية بأسلوب {feedback_style}. تعليقاتك مفيدة وتحفيزية وتساعد الطلاب على التحسن."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.6,  # درجة حرارة متوسطة للسماح بإبداع أكبر في الصياغة
+                max_tokens=1500
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            logger.error(f"خطأ في إنشاء تعليق مخصص: {e}")
+            return f"حدث خطأ أثناء إنشاء التعليق المخصص: {str(e)}"
+    
+    def check_plagiarism(self, main_text: str, references: List[str]) -> Dict[str, Any]:
+        """
+        التحقق من الانتحال الأكاديمي بمقارنة النص الرئيسي مع مراجع
+        
+        Args:
+            main_text: النص الرئيسي للتحقق منه
+            references: قائمة بالنصوص المرجعية للمقارنة
+            
+        Returns:
+            نتيجة التحقق من الانتحال
+        """
+        if self.simulation_mode:
+            return {
+                "plagiarism_detected": False,
+                "similarity_score": 0.15,
+                "similar_passages": [],
+                "originality_score": 0.85,
+                "recommendation": "هذا تحليل محاكي للانتحال. لم يتم إجراء استدعاء فعلي لـ OpenAI API."
+            }
+        
+        try:
+            # تجميع النصوص المرجعية في نص واحد
+            references_text = "\n\n".join([f"### المرجع {i+1}:\n```\n{ref[:300]}...\n```" for i, ref in enumerate(references)])
+            
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت محلل متخصص في كشف الانتحال الأكاديمي. قم بفحص النص التالي ومقارنته بالمراجع المقدمة للكشف عن أي انتحال:
+            
+            النص الرئيسي:
+            ```
+            {main_text[:1000]}...  # استخدام جزء من النص فقط للتوفير
+            ```
+            
+            النصوص المرجعية:
+            {references_text}
+            
+            قم بتقديم تحليل شامل للانتحال بتنسيق JSON يتضمن الحقول التالية:
+            1. plagiarism_detected: (boolean) هل تم اكتشاف انتحال واضح
+            2. similarity_score: (float 0-1) درجة التشابه الإجمالي
+            3. similar_passages: قائمة بالمقاطع المتشابهة، كل مقطع يتضمن (النص المنتحل، المرجع المطابق، رقم المرجع، درجة التشابه)
+            4. originality_score: (float 0-1) درجة الأصالة
+            5. recommendation: توصية حول كيفية التعامل مع هذه الحالة
+            
+            كن دقيقًا وموضوعيًا في تحليلك، وتجنب الاتهامات غير المبررة.
+            """
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "أنت محلل متخصص في كشف الانتحال الأكاديمي. تحليلاتك دقيقة وموضوعية ومبنية على أدلة واضحة."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
+                max_tokens=2500,
+                response_format={"type": "json_object"}
+            )
+            
+            # تحليل الاستجابة
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
+            
+        except Exception as e:
+            logger.error(f"خطأ في التحقق من الانتحال: {e}")
+            return {
+                "plagiarism_detected": False,
+                "similarity_score": 0,
+                "similar_passages": [],
+                "originality_score": 0,
+                "recommendation": f"حدث خطأ أثناء تحليل الانتحال: {str(e)}"
             }

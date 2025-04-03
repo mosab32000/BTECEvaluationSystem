@@ -1,13 +1,21 @@
 #!/usr/bin/env python
 """
-برنامج اختبار لخدمات الذكاء الاصطناعي في نظام تقييم BTEC
+برنامج اختبار لواجهة REST API لخدمة الذكاء الاصطناعي المباشرة
 """
 
 import os
 import json
 import logging
-from dotenv import load_dotenv
-from backend.app.services.ai_service_direct import AIEvaluatorDirect
+# التعامل مع الحالات التي لا تتوفر فيها مكتبة dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # في حالة عدم وجود المكتبة، نقوم بتعريف دالة فارغة
+    def load_dotenv():
+        pass
+    print("تحذير: لم يتم العثور على مكتبة dotenv. تجاهل تحميل ملف .env")
+
+from backend.app.services.ai_service_rest import AIEvaluatorREST
 
 # إعداد السجل
 logging.basicConfig(level=logging.INFO)
@@ -18,11 +26,11 @@ load_dotenv()
 
 def test_basic_evaluation():
     """اختبار التقييم الأساسي"""
-    logger.info("اختبار التقييم الأساسي...")
+    logger.info("اختبار التقييم الأساسي باستخدام REST API...")
     
     # إنشاء مثيل من خدمة التقييم
     api_key = os.environ.get('OPENAI_API_KEY')
-    evaluator = AIEvaluatorDirect(api_key=api_key)
+    evaluator = AIEvaluatorREST(api_key=api_key)
     
     # نص المهمة للتقييم
     sample_submission = """
@@ -74,17 +82,17 @@ def test_basic_evaluation():
     
     # إجراء التقييم
     result = evaluator.evaluate(sample_submission)
-    logger.info(f"نتيجة التقييم الأساسي:\n{result}\n")
+    logger.info(f"نتيجة التقييم الأساسي (REST):\n{result}\n")
     
     return result
 
 def test_json_evaluation():
     """اختبار التقييم بتنسيق JSON"""
-    logger.info("اختبار التقييم بتنسيق JSON...")
+    logger.info("اختبار التقييم بتنسيق JSON باستخدام REST API...")
     
     # إنشاء مثيل من خدمة التقييم
     api_key = os.environ.get('OPENAI_API_KEY')
-    evaluator = AIEvaluatorDirect(api_key=api_key)
+    evaluator = AIEvaluatorREST(api_key=api_key)
     
     # نص المهمة للتقييم (استخدام نفس النص السابق)
     sample_submission = """
@@ -136,17 +144,17 @@ def test_json_evaluation():
     
     # إجراء التقييم
     result = evaluator.evaluate_with_json(sample_submission)
-    logger.info(f"نتيجة التقييم بتنسيق JSON:\n{json.dumps(result, indent=2, ensure_ascii=False)}\n")
+    logger.info(f"نتيجة التقييم بتنسيق JSON (REST):\n{json.dumps(result, indent=2, ensure_ascii=False)}\n")
     
     return result
 
 def test_rubric_evaluation():
     """اختبار التقييم باستخدام معيار تقييم"""
-    logger.info("اختبار التقييم باستخدام معيار تقييم...")
+    logger.info("اختبار التقييم باستخدام معيار تقييم (REST)...")
     
     # إنشاء مثيل من خدمة التقييم
     api_key = os.environ.get('OPENAI_API_KEY')
-    evaluator = AIEvaluatorDirect(api_key=api_key)
+    evaluator = AIEvaluatorREST(api_key=api_key)
     
     # نص المهمة للتقييم (استخدام نفس النص السابق)
     sample_submission = """
@@ -224,13 +232,13 @@ def test_rubric_evaluation():
     
     # إجراء التقييم
     result = evaluator.evaluate_with_rubric(sample_submission, custom_rubric)
-    logger.info(f"نتيجة التقييم باستخدام معيار تقييم:\n{json.dumps(result, indent=2, ensure_ascii=False)}\n")
+    logger.info(f"نتيجة التقييم باستخدام معيار تقييم (REST):\n{json.dumps(result, indent=2, ensure_ascii=False)}\n")
     
     return result
 
 def main():
-    """الدالة الرئيسية لاختبار خدمات الذكاء الاصطناعي"""
-    logger.info("بدء اختبار خدمات الذكاء الاصطناعي...")
+    """الدالة الرئيسية لاختبار خدمات الذكاء الاصطناعي المباشرة"""
+    logger.info("بدء اختبار خدمات الذكاء الاصطناعي باستخدام REST API...")
     
     # التحقق من وجود مفتاح API
     api_key = os.environ.get('OPENAI_API_KEY')
@@ -238,11 +246,25 @@ def main():
         logger.warning("تحذير: لم يتم العثور على OPENAI_API_KEY في متغيرات البيئة. سيتم استخدام وضع المحاكاة.")
     
     # اختبار الطرق المختلفة
-    test_basic_evaluation()
-    test_json_evaluation()
-    test_rubric_evaluation()
+    try:
+        # اختبار التقييم الأساسي
+        test_basic_evaluation()
+    except Exception as e:
+        logger.error(f"فشل اختبار التقييم الأساسي: {e}")
     
-    logger.info("اكتمل اختبار خدمات الذكاء الاصطناعي.")
+    try:
+        # اختبار التقييم بتنسيق JSON
+        test_json_evaluation()
+    except Exception as e:
+        logger.error(f"فشل اختبار التقييم بتنسيق JSON: {e}")
+    
+    try:
+        # اختبار التقييم باستخدام معيار تقييم
+        test_rubric_evaluation()
+    except Exception as e:
+        logger.error(f"فشل اختبار التقييم باستخدام معيار تقييم: {e}")
+    
+    logger.info("اكتمل اختبار خدمات الذكاء الاصطناعي باستخدام REST API.")
 
 if __name__ == "__main__":
     main()
