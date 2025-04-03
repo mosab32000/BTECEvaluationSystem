@@ -1,353 +1,297 @@
-/* تعريف متغيرات CSS */
+/* أنماط عامة */
 :root {
-    --primary-color: #5e35b1;
-    --secondary-color: #4527a0;
-    --gradient-start: #7c4dff;
-    --gradient-end: #5e35b1;
-    --accent-color: #00bcd4;
-    --dark-bg: #1a1a2e;
-    --card-bg: #2a2a3c;
-    --text-color: #ffffff;
-    --sidebar-bg: #16213e;
+  --primary-color: #6c63ff;
+  --secondary-color: #4a44b3;
+  --accent-color: #ff6584;
+  --dark-bg: #121212;
+  --card-bg: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
 }
 
 body {
-    font-family: 'Tajawal', sans-serif;
-    background-color: var(--dark-bg);
-    color: var(--text-color);
-    overflow-x: hidden;
+  font-family: 'Tajawal', sans-serif;
+  background-color: var(--dark-bg);
+  color: var(--text-primary);
 }
 
-/* تأثير التدرج بالألوان للخلفية */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(122, 77, 255, 0.2) 0%, rgba(94, 53, 177, 0.2) 100%);
-    z-index: -1;
-    pointer-events: none;
-}
-
-/* تصميم الشعار */
+/* الشعار والترويسة */
 .logo {
-    font-weight: bold;
-    color: var(--accent-color);
-    font-size: 2.5rem;
-    text-shadow: 0 0 10px rgba(0, 188, 212, 0.5);
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 0;
 }
 
 .subtitle {
-    font-size: 1rem;
-    opacity: 0.8;
-    color: var(--text-color);
+  color: var(--text-secondary);
+  font-size: 1rem;
 }
 
-/* تصميم الشريط الجانبي */
-#sidebar {
-    background-color: var(--sidebar-bg);
-    transition: all 0.3s;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-    min-height: 100vh;
-    z-index: 100;
+/* الشريط الجانبي */
+.sidebar {
+  background-color: var(--card-bg);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  right: 0;
 }
 
-#sidebar .nav-link {
-    padding: 0.75rem 1rem;
-    color: rgba(255, 255, 255, 0.8);
-    border-radius: 5px;
-    margin: 0.2rem 0;
-    transition: all 0.3s;
+.sidebar .nav-link {
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  transition: all 0.3s ease;
 }
 
-#sidebar .nav-link:hover,
-#sidebar .nav-link.active {
-    background-color: rgba(94, 53, 177, 0.3);
-    color: var(--accent-color);
-    transform: translateX(-5px);
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+  background-color: rgba(108, 99, 255, 0.2);
+  color: var(--primary-color);
 }
 
-#sidebar .nav-link i {
-    margin-left: 10px;
-    width: 20px;
-    text-align: center;
+.sidebar .nav-link i {
+  margin-left: 0.75rem;
+  width: 20px;
+  text-align: center;
 }
 
-/* تصميم البطاقات */
-.card {
-    background-color: var(--card-bg);
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s, box-shadow 0.3s;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-}
-
-.card-header {
-    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-    color: white;
-    font-weight: bold;
-    border: none;
-}
-
-/* تأثير 3D للبطاقات */
-.card-3d {
-    position: relative;
-    transform-style: preserve-3d;
-    perspective: 1000px;
-}
-
-.card-3d .card-body {
-    padding: 2rem;
-}
-
-.card-3d:hover .card-header {
-    transform: translateZ(20px);
-    transition: transform 0.3s;
-}
-
-/* تصميم الأزرار */
-.btn-primary {
-    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-    border: none;
-    box-shadow: 0 5px 15px rgba(124, 77, 255, 0.4);
-    transition: all 0.3s;
-}
-
-.btn-primary:hover {
-    box-shadow: 0 8px 25px rgba(124, 77, 255, 0.6);
-    transform: translateY(-2px);
-}
-
-.btn-outline-secondary {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-}
-
-.btn-outline-secondary:hover {
-    background-color: var(--accent-color);
-    color: white;
-}
-
-/* حاويات المحتوى */
-.content-container {
-    padding: 1.5rem 0;
-}
-
-/* تصميم النموذج */
-.form-control, .form-select {
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-}
-
-.form-control:focus, .form-select:focus {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 0.25rem rgba(0, 188, 212, 0.25);
-    color: white;
-}
-
-.form-label {
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-/* مؤشر التقييم */
-.grade-indicator {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: var(--accent-color);
-    text-shadow: 0 0 10px rgba(0, 188, 212, 0.5);
-}
-
-/* بادج التحقق من سلسلة الكتل */
-.blockchain-verified {
-    background-color: rgba(76, 175, 80, 0.2);
-    color: #4CAF50;
-    border: 1px solid #4CAF50;
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    font-weight: bold;
-    display: inline-flex;
-    align-items: center;
-}
-
-.blockchain-verified i {
-    margin-left: 8px;
-}
-
-/* صفحة الترحيب */
+/* بطاقات الميزات */
 .hero-section {
-    padding: 4rem 0;
-    text-align: center;
-}
-
-.hero-section h1 {
-    font-size: 3rem;
-    margin-bottom: 1.5rem;
-    background: linear-gradient(to right, var(--accent-color), var(--gradient-start));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  text-align: center;
+  padding: 2rem 0;
 }
 
 .hero-features {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 2rem 0;
 }
 
 .feature-card {
-    background-color: var(--card-bg);
-    border-radius: 15px;
-    padding: 2rem;
-    width: 100%;
-    max-width: 350px;
-    text-align: center;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s, box-shadow 0.3s;
+  background-color: var(--card-bg);
+  border-radius: 15px;
+  padding: 2rem;
+  flex: 1;
+  min-width: 250px;
+  max-width: 350px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .feature-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
 }
 
 .feature-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: var(--accent-color);
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
 }
 
-/* صفحة التقييم التفصيلية */
+/* نماذج */
+.form-container {
+  background-color: var(--card-bg);
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  margin: 2rem auto;
+  max-width: 800px;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+/* لوحة التحكم */
+.stats-card {
+  background-color: var(--card-bg);
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.stats-icon {
+  font-size: 2rem;
+  color: var(--primary-color);
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+/* جدول التقييمات */
+.evaluation-table {
+  background-color: var(--card-bg);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.evaluation-table th {
+  background-color: rgba(108, 99, 255, 0.2);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* تفاصيل التقييم */
 .evaluation-detail {
-    background-color: var(--card-bg);
-    border-radius: 15px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+  background-color: var(--card-bg);
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.rubric-section {
-    margin-bottom: 1.5rem;
+.evaluation-result {
+  border-right: 4px solid var(--primary-color);
+  padding-right: 1rem;
+  margin: 1.5rem 0;
 }
 
-.rubric-title {
-    color: var(--accent-color);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+.verification-badge {
+  background-color: rgba(108, 99, 255, 0.2);
+  color: var(--primary-color);
+  border-radius: 50px;
+  padding: 0.5rem 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
 }
 
-.criteria-item {
-    padding: 0.75rem;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
+.verification-badge i {
+  margin-left: 0.5rem;
 }
 
-/* تخصيص حسب حجم الشاشة */
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        z-index: 100;
-        padding: 0;
-    }
-    
-    main {
-        padding-top: 20px;
-    }
-    
-    .hero-section h1 {
-        font-size: 2.2rem;
-    }
-}
-
-/* تأثيرات الحركة */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
+/* تحريك */
 .animated {
-    animation: fadeIn 0.5s ease-out;
+  animation-duration: 0.8s;
+  animation-fill-mode: both;
 }
 
-/* أيقونات مع تأثيرات */
-.feature-icon {
-    position: relative;
-    display: inline-block;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
-.feature-icon::after {
-    content: '';
-    position: absolute;
+.fadeInUp {
+  animation-name: fadeInUp;
+}
+
+/* تصميم متجاوب */
+@media (max-width: 768px) {
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+  
+  .hero-features {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .feature-card {
     width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, var(--accent-color) 0%, transparent 70%);
-    opacity: 0.3;
-    border-radius: 50%;
-    left: 0;
-    top: 0;
-    z-index: -1;
-    transform: scale(0.8);
-    transition: transform 0.3s;
+  }
 }
 
-.feature-icon:hover::after {
-    transform: scale(1.2);
+/* أنماط مؤشر التحميل */
+.loading-spinner {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(108, 99, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
 }
 
-/* دعم النص العربي والاتجاه من اليمين إلى اليسار */
-[dir="rtl"] .me-auto {
-    margin-right: 0 !important;
-    margin-left: auto !important;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-[dir="rtl"] .ms-auto {
-    margin-left: 0 !important;
-    margin-right: auto !important;
+/* ملف التقييم */
+.rubric-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border-radius: 10px;
+  background-color: rgba(108, 99, 255, 0.1);
 }
 
-/* خاص بصفحة التحقق من التقييم */
+.criterion-item {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 5px;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* مؤشرات الدرجات */
+.score-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.score-excellent {
+  background-color: rgba(40, 167, 69, 0.2);
+  color: #2ecc71;
+}
+
+.score-good {
+  background-color: rgba(23, 162, 184, 0.2);
+  color: #3498db;
+}
+
+.score-satisfactory {
+  background-color: rgba(255, 193, 7, 0.2);
+  color: #f1c40f;
+}
+
+.score-poor {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #e74c3c;
+}
+
+/* نمط صفحة التحقق */
+.verification-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
 .verification-result {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 2rem;
-    margin-top: 2rem;
-    position: relative;
-    overflow: hidden;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-radius: 10px;
+  background-color: rgba(108, 99, 255, 0.1);
 }
 
 .verification-success {
-    border: 1px solid rgba(76, 175, 80, 0.5);
+  border-right: 4px solid #2ecc71;
 }
 
 .verification-error {
-    border: 1px solid rgba(244, 67, 54, 0.5);
-}
-
-.verification-result::before {
-    content: '';
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(0, 188, 212, 0.2) 0%, transparent 70%);
-    top: -100px;
-    right: -100px;
-    border-radius: 50%;
-    z-index: 0;
+  border-right: 4px solid #e74c3c;
 }
