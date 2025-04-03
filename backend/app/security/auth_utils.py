@@ -1,259 +1,235 @@
 """
-وحدة أدوات المصادقة المتقدمة لنظام تقييم BTEC
+وحدة المصادقة الأساسية لنظام تقييم BTEC
+توفر أدوات للمصادقة وإدارة الجلسات
 """
 
-import hashlib
 import os
-import base64
-import time
-import hmac
+import jwt
 import logging
-import re
-from datetime import datetime, timedelta
-from flask import request, jsonify
+import datetime
+from typing import Dict, Any, Optional
+from flask import request, jsonify, current_app
+from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from .token_utils import verify_token
-from .ip_utils import get_client_ip, log_request_info
 
-# ثوابت دليلية للصلاحيات
-ROLE_USER = 'user'
-ROLE_TEACHER = 'teacher'
-ROLE_ADMIN = 'admin'
+# إعداد السجل
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# قائمة بأنماط كلمات المرور الضعيفة للتحقق
-WEAK_PASSWORD_PATTERNS = [
-    r'^123456',
-    r'^password',
-    r'^qwerty',
-    r'^\d{6}$',  # 6 أرقام فقط
-    r'^admin',
-    r'^btec',
-    r'^letmein',
-]
-
-def validate_password_strength(password):
+def generate_token(user_id: int, email: str, role: str = 'user', expiry_hours: int = 24) -> str:
     """
-    التحقق من قوة كلمة المرور
+    إنشاء رمز JWT
     
     Args:
-        password (str): كلمة المرور للتحقق
+        user_id: معرف المستخدم
+        email: البريد الإلكتروني للمستخدم
+        role: دور المستخدم (user, teacher, admin)
+        expiry_hours: عدد ساعات صلاحية الرمز
         
     Returns:
-        tuple: (قوة كلمة المرور (bool)، قائمة بالأخطاء)
+        رمز JWT
     """
-    errors = []
+    jwt_secret = os.environ.get('JWT_SECRET_KEY') or current_app.config.get('JWT_SECRET_KEY')
+    if not jwt_secret:
+        logger.warning("JWT_SECRET_KEY غير معرف. سيتم استخدام مفتاح افتراضي غير آمن.")
+        jwt_secret = "insecure_default_key_replace_in_production"
     
-    # التحقق من الطول
-    if len(password) < 8:
-        errors.append("كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    payload = {
+        'sub': user_id,
+        'email': email,
+        'role': role,
+        'iat': datetime.datetime.utcnow(),
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=expiry_hours)
+    }
     
-    # التحقق من وجود أحرف مختلفة
-    if not re.search(r'[A-Z]', password):
-        errors.append("كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل")
+    token = jwt.encode(payload, jwt_secret, algorithm='HS256')
+    logger.info(f"تم إنشاء رمز JWT للمستخدم: {email}")
     
-    if not re.search(r'[a-z]', password):
-        errors.append("كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل")
-    
-    if not re.search(r'\d', password):
-        errors.append("كلمة المرور يجب أن تحتوي على رقم واحد على الأقل")
-    
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        errors.append("كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل")
-    
-    # التحقق من أنماط كلمات المرور الضعيفة
-    for pattern in WEAK_PASSWORD_PATTERNS:
-        if re.search(pattern, password, re.IGNORECASE):
-            errors.append("كلمة المرور ضعيفة جدًا أو شائعة")
-            break
-    
-    # التحقق من التكرار
-    if any(password.count(char) > 3 for char in password):
-        errors.append("كلمة المرور تحتوي على أحرف متكررة كثيرة")
-    
-    return len(errors) == 0, errors
+    return token
 
-def generate_totp_secret():
+def validate_token(token: str) -> Dict[str, Any]:
     """
-    إنشاء مفتاح سري للتوثيق الثنائي TOTP
-    
-    Returns:
-        str: المفتاح السري بتشفير Base32
-    """
-    # إنشاء 20 بايت عشوائية (160 بت) للمفتاح السري
-    random_bytes = os.urandom(20)
-    return base64.b32encode(random_bytes).decode('utf-8')
-
-def generate_totp(secret, time_step=30, digits=6):
-    """
-    إنشاء رمز TOTP للمفتاح السري المحدد
+    التحقق من صحة رمز JWT
     
     Args:
-        secret (str): المفتاح السري بتشفير Base32
-        time_step (int): خطوة الوقت بالثواني
-        digits (int): عدد أرقام الرمز
+        token: رمز JWT
         
     Returns:
-        str: رمز TOTP
+        معلومات المستخدم إذا كان الرمز صالحًا، أو قاموس خطأ
     """
-    # تحويل المفتاح السري من Base32 إلى بايت
-    key = base64.b32decode(secret)
+    jwt_secret = os.environ.get('JWT_SECRET_KEY') or current_app.config.get('JWT_SECRET_KEY')
+    if not jwt_secret:
+        logger.warning("JWT_SECRET_KEY غير معرف. سيتم استخدام مفتاح افتراضي غير آمن.")
+        jwt_secret = "insecure_default_key_replace_in_production"
     
-    # حساب قيمة العداد الحالية (عدد خطوات الوقت منذ UNIX epoch)
-    counter = int(time.time() / time_step)
-    
-    # تحويل العداد إلى بايت بالترتيب Big-endian
-    counter_bytes = counter.to_bytes(8, byteorder='big')
-    
-    # حساب HMAC-SHA1
-    hmac_result = hmac.new(key, counter_bytes, hashlib.sha1).digest()
-    
-    # استخراج قيمة الإزاحة
-    offset = hmac_result[-1] & 0x0F
-    
-    # استخراج 4 بايت من النتيجة بدءًا من الإزاحة وإزالة البت الأكثر أهمية
-    binary = ((hmac_result[offset] & 0x7F) << 24 |
-              (hmac_result[offset + 1] & 0xFF) << 16 |
-              (hmac_result[offset + 2] & 0xFF) << 8 |
-              (hmac_result[offset + 3] & 0xFF))
-    
-    # حساب القيمة النهائية بأخذ مُعامل باقي القسمة
-    totp = binary % (10 ** digits)
-    
-    # تحويل إلى سلسلة نصية وإضافة أصفار في البداية إذا لزم الأمر
-    return str(totp).zfill(digits)
+    try:
+        payload = jwt.decode(token, jwt_secret, algorithms=['HS256'])
+        return {
+            'valid': True,
+            'user_id': payload['sub'],
+            'email': payload['email'],
+            'role': payload.get('role', 'user')
+        }
+    except jwt.ExpiredSignatureError:
+        logger.warning("رمز JWT منتهي الصلاحية")
+        return {'valid': False, 'error': 'Token expired'}
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"رمز JWT غير صالح: {str(e)}")
+        return {'valid': False, 'error': f'Invalid token: {str(e)}'}
 
-def verify_totp(secret, token, time_step=30, digits=6, window=1):
+def hash_password(password: str) -> str:
     """
-    التحقق من صحة رمز TOTP
+    تشفير كلمة المرور
     
     Args:
-        secret (str): المفتاح السري بتشفير Base32
-        token (str): الرمز المراد التحقق منه
-        time_step (int): خطوة الوقت بالثواني
-        digits (int): عدد أرقام الرمز
-        window (int): نافذة التحقق (عدد الخطوات قبل وبعد الوقت الحالي)
+        password: كلمة المرور
         
     Returns:
-        bool: True إذا كان الرمز صحيحًا، False خلاف ذلك
+        كلمة المرور المشفرة
     """
-    # التحقق من شكل الرمز
-    if not re.match(r'^\d{%d}$' % digits, token):
-        return False
-    
-    # التحقق من الرمز في نافذة الوقت المحددة
-    for i in range(-window, window + 1):
-        # حساب قيمة العداد للنافذة
-        counter = int(time.time() / time_step) + i
-        
-        # تحويل العداد إلى بايت بالترتيب Big-endian
-        counter_bytes = counter.to_bytes(8, byteorder='big')
-        
-        # تحويل المفتاح السري من Base32 إلى بايت
-        key = base64.b32decode(secret)
-        
-        # حساب HMAC-SHA1
-        hmac_result = hmac.new(key, counter_bytes, hashlib.sha1).digest()
-        
-        # استخراج قيمة الإزاحة
-        offset = hmac_result[-1] & 0x0F
-        
-        # استخراج 4 بايت من النتيجة بدءًا من الإزاحة وإزالة البت الأكثر أهمية
-        binary = ((hmac_result[offset] & 0x7F) << 24 |
-                  (hmac_result[offset + 1] & 0xFF) << 16 |
-                  (hmac_result[offset + 2] & 0xFF) << 8 |
-                  (hmac_result[offset + 3] & 0xFF))
-        
-        # حساب القيمة النهائية بأخذ مُعامل باقي القسمة
-        generated_token = str(binary % (10 ** digits)).zfill(digits)
-        
-        # مقارنة الرمز المُدخل مع الرمز المُولد
-        if token == generated_token:
-            return True
-    
-    return False
+    return generate_password_hash(password)
 
-def role_required(allowed_roles):
+def verify_password(hashed_password: str, password: str) -> bool:
     """
-    زخرفة للتحقق من صلاحيات المستخدم
+    التحقق من صحة كلمة المرور
     
     Args:
-        allowed_roles (list): قائمة بالصلاحيات المسموح بها
+        hashed_password: كلمة المرور المشفرة
+        password: كلمة المرور المدخلة
         
     Returns:
-        function: الزخرفة
+        True إذا كانت كلمة المرور صحيحة، False خلاف ذلك
     """
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            from backend.app.models import User
-            
-            token = None
-            auth_header = request.headers.get('Authorization')
-            
-            # استخراج التوكن من رأس التفويض
-            if auth_header:
-                if auth_header.startswith('Bearer '):
-                    token = auth_header.split(' ')[1]
-                else:
-                    return jsonify({
-                        'status': 'error',
-                        'message': 'صيغة رأس التفويض غير صحيحة'
-                    }), 401
-            
-            # التحقق من وجود التوكن
-            if not token:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'لم يتم توفير رمز المصادقة'
-                }), 401
-            
-            # التحقق من صحة التوكن واستخراج معرّف المستخدم
-            user_id = verify_token(token)
-            if not user_id:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'رمز مصادقة غير صالح أو منتهي الصلاحية'
-                }), 401
-            
-            # استعلام عن المستخدم في قاعدة البيانات
-            from flask import current_app
-            with current_app.app_context():
-                user = User.query.get(user_id)
-                
-                # التحقق من وجود المستخدم وحالته النشطة
-                if not user or not user.is_active:
-                    return jsonify({
-                        'status': 'error',
-                        'message': 'حساب المستخدم غير موجود أو غير نشط'
-                    }), 401
-                
-                # التحقق من صلاحيات المستخدم
-                if user.role not in allowed_roles:
-                    log_request_info()
-                    logging.warning(f"محاولة وصول غير مصرح بها: المستخدم {user.id} (صلاحية: {user.role}) محدولة الوصول إلى مسار مقيد")
-                    return jsonify({
-                        'status': 'error',
-                        'message': 'لا تملك الصلاحيات اللازمة للوصول إلى هذا المورد'
-                    }), 403
-                
-                # تحديث وقت آخر تسجيل دخول
-                user.update_last_login()
-                
-                # استدعاء الدالة الأصلية مع تمرير المستخدم
-                return f(user, *args, **kwargs)
-        
-        return decorated_function
-    return decorator
+    return check_password_hash(hashed_password, password)
 
-# زخرفات للصلاحيات المشتركة
+def token_required(f):
+    """
+    زخرفة للتحقق من وجود رمز JWT صالح
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        
+        # البحث عن الرمز في الترويسة
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+        
+        if not token:
+            logger.warning("عدم وجود رمز JWT في الطلب")
+            return jsonify({'message': 'Authentication token is missing!'}), 401
+        
+        # التحقق من صحة الرمز
+        token_data = validate_token(token)
+        
+        if not token_data['valid']:
+            logger.warning(f"رمز JWT غير صالح: {token_data.get('error')}")
+            return jsonify({'message': f'Invalid authentication token: {token_data.get("error")}'}), 401
+        
+        # إضافة معرف المستخدم إلى الـ kwargs
+        kwargs['user_id'] = token_data['user_id']
+        
+        return f(*args, **kwargs)
+    
+    return decorated
+
 def admin_required(f):
-    """زخرفة تتطلب صلاحيات المسؤول"""
-    return role_required([ROLE_ADMIN])(f)
+    """
+    زخرفة للتحقق من وجود رمز JWT صالح ودور المسؤول
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        
+        # البحث عن الرمز في الترويسة
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+        
+        if not token:
+            logger.warning("عدم وجود رمز JWT في الطلب")
+            return jsonify({'message': 'Authentication token is missing!'}), 401
+        
+        # التحقق من صحة الرمز
+        token_data = validate_token(token)
+        
+        if not token_data['valid']:
+            logger.warning(f"رمز JWT غير صالح: {token_data.get('error')}")
+            return jsonify({'message': f'Invalid authentication token: {token_data.get("error")}'}), 401
+        
+        # التحقق من دور المستخدم
+        if token_data.get('role') != 'admin':
+            logger.warning(f"محاولة الوصول غير المصرح به من المستخدم {token_data.get('email')}")
+            return jsonify({'message': 'Admin privileges required!'}), 403
+        
+        # إضافة معرف المستخدم إلى الـ kwargs
+        kwargs['user_id'] = token_data['user_id']
+        
+        return f(*args, **kwargs)
+    
+    return decorated
 
 def teacher_required(f):
-    """زخرفة تتطلب صلاحيات المعلم أو المسؤول"""
-    return role_required([ROLE_TEACHER, ROLE_ADMIN])(f)
+    """
+    زخرفة للتحقق من وجود رمز JWT صالح ودور المعلم أو المسؤول
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        
+        # البحث عن الرمز في الترويسة
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+        
+        if not token:
+            logger.warning("عدم وجود رمز JWT في الطلب")
+            return jsonify({'message': 'Authentication token is missing!'}), 401
+        
+        # التحقق من صحة الرمز
+        token_data = validate_token(token)
+        
+        if not token_data['valid']:
+            logger.warning(f"رمز JWT غير صالح: {token_data.get('error')}")
+            return jsonify({'message': f'Invalid authentication token: {token_data.get("error")}'}), 401
+        
+        # التحقق من دور المستخدم
+        if token_data.get('role') not in ['teacher', 'admin']:
+            logger.warning(f"محاولة الوصول غير المصرح به من المستخدم {token_data.get('email')}")
+            return jsonify({'message': 'Teacher or admin privileges required!'}), 403
+        
+        # إضافة معرف المستخدم إلى الـ kwargs
+        kwargs['user_id'] = token_data['user_id']
+        
+        return f(*args, **kwargs)
+    
+    return decorated
 
-def user_required(f):
-    """زخرفة تتطلب أي صلاحيات نشطة"""
-    return role_required([ROLE_USER, ROLE_TEACHER, ROLE_ADMIN])(f)
+def get_user_id_from_request() -> Optional[int]:
+    """
+    استخراج معرف المستخدم من الطلب الحالي
+    
+    Returns:
+        معرف المستخدم أو None إذا كان الرمز غير صالح
+    """
+    token = None
+    
+    # البحث عن الرمز في الترويسة
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization']
+        if auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+    
+    if not token:
+        return None
+    
+    # التحقق من صحة الرمز
+    token_data = validate_token(token)
+    
+    if not token_data['valid']:
+        return None
+    
+    return token_data['user_id']

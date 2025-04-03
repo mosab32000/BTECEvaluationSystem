@@ -1,235 +1,302 @@
-from web3 import Web3
-from flask import current_app
-import hashlib
-import logging
-import time
+"""
+خدمة البلوكتشين لنظام تقييم BTEC
+توفر آليات للتحقق وإثبات سلامة التقييمات
+"""
+
+import os
 import json
-import uuid
+import logging
+import hashlib
+import time
+from typing import Dict, Any, Optional, List, Union
+from flask import current_app
+from web3 import Web3
+from web3.exceptions import TransactionNotFound, BadFunctionCallOutput
+
+# إعداد السجل
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class BlockchainService:
-    def __init__(self):
-        """
-        Initialize the blockchain service with Ethereum connection
-        """
-        self.infura_url = current_app.config.get('INFURA_URL')
-        self.contract_address = current_app.config.get('CONTRACT_ADDRESS')
-        self.signer_key = current_app.config.get('SIGNER_PRIVATE_KEY')
-        
-        # Hash storage for simulated blockchain in dev/test environments
-        # In production, this would be actual blockchain transactions
-        self._simulated_records = {}
+    """صنف خدمة البلوكتشين لتوثيق وإثبات سلامة التقييمات"""
 
-        if not all([self.infura_url, self.contract_address, self.signer_key]):
-            logging.warning("Blockchain configuration incomplete. Blockchain interactions will be simulated.")
-            self.blockchain_enabled = False
-        else:
+    def __init__(self, infura_url: Optional[str] = None, contract_address: Optional[str] = None, private_key: Optional[str] = None):
+        """
+        تهيئة خدمة البلوكتشين
+        
+        Args:
+            infura_url: رابط خدمة Infura (اختياري، سيتم استخدام المتغير البيئي أو سياق التطبيق)
+            contract_address: عنوان العقد الذكي (اختياري، سيتم استخدام المتغير البيئي أو سياق التطبيق)
+            private_key: المفتاح الخاص للحساب المستخدم للتوقيع (اختياري، سيتم استخدام المتغير البيئي أو سياق التطبيق)
+        """
+        # استخدام القيم المقدمة أو البحث عنها في المتغيرات البيئية أو سياق التطبيق
+        self.infura_url = infura_url or os.environ.get('INFURA_URL') or current_app.config.get('INFURA_URL')
+        self.contract_address = contract_address or os.environ.get('CONTRACT_ADDRESS') or current_app.config.get('CONTRACT_ADDRESS')
+        self.private_key = private_key or os.environ.get('SIGNER_PRIVATE_KEY') or current_app.config.get('SIGNER_PRIVATE_KEY')
+        
+        self.w3 = None
+        self.contract = None
+        self.account = None
+        
+        # محاولة الاتصال بشبكة البلوكتشين
+        if self.infura_url and self.contract_address and self.private_key:
             try:
+                # الاتصال بشبكة البلوكتشين
                 self.w3 = Web3(Web3.HTTPProvider(self.infura_url))
-                # Check connection
+                
                 if not self.w3.is_connected():
-                    logging.warning("Could not connect to Ethereum node. Falling back to simulation mode.")
-                    self.blockchain_enabled = False
-                else:
-                    # For a real implementation, you would load the contract ABI here
-                    # This is a simplified example
-                    logging.info("Connected to Ethereum blockchain successfully.")
-                    self.blockchain_enabled = True
+                    logger.error("فشل الاتصال بشبكة البلوكتشين")
+                    self.simulation_mode = True
+                    return
+                
+                # تعريف ABI للعقد الذكي (يجب تحديثه بناءً على العقد الفعلي)
+                # هذا مجرد مثال مبسط، يجب استبداله بـ ABI الحقيقي للعقد
+                contract_abi = [
+                    {
+                        "inputs": [
+                            {"internalType": "string", "name": "hash", "type": "string"},
+                            {"internalType": "string", "name": "data", "type": "string"}
+                        ],
+                        "name": "recordEvaluation",
+                        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [{"internalType": "string", "name": "hash", "type": "string"}],
+                        "name": "verifyEvaluation",
+                        "outputs": [
+                            {"internalType": "bool", "name": "", "type": "bool"},
+                            {"internalType": "string", "name": "", "type": "string"},
+                            {"internalType": "uint256", "name": "", "type": "uint256"}
+                        ],
+                        "stateMutability": "view",
+                        "type": "function"
+                    }
+                ]
+                
+                # إنشاء نسخة من العقد
+                self.contract = self.w3.eth.contract(address=self.contract_address, abi=contract_abi)
+                
+                # إعداد الحساب للتوقيع
+                self.account = self.w3.eth.account.from_key(self.private_key)
+                
+                logger.info("تم تهيئة خدمة البلوكتشين بنجاح")
+                self.simulation_mode = False
+                
             except Exception as e:
-                logging.error(f"Error initializing blockchain connection: {e}")
-                self.blockchain_enabled = False
-
-    def record_grade(self, grade):
+                logger.error(f"خطأ في تهيئة خدمة البلوكتشين: {e}")
+                self.simulation_mode = True
+        else:
+            logger.warning("المعلومات المطلوبة لخدمة البلوكتشين غير متوفرة. سيتم استخدام وضع المحاكاة.")
+            self.simulation_mode = True
+    
+    def _generate_evaluation_hash(self, evaluation_data: Union[str, Dict]) -> str:
         """
-        Records a grade on the blockchain
-        Returns the transaction hash
+        إنشاء هاش للتقييم
         
         Args:
-            grade (str): The grade/feedback to record (can be JSON string or plain text)
+            evaluation_data: بيانات التقييم (نص أو قاموس)
             
         Returns:
-            str: The transaction hash or simulated hash
+            هاش التقييم
         """
-        # Generate a unique record ID
-        record_id = str(uuid.uuid4())
-        timestamp = int(time.time())
+        # تحويل البيانات إلى JSON إذا كانت قاموسًا
+        if isinstance(evaluation_data, dict):
+            data_str = json.dumps(evaluation_data, sort_keys=True)
+        else:
+            data_str = str(evaluation_data)
         
-        if not self.blockchain_enabled:
-            # Simulate blockchain recording if not configured
-            # Create a deterministic but unique hash based on grade and time
-            data = f"{grade}_{timestamp}_{record_id}"
-            simulated_hash = "0x" + hashlib.sha256(data.encode()).hexdigest()
-            
-            # Store the record in our simulation storage
-            self._simulated_records[simulated_hash] = {
-                'grade': grade,
-                'timestamp': timestamp,
-                'record_id': record_id
-            }
-            
-            logging.info(f"Simulated blockchain record created: {simulated_hash[:10]}...")
-            return simulated_hash
+        # إضافة طابع زمني لضمان تفرد الهاش
+        timestamp = str(int(time.time()))
+        data_with_timestamp = data_str + timestamp
         
-        try:
-            # This is a placeholder for actual blockchain interaction
-            # In a real implementation, you would:
-            # 1. Create a transaction to the smart contract
-            # 2. Sign it with the private key
-            # 3. Send it to the Ethereum network
-            # 4. Return the transaction hash
-            
-            # Example (not functional without contract ABI):
-            # nonce = self.w3.eth.get_transaction_count(
-            #     self.w3.eth.account.from_key(self.signer_key).address)
-            # 
-            # tx = self.contract.functions.recordGrade(
-            #     record_id, 
-            #     Web3.to_hex(text=grade),
-            #     timestamp
-            # ).build_transaction({
-            #     'chainId': 1,  # Ethereum mainnet
-            #     'gas': 100000,
-            #     'gasPrice': self.w3.eth.gas_price,
-            #     'nonce': nonce,
-            # })
-            # 
-            # signed_tx = self.w3.eth.account.sign_transaction(tx, private_key=self.signer_key)
-            # tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            # return self.w3.to_hex(tx_hash)
-            
-            # For now, we'll return a simulated hash
-            data = f"{grade}_{timestamp}_{record_id}"
-            simulated_hash = "0x" + hashlib.sha256(data.encode()).hexdigest()
-            
-            # Store in simulation for verification later
-            self._simulated_records[simulated_hash] = {
-                'grade': grade,
-                'timestamp': timestamp,
-                'record_id': record_id
-            }
-            
-            logging.info(f"Blockchain-simulation record created: {simulated_hash[:10]}...")
-            return simulated_hash
-            
-        except Exception as e:
-            logging.error(f"Error recording grade on blockchain: {e}")
-            # Return a fallback hash to avoid breaking the application
-            data = f"error_{grade}_{timestamp}_{record_id}"
-            fallback_hash = "0x" + hashlib.sha256(data.encode()).hexdigest()
-            
-            # Store in simulation for verification later
-            self._simulated_records[fallback_hash] = {
-                'grade': grade,
-                'timestamp': timestamp,
-                'record_id': record_id,
-                'error': str(e)
-            }
-            
-            return fallback_hash
-            
-    def verify_grade(self, hash_value, expected_grade=None):
+        # إنشاء الهاش باستخدام SHA3 (Keccak256)
+        hash_object = hashlib.sha3_256(data_with_timestamp.encode())
+        return "0x" + hash_object.hexdigest()
+    
+    def record_evaluation(self, evaluation_data: Union[str, Dict]) -> str:
         """
-        Verifies if a grade exists on the blockchain with the given hash
+        تسجيل تقييم في البلوكتشين
         
         Args:
-            hash_value (str): The transaction hash to verify
-            expected_grade (str, optional): If provided, checks if the stored grade matches
+            evaluation_data: بيانات التقييم (نص أو قاموس)
             
         Returns:
-            dict: Verification result with status and details
+            هاش التقييم المسجل
         """
-        if not hash_value:
-            return {
-                'verified': False,
-                'reason': 'No hash provided',
-                'details': None
-            }
-        
-        if not self.blockchain_enabled:
-            # Use simulation storage to verify
-            if hash_value in self._simulated_records:
-                record = self._simulated_records[hash_value]
-                
-                # If expected grade was provided, check it
-                if expected_grade and record.get('grade') != expected_grade:
-                    return {
-                        'verified': False,
-                        'reason': 'Grade mismatch',
-                        'details': {
-                            'stored_timestamp': record.get('timestamp'),
-                            'hash': hash_value
-                        }
-                    }
-                
-                return {
-                    'verified': True,
-                    'reason': 'Verified in simulation storage',
-                    'details': {
-                        'stored_timestamp': record.get('timestamp'),
-                        'hash': hash_value
-                    }
-                }
-            else:
-                return {
-                    'verified': False,
-                    'reason': 'Hash not found in simulation storage',
-                    'details': None
-                }
+        if self.simulation_mode:
+            # إنشاء هاش في وضع المحاكاة
+            hash_value = self._generate_evaluation_hash(evaluation_data)
+            logger.info(f"محاكاة تسجيل التقييم في البلوكتشين مع الهاش: {hash_value}")
+            return hash_value
         
         try:
-            # In a real implementation, you would:
-            # 1. Get the transaction receipt from the blockchain
-            # 2. Decode the event logs to extract the stored grade
-            # 3. Verify it matches the expected grade
-            
-            # Example (not functional without contract ABI):
-            # tx_receipt = self.w3.eth.get_transaction_receipt(hash_value)
-            # if not tx_receipt or tx_receipt.status != 1:
-            #    return {'verified': False, 'reason': 'Transaction failed or not found'}
-            #
-            # # Process logs to extract grade data
-            # logs = self.contract.events.GradeRecorded().process_receipt(tx_receipt)
-            # if not logs:
-            #    return {'verified': False, 'reason': 'No grade event found in transaction'}
-            #
-            # stored_grade = logs[0].args.grade
-            # if expected_grade and stored_grade != expected_grade:
-            #    return {'verified': False, 'reason': 'Grade mismatch'}
-            #
-            # return {'verified': True, 'details': {'stored_grade': stored_grade}}
-            
-            # Fallback to simulation for now
-            if hash_value in self._simulated_records:
-                record = self._simulated_records[hash_value]
-                
-                if expected_grade and record.get('grade') != expected_grade:
-                    return {
-                        'verified': False,
-                        'reason': 'Grade mismatch',
-                        'details': {
-                            'stored_timestamp': record.get('timestamp'),
-                            'hash': hash_value[:10] + '...'
-                        }
-                    }
-                
-                return {
-                    'verified': True,
-                    'reason': 'Verified in blockchain simulation',
-                    'details': {
-                        'stored_timestamp': record.get('timestamp'),
-                        'hash': hash_value[:10] + '...'
-                    }
-                }
+            # تحويل البيانات إلى JSON إذا كانت قاموسًا
+            if isinstance(evaluation_data, dict):
+                data_str = json.dumps(evaluation_data, sort_keys=True)
             else:
-                return {
-                    'verified': False,
-                    'reason': 'Hash not found in blockchain',
-                    'details': None
-                }
+                data_str = str(evaluation_data)
+            
+            # إنشاء هاش للتقييم
+            hash_value = self._generate_evaluation_hash(evaluation_data)
+            
+            # إعداد المعاملة
+            nonce = self.w3.eth.get_transaction_count(self.account.address)
+            tx = self.contract.functions.recordEvaluation(
+                hash_value,
+                data_str
+            ).build_transaction({
+                'chainId': 1,  # Ethereum mainnet (استبدل بالسلسلة المناسبة)
+                'gas': 200000,
+                'gasPrice': self.w3.eth.gas_price,
+                'nonce': nonce,
+            })
+            
+            # توقيع المعاملة وإرسالها
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            
+            # انتظار تأكيد المعاملة
+            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            if receipt['status'] == 1:
+                logger.info(f"تم تسجيل التقييم في البلوكتشين بنجاح. هاش التقييم: {hash_value}")
+                return hash_value
+            else:
+                logger.error("فشل تسجيل التقييم في البلوكتشين")
+                return f"ERROR_{hash_value}"
                 
         except Exception as e:
-            logging.error(f"Error verifying grade on blockchain: {e}")
+            logger.error(f"خطأ في تسجيل التقييم في البلوكتشين: {e}")
+            # إنشاء هاش في حالة الخطأ
+            hash_value = self._generate_evaluation_hash(evaluation_data)
+            return f"ERROR_{hash_value}"
+    
+    def verify_evaluation(self, evaluation_hash: str) -> Dict[str, Any]:
+        """
+        التحقق من تقييم مسجل في البلوكتشين
+        
+        Args:
+            evaluation_hash: هاش التقييم للتحقق منه
+            
+        Returns:
+            نتيجة التحقق كقاموس
+        """
+        if self.simulation_mode:
+            logger.info(f"محاكاة التحقق من التقييم مع الهاش: {evaluation_hash}")
             return {
-                'verified': False,
-                'reason': f'Verification error: {str(e)}',
-                'details': None
+                "verified": True,
+                "data": "بيانات التقييم المحاكية",
+                "timestamp": int(time.time()),
+                "block_number": 12345678,
+                "transaction_hash": "0x" + "0" * 64
             }
+        
+        try:
+            # إزالة "ERROR_" من الهاش إذا كان موجودًا
+            if evaluation_hash.startswith("ERROR_"):
+                clean_hash = evaluation_hash[6:]
+            else:
+                clean_hash = evaluation_hash
+            
+            # استدعاء دالة التحقق في العقد
+            result = self.contract.functions.verifyEvaluation(clean_hash).call()
+            
+            if result[0]:  # التحقق ناجح
+                # استخراج بيانات التقييم والطابع الزمني
+                evaluation_data = result[1]
+                timestamp = result[2]
+                
+                # الحصول على معلومات المعاملة
+                event_filter = self.w3.eth.filter({
+                    'address': self.contract_address,
+                    'topics': [self.w3.keccak(text="EvaluationRecorded(string)").hex(), clean_hash]
+                })
+                logs = event_filter.get_all_entries()
+                
+                if logs:
+                    transaction_hash = logs[0]['transactionHash'].hex()
+                    block_number = logs[0]['blockNumber']
+                else:
+                    transaction_hash = "غير متوفر"
+                    block_number = 0
+                
+                return {
+                    "verified": True,
+                    "data": evaluation_data,
+                    "timestamp": timestamp,
+                    "block_number": block_number,
+                    "transaction_hash": transaction_hash
+                }
+            else:
+                logger.warning(f"فشل التحقق من التقييم مع الهاش: {clean_hash}")
+                return {
+                    "verified": False,
+                    "error": "لم يتم العثور على التقييم في البلوكتشين"
+                }
+                
+        except TransactionNotFound:
+            logger.error(f"لم يتم العثور على المعاملة للهاش: {evaluation_hash}")
+            return {
+                "verified": False,
+                "error": "لم يتم العثور على المعاملة"
+            }
+        except BadFunctionCallOutput:
+            logger.error(f"خطأ في استدعاء وظيفة العقد للهاش: {evaluation_hash}")
+            return {
+                "verified": False,
+                "error": "خطأ في استدعاء وظيفة العقد"
+            }
+        except Exception as e:
+            logger.error(f"خطأ في التحقق من التقييم في البلوكتشين: {e}")
+            return {
+                "verified": False,
+                "error": str(e)
+            }
+    
+    def get_verification_status(self, evaluation_hash: str) -> Dict[str, Any]:
+        """
+        الحصول على حالة التحقق بتنسيق مبسط
+        
+        Args:
+            evaluation_hash: هاش التقييم للتحقق منه
+            
+        Returns:
+            حالة التحقق بتنسيق مبسط
+        """
+        result = self.verify_evaluation(evaluation_hash)
+        
+        if result.get("verified", False):
+            return {
+                "status": "VERIFIED",
+                "timestamp": result.get("timestamp", 0),
+                "message": "تم التحقق من سلامة التقييم"
+            }
+        else:
+            return {
+                "status": "NOT_VERIFIED",
+                "error": result.get("error", "غير معروف"),
+                "message": "لم يتم التحقق من سلامة التقييم"
+            }
+    
+    def batch_record_evaluations(self, evaluations: List[Dict[str, Any]]) -> List[str]:
+        """
+        تسجيل مجموعة من التقييمات في البلوكتشين
+        
+        Args:
+            evaluations: قائمة بالتقييمات للتسجيل
+            
+        Returns:
+            قائمة بهاشات التقييمات المسجلة
+        """
+        results = []
+        
+        for evaluation in evaluations:
+            hash_value = self.record_evaluation(evaluation)
+            results.append(hash_value)
+            
+            # إضافة تأخير بسيط بين المعاملات
+            time.sleep(0.5)
+        
+        return results

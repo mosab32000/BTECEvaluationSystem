@@ -1,365 +1,460 @@
 """
-خدمة تقييم الذكاء الاصطناعي متعددة النماذج (نص + صور) في نظام تقييم BTEC
+خدمة الذكاء الاصطناعي متعددة الوسائط لتقييم BTEC
+تدعم تقييم النص والصور معًا
 """
 
-from openai import OpenAI
-from flask import current_app
-import logging
-import json
-import time
-import base64
 import os
-import tempfile
+import base64
+import json
+import logging
+import openai
+from io import BytesIO
 from PIL import Image
-import io
+from flask import current_app
+from typing import Dict, Any, Optional, Union, List, Tuple
+
+# إعداد السجل
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AIEvaluatorMultimodal:
-    """
-    مُقيِّم الذكاء الاصطناعي متعدد النماذج للمهام التي تحتوي على نصوص وصور
-    """
-    
-    def __init__(self):
-        """تهيئة المُقيِّم باستخدام مفتاح OpenAI API"""
-        api_key = current_app.config.get('OPENAI_API_KEY')
-        if not api_key:
-            logging.warning("لم يتم تكوين OPENAI_API_KEY. سيتم محاكاة التقييم متعدد النماذج.")
-            self.api_key = None
-        else:
-            self.api_key = api_key
-            logging.info("تم تهيئة مُقيِّم الذكاء الاصطناعي متعدد النماذج بمفتاح API صالح")
+    """صنف لتقييم مهام BTEC باستخدام الذكاء الاصطناعي متعدد الوسائط"""
 
-    def encode_image(self, image_path):
+    def __init__(self, api_key: Optional[str] = None, use_context: bool = False):
         """
-        تشفير الصورة إلى base64
+        تهيئة مقيم الذكاء الاصطناعي متعدد الوسائط
         
         Args:
-            image_path (str): مسار الصورة
+            api_key: مفتاح API الخاص بـ OpenAI (اختياري، سيتم استخدام المتغير البيئي أو سياق التطبيق)
+            use_context: استخدام سياق تطبيق Flask (اختياري، افتراضيًا False)
+        """
+        # استخدام مفتاح API المقدم أو البحث عنه في سياق التطبيق أو المتغيرات البيئية
+        if api_key:
+            self.api_key = api_key
+        elif use_context:
+            self.api_key = current_app.config.get('OPENAI_API_KEY')
+        else:
+            self.api_key = os.environ.get('OPENAI_API_KEY')
+        
+        if self.api_key:
+            logger.info("تم تهيئة AIEvaluatorMultimodal بمفتاح API صالح")
+            openai.api_key = self.api_key
+            self.simulation_mode = False
+        else:
+            logger.warning("تحذير: لم يتم توفير مفتاح OpenAI API. سيتم استخدام وضع المحاكاة.")
+            self.simulation_mode = True
+        
+        # ضبط نموذج OpenAI المستخدم - استخدام نموذج يدعم الصور
+        self.model = "gpt-4o"  # نموذج GPT-4o يدعم الصور والنصوص
+    
+    def _encode_image(self, image_path: str) -> str:
+        """
+        تحويل الصورة إلى تشفير base64
+        
+        Args:
+            image_path: مسار الصورة على القرص
             
         Returns:
-            str: سلسلة الصورة المشفرة بـ base64
+            سلسلة الصورة المشفرة بـ base64
         """
         try:
             with open(image_path, "rb") as image_file:
                 return base64.b64encode(image_file.read()).decode('utf-8')
         except Exception as e:
-            logging.error(f"خطأ في تشفير الصورة: {e}")
-            return None
-
-    def resize_image_if_needed(self, image_path, max_size_mb=10):
+            logger.error(f"خطأ في تشفير الصورة: {e}")
+            raise
+    
+    def _encode_image_from_bytes(self, image_bytes: bytes) -> str:
         """
-        تغيير حجم الصورة إذا تجاوزت الحد الأقصى للحجم
+        تحويل البيانات الثنائية للصورة إلى تشفير base64
         
         Args:
-            image_path (str): مسار الصورة
-            max_size_mb (int): الحد الأقصى لحجم الصورة بالميجابايت
+            image_bytes: بيانات الصورة الثنائية
             
         Returns:
-            str: مسار الصورة المحجمة أو الأصلية
+            سلسلة الصورة المشفرة بـ base64
         """
-        # تحويل الحد الأقصى للحجم إلى بايت
-        max_size_bytes = max_size_mb * 1024 * 1024
+        try:
+            return base64.b64encode(image_bytes).decode('utf-8')
+        except Exception as e:
+            logger.error(f"خطأ في تشفير الصورة من البيانات الثنائية: {e}")
+            raise
+    
+    def _resize_image_if_needed(self, image_path: str, max_size: int = 4194304) -> str:
+        """
+        تغيير حجم الصورة إذا كان حجمها أكبر من الحد الأقصى
         
-        # التحقق من حجم الملف
-        file_size = os.path.getsize(image_path)
-        if file_size <= max_size_bytes:
-            return image_path  # الصورة ضمن الحجم المسموح
+        Args:
+            image_path: مسار الصورة
+            max_size: الحد الأقصى لحجم الصورة بالبايت
+            
+        Returns:
+            مسار الصورة بعد تغيير الحجم (قد يكون نفس المسار الأصلي)
+        """
+        try:
+            file_size = os.path.getsize(image_path)
+            if file_size <= max_size:
+                return image_path
+            
+            # حساب نسبة التصغير المطلوبة
+            ratio = (max_size / file_size) ** 0.5 * 0.9  # استخدام عامل أمان 0.9
+            
+            # فتح وتغيير حجم الصورة
+            img = Image.open(image_path)
+            new_width = int(img.width * ratio)
+            new_height = int(img.height * ratio)
+            resized_img = img.resize((new_width, new_height), Image.LANCZOS)
+            
+            # حفظ الصورة المعدلة
+            output_path = f"{os.path.splitext(image_path)[0]}_resized{os.path.splitext(image_path)[1]}"
+            resized_img.save(output_path, quality=85)
+            
+            logger.info(f"تم تغيير حجم الصورة من {file_size} إلى {os.path.getsize(output_path)} بايت")
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"خطأ في تغيير حجم الصورة: {e}")
+            return image_path  # العودة إلى المسار الأصلي في حالة الخطأ
+    
+    def evaluate_with_images(self, text: str, image_paths: List[str]) -> str:
+        """
+        تقييم مهمة BTEC مع صور مرفقة
+        
+        Args:
+            text: نص المهمة للتقييم
+            image_paths: قائمة مسارات الصور المرفقة
+            
+        Returns:
+            نتيجة التقييم كنص
+        """
+        if self.simulation_mode:
+            return f"هذا تقييم محاكي لمهمة مع {len(image_paths)} صورة مرفقة. لم يتم إجراء استدعاء فعلي لـ OpenAI API بسبب عدم وجود مفتاح API."
         
         try:
-            # فتح الصورة
-            img = Image.open(image_path)
+            # تحضير الرسائل للـ API
+            messages = [
+                {
+                    "role": "system",
+                    "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC التي تتضمن نصوصًا وصورًا. تقييماتك موضوعية ودقيقة وتأخذ في الاعتبار جميع عناصر المهمة."
+                }
+            ]
             
-            # حساب نسبة التقليص المطلوبة
-            scale_factor = (max_size_bytes / file_size) ** 0.5
-            
-            # حساب الأبعاد الجديدة
-            new_width = int(img.width * scale_factor)
-            new_height = int(img.height * scale_factor)
-            
-            # تغيير حجم الصورة
-            img_resized = img.resize((new_width, new_height), Image.LANCZOS)
-            
-            # حفظ الصورة في ملف مؤقت
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                temp_path = temp_file.name
-                img_resized.save(temp_path, "JPEG", quality=85)
-            
-            logging.info(f"تم تغيير حجم الصورة من {file_size/1024/1024:.2f}MB إلى {os.path.getsize(temp_path)/1024/1024:.2f}MB")
-            return temp_path
-        except Exception as e:
-            logging.error(f"خطأ في تغيير حجم الصورة: {e}")
-            return image_path  # إرجاع المسار الأصلي في حالة الخطأ
+            # إنشاء رسالة المستخدم بمكونات متعددة (نص وصور)
+            user_message = {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"""قم بتقييم مهمة BTEC التالية التي تتضمن نصًا وصورًا:
+                        
+النص:
+```
+{text}
+```
 
-    def evaluate_with_images(self, task_submission, image_paths=None):
-        """
-        تقييم مهمة BTEC التي تحتوي على نص وصور
-        
-        Args:
-            task_submission (str): نص المهمة المقدمة للتقييم
-            image_paths (list): قائمة بمسارات الصور المرفقة بالمهمة
-            
-        Returns:
-            dict: تقييم منظم مع الدرجة والملاحظات ومجالات التحسين
-        """
-        if not image_paths:
-            image_paths = []
-        
-        if not self.api_key:
-            # محاكاة تقييم الذكاء الاصطناعي متعدد النماذج
-            logging.warning("استخدام تقييم ذكاء اصطناعي متعدد النماذج محاكى (لا يوجد مفتاح API)")
-            image_count = len(image_paths)
-            return {
-                "grade": "جيد",
-                "feedback": [
-                    "هذا تقييم محاكى لمهمة متعددة النماذج (نص + صور).",
-                    f"تم تقديم {image_count} صورة مع المهمة.",
-                    "يُظهر العمل المقدم فهمًا جيدًا للموضوع.",
-                    "الصور المرفقة تدعم النص بشكل جيد."
-                ],
-                "visual_elements_feedback": [
-                    "الصور ذات جودة مناسبة وتساعد في توضيح المفاهيم المقدمة.",
-                    "ترتيب العناصر المرئية منطقي ويدعم تدفق المعلومات."
-                ],
-                "improvement_areas": [
-                    "تحسين التكامل بين النص والصور",
-                    "إضافة تعليقات توضيحية أكثر تفصيلاً للصور",
-                    "تضمين المزيد من الأمثلة العملية"
-                ],
-                "criteria_met": {
-                    "knowledge": 75,
-                    "application": 70,
-                    "analysis": 65,
-                    "visual_communication": 80,
-                    "overall": 72
-                },
-                "simulated": True
+يرجى تقديم تقييم شامل يتضمن:
+1. تحليل النص والصور معًا كوحدة متكاملة
+2. تقييم العلاقة بين النص والصور وكيف تدعم بعضها البعض
+3. تقييم جودة الصور ووضوحها وملاءمتها للموضوع
+4. تحديد نقاط القوة والضعف في المهمة ككل
+5. اقتراح مجالات للتحسين
+6. إعطاء درجة نهائية بناءً على معايير BTEC (P, M, D)
+"""
+                    }
+                ]
             }
-        
-        # تحضير الصور لإرسالها إلى API
-        content_parts = []
-        
-        # إضافة جزء النص أولاً
-        content_parts.append({
-            "type": "text",
-            "text": "قيّم المهمة التالية التي تتكون من نص وصور. قدم تقييمًا شاملاً يغطي محتوى النص وجودة ودقة واستخدام العناصر المرئية:\n\n" + task_submission
-        })
-        
-        # إضافة الصور
-        for i, image_path in enumerate(image_paths):
-            try:
-                # تغيير حجم الصورة إذا لزم الأمر
-                resized_path = self.resize_image_if_needed(image_path)
-                
-                # تشفير الصورة
-                base64_image = self.encode_image(resized_path)
-                
-                # حذف الملف المؤقت إذا تم إنشاؤه
-                if resized_path != image_path:
-                    os.remove(resized_path)
-                
-                if base64_image:
-                    content_parts.append({
+            
+            # إضافة الصور إلى رسالة المستخدم
+            for image_path in image_paths:
+                try:
+                    # تغيير حجم الصورة إذا لزم الأمر
+                    resized_path = self._resize_image_if_needed(image_path)
+                    
+                    # تشفير الصورة بـ base64
+                    base64_image = self._encode_image(resized_path)
+                    
+                    # إضافة الصورة إلى رسالة المستخدم
+                    user_message["content"].append({
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}",
-                            "detail": "high"  # طلب تفاصيل عالية للصورة
+                            "url": f"data:image/jpeg;base64,{base64_image}"
                         }
                     })
-                    logging.info(f"تمت إضافة الصورة {i+1} إلى المحتوى")
-                else:
-                    logging.warning(f"فشل في إضافة الصورة {i+1}")
-            except Exception as e:
-                logging.error(f"خطأ في معالجة الصورة {i+1}: {e}")
-        
-        try:
-            # استخدام عميل OpenAI للإصدار 1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+                    
+                except Exception as e:
+                    logger.error(f"خطأ في إضافة الصورة {image_path}: {e}")
+                    # الاستمرار مع الصور الأخرى في حالة فشل إحداها
             
-            # إنشاء إكمال الذكاء الاصطناعي باستخدام ChatGPT مع المحتوى متعدد النماذج
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
-                messages=[
-                    {"role": "system", "content": """أنت مقيّم BTEC خبير في المؤهلات المهنية البريطانية.
-                     تخصصك هو تقييم المهام التي تتضمن نصوصًا وعناصر مرئية.
-                     
-                     قم بتقييم الأعمال المقدمة وتصنيفها بدقة كـ: مقبول، جيد، أو ممتاز بناءً على معايير BTEC.
-                     
-                     اتبع إرشادات تقييم BTEC التالية:
-                     - مقبول: فهم أساسي، يلبي الحد الأدنى من المتطلبات، تحليل محدود (50-59%)
-                     - جيد: فهم جيد، هيكل جيد، بعض التحليل النقدي (60-79%)
-                     - ممتاز: فهم ممتاز، شامل، تحليل نقدي عميق (80-100%)
-                     
-                     يجب أن يشمل تقييمك كلاً من:
-                     1. محتوى النص وجودته
-                     2. العناصر المرئية المقدمة (الصور، الرسوم البيانية، إلخ)
-                     3. التكامل والتنسيق بين النص والعناصر المرئية
-                     
-                     أرجع تقييمك بتنسيق JSON التالي:
-                     {
-                       "grade": "مقبول/جيد/ممتاز",
-                       "feedback": ["نقطة 1", "نقطة 2", "نقطة 3", "نقطة 4"],
-                       "visual_elements_feedback": ["تعليق 1 على العناصر المرئية", "تعليق 2 على العناصر المرئية"],
-                       "improvement_areas": ["مجال 1", "مجال 2", "مجال 3"],
-                       "criteria_met": {
-                         "knowledge": 0-100,
-                         "application": 0-100,
-                         "analysis": 0-100,
-                         "visual_communication": 0-100,
-                         "overall": 0-100
-                       }
-                     }
-                     
-                     تأكد من أن ملاحظاتك محددة وقابلة للتنفيذ ومتوافقة مع معايير BTEC.
-                     يجب أن تعكس النسب المئوية في criteria_met الأداء في كل مجال من 0 إلى 100.
-                     """},
-                    {"role": "user", "content": content_parts}
-                ],
-                response_format={"type": "json_object"},
-                max_tokens=2000,
-                temperature=0.7
+            # إضافة رسالة المستخدم المكتملة
+            messages.append(user_message)
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.5,
+                max_tokens=2000  # زيادة عدد الرموز لاستيعاب تحليل أكثر تفصيلاً
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تقييم OpenAI API متعدد النماذج في {elapsed_time:.2f} ثانية")
+            return response.choices[0].message.content.strip()
             
-            result = json.loads(response.choices[0].message.content)
-            return result
+        except openai.error.RateLimitError:
+            logger.error("تم تجاوز حد معدل OpenAI API")
+            return "خطأ: تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا."
+        except openai.error.AuthenticationError:
+            logger.error("خطأ في مصادقة OpenAI API")
+            return "خطأ: فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API."
         except Exception as e:
-            logging.error(f"خطأ في OpenAI API في التقييم متعدد النماذج: {e}")
-            return {
-                "grade": "خطأ",
-                "feedback": [f"حدث خطأ أثناء تقييم الذكاء الاصطناعي متعدد النماذج: {str(e)}"],
-                "visual_elements_feedback": ["لم يتم تقييم العناصر المرئية بسبب خطأ"],
-                "improvement_areas": ["حاول مرة أخرى لاحقًا"],
-                "criteria_met": {
-                    "knowledge": 0,
-                    "application": 0,
-                    "analysis": 0,
-                    "visual_communication": 0,
-                    "overall": 0
-                },
-                "error": True
-            }
-            
-    def analyze_diagram(self, image_path, context=None):
+            logger.error(f"خطأ في OpenAI API: {e}")
+            return f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}"
+    
+    def evaluate_image_content(self, image_path: str) -> Dict[str, Any]:
         """
-        تحليل مخطط أو رسم بياني وتقديم ملاحظات مفصلة عنه
+        تحليل محتوى صورة مقدمة من الطالب
         
         Args:
-            image_path (str): مسار الصورة للمخطط أو الرسم البياني
-            context (str, optional): سياق إضافي لفهم المخطط
+            image_path: مسار الصورة للتحليل
             
         Returns:
-            dict: تحليل مفصل للمخطط
+            نتيجة تحليل الصورة كقاموس
         """
-        if not context:
-            context = "هذا مخطط أو رسم بياني مقدم كجزء من مهمة BTEC."
-        
-        if not self.api_key:
-            # محاكاة تحليل المخطط
-            logging.warning("استخدام تحليل مخطط محاكى (لا يوجد مفتاح API)")
+        if self.simulation_mode:
             return {
-                "title": "تحليل المخطط المقدم (محاكاة)",
-                "summary": "هذا تحليل محاكى للمخطط المقدم.",
-                "key_elements": [
-                    "عنصر رئيسي 1 في المخطط",
-                    "عنصر رئيسي 2 في المخطط",
-                    "عنصر رئيسي 3 في المخطط"
-                ],
-                "accuracy": 75,
-                "clarity": 80,
-                "relevance": 70,
-                "feedback": "المخطط المقدم واضح ومنظم، لكنه يفتقر إلى بعض التفاصيل المهمة.",
-                "improvement_suggestions": [
-                    "إضافة عناوين أكثر وضوحًا",
-                    "تحسين تباين الألوان",
-                    "إضافة مفتاح توضيحي"
-                ],
-                "simulated": True
+                "content_type": "محاكاة",
+                "description": "هذا تحليل محاكي للصورة. لم يتم إجراء استدعاء فعلي لـ OpenAI API.",
+                "elements": ["عنصر محاكي 1", "عنصر محاكي 2", "عنصر محاكي 3"],
+                "quality_score": 0.75,
+                "relevance_score": 0.8
             }
         
         try:
             # تغيير حجم الصورة إذا لزم الأمر
-            resized_path = self.resize_image_if_needed(image_path)
+            resized_path = self._resize_image_if_needed(image_path)
             
-            # تشفير الصورة
-            base64_image = self.encode_image(resized_path)
+            # تشفير الصورة بـ base64
+            base64_image = self._encode_image(resized_path)
             
-            # حذف الملف المؤقت إذا تم إنشاؤه
-            if resized_path != image_path:
-                os.remove(resized_path)
-            
-            if not base64_image:
-                raise Exception("فشل في تشفير الصورة")
-            
-            # استخدام عميل OpenAI للإصدار 1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
-            
-            # إنشاء إكمال الذكاء الاصطناعي لتحليل المخطط
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
-                messages=[
-                    {"role": "system", "content": """أنت محلل محترف للمخططات والرسوم البيانية.
-                     مهمتك هي تحليل المخطط المقدم وتقديم تقييم مفصل ودقيق عنه.
-                     
-                     قم بتحليل:
-                     1. نوع المخطط والغرض منه
-                     2. العناصر الرئيسية والعلاقات بينها
-                     3. دقة المعلومات المقدمة
-                     4. وضوح العرض وسهولة الفهم
-                     5. الصلة بالسياق المقدم
-                     
-                     أرجع تحليلك بتنسيق JSON التالي:
-                     {
-                       "title": "عنوان وصفي للمخطط",
-                       "summary": "ملخص موجز لما يمثله المخطط",
-                       "key_elements": ["عنصر 1", "عنصر 2", "عنصر 3"],
-                       "accuracy": 0-100,
-                       "clarity": 0-100,
-                       "relevance": 0-100,
-                       "feedback": "تقييم عام للمخطط",
-                       "improvement_suggestions": ["اقتراح 1", "اقتراح 2", "اقتراح 3"]
-                     }
-                     
-                     تأكد من أن تحليلك دقيق وموضوعي ويقدم ملاحظات قيمة.
-                     """},
-                    {"role": "user", "content": [
+            # تحضير الرسائل للـ API
+            messages = [
+                {
+                    "role": "system",
+                    "content": "أنت محلل محتوى متخصص. قم بتحليل الصورة المقدمة وتقديم وصف تفصيلي وتقييم لجودتها وملاءمتها للسياق التعليمي."
+                },
+                {
+                    "role": "user",
+                    "content": [
                         {
                             "type": "text",
-                            "text": f"حلل هذا المخطط وقدم تقييمًا مفصلاً له. السياق: {context}"
+                            "text": """تحليل هذه الصورة وتقديم المعلومات التالية بتنسيق JSON:
+1. نوع المحتوى (مخطط، رسم بياني، صورة توضيحية، صورة فوتوغرافية، نص، إلخ)
+2. وصف تفصيلي للمحتوى
+3. قائمة بالعناصر الرئيسية في الصورة
+4. تقييم جودة الصورة (وضوح، دقة، إضاءة) من 0 إلى 1
+5. تقييم مدى ملاءمة الصورة للسياق التعليمي من 0 إلى 1"""
                         },
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}",
-                                "detail": "high"
+                                "url": f"data:image/jpeg;base64,{base64_image}"
                             }
                         }
-                    ]}
-                ],
-                response_format={"type": "json_object"},
-                max_tokens=1500,
-                temperature=0.7
+                    ]
+                }
+            ]
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.3,
+                max_tokens=1000,
+                response_format={"type": "json_object"}  # طلب تنسيق JSON
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تحليل المخطط باستخدام OpenAI API في {elapsed_time:.2f} ثانية")
+            # تحليل الاستجابة
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
             
-            result = json.loads(response.choices[0].message.content)
-            return result
         except Exception as e:
-            logging.error(f"خطأ في OpenAI API في تحليل المخطط: {e}")
+            logger.error(f"خطأ في تحليل الصورة: {e}")
             return {
-                "title": "خطأ في تحليل المخطط",
-                "summary": f"حدث خطأ أثناء تحليل المخطط: {str(e)}",
-                "key_elements": [],
-                "accuracy": 0,
-                "clarity": 0,
-                "relevance": 0,
-                "feedback": "لم يتم تحليل المخطط بسبب خطأ فني.",
-                "improvement_suggestions": ["حاول مرة أخرى لاحقًا"],
-                "error": True
+                "content_type": "خطأ",
+                "description": f"حدث خطأ أثناء تحليل الصورة: {str(e)}",
+                "elements": [],
+                "quality_score": 0,
+                "relevance_score": 0
+            }
+    
+    def analyze_document_image(self, image_path: str) -> str:
+        """
+        استخراج النص من مستند مصور (OCR)
+        
+        Args:
+            image_path: مسار صورة المستند
+            
+        Returns:
+            النص المستخرج من الصورة
+        """
+        if self.simulation_mode:
+            return "هذا نص محاكي مستخرج من صورة المستند. لم يتم إجراء استدعاء فعلي لـ OpenAI API."
+        
+        try:
+            # تغيير حجم الصورة إذا لزم الأمر
+            resized_path = self._resize_image_if_needed(image_path)
+            
+            # تشفير الصورة بـ base64
+            base64_image = self._encode_image(resized_path)
+            
+            # تحضير الرسائل للـ API
+            messages = [
+                {
+                    "role": "system",
+                    "content": "أنت أداة OCR متقدمة. استخرج كل النص المرئي من الصورة المقدمة بدقة عالية."
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "استخرج كل النص المرئي من هذه الصورة، مع الحفاظ على تنسيق الفقرات قدر الإمكان. إذا كان المستند متعدد الأعمدة، قم بمعالجة كل عمود على حدة بالترتيب المناسب للقراءة."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ]
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.1,  # درجة حرارة منخفضة للحصول على نتائج أكثر دقة
+                max_tokens=4000  # زيادة عدد الرموز لاستيعاب مستندات أطول
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            logger.error(f"خطأ في استخراج النص من الصورة: {e}")
+            return f"حدث خطأ أثناء استخراج النص: {str(e)}"
+    
+    def evaluate_combined_submission(self, text: str, image_paths: List[str], evaluation_criteria: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        تقييم شامل لمهمة BTEC تتضمن نصًا وصورًا مع معايير تقييم مخصصة
+        
+        Args:
+            text: نص المهمة للتقييم
+            image_paths: قائمة مسارات الصور المرفقة
+            evaluation_criteria: معايير التقييم المخصصة (اختياري)
+            
+        Returns:
+            نتيجة التقييم الشامل كقاموس
+        """
+        if self.simulation_mode:
+            return {
+                "grade": "محاكاة",
+                "summary": f"هذا تقييم محاكي لمهمة تتضمن نصًا و{len(image_paths)} صورة.",
+                "text_evaluation": "تقييم محاكي للنص",
+                "image_evaluation": [f"تقييم محاكي للصورة {i+1}" for i in range(len(image_paths))],
+                "strengths": ["نقطة قوة محاكية 1", "نقطة قوة محاكية 2"],
+                "improvements": ["مجال تحسين محاكي 1", "مجال تحسين محاكي 2"],
+                "score": 75
+            }
+        
+        try:
+            # تحضير معايير التقييم
+            criteria_text = "معايير BTEC القياسية"
+            if evaluation_criteria:
+                criteria_text = json.dumps(evaluation_criteria, ensure_ascii=False)
+            
+            # تحضير الرسائل للـ API
+            messages = [
+                {
+                    "role": "system",
+                    "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC المتكاملة. تقييماتك شاملة وموضوعية وتتبع المعايير المحددة."
+                }
+            ]
+            
+            # إنشاء رسالة المستخدم بمكونات متعددة
+            user_message = {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"""قم بتقييم مهمة BTEC التالية التي تتضمن نصًا وصورًا، واستخدم المعايير المحددة:
+                        
+النص:
+```
+{text}
+```
+
+معايير التقييم:
+```
+{criteria_text}
+```
+
+قم بتقديم تقييم شامل بتنسيق JSON يتضمن الحقول التالية:
+- grade: الدرجة النهائية (P, M, D)
+- summary: ملخص التقييم العام
+- text_evaluation: تقييم مفصل للنص
+- image_evaluation: تقييم مفصل لكل صورة
+- strengths: قائمة بنقاط القوة الرئيسية
+- improvements: قائمة بمجالات التحسين
+- score: درجة رقمية من 0 إلى 100
+"""
+                    }
+                ]
+            }
+            
+            # إضافة الصور إلى رسالة المستخدم
+            for image_path in image_paths:
+                try:
+                    # تغيير حجم الصورة إذا لزم الأمر
+                    resized_path = self._resize_image_if_needed(image_path)
+                    
+                    # تشفير الصورة بـ base64
+                    base64_image = self._encode_image(resized_path)
+                    
+                    # إضافة الصورة إلى رسالة المستخدم
+                    user_message["content"].append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"خطأ في إضافة الصورة {image_path}: {e}")
+                    # الاستمرار مع الصور الأخرى في حالة فشل إحداها
+            
+            # إضافة رسالة المستخدم المكتملة
+            messages.append(user_message)
+            
+            # إجراء استدعاء API
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.4,
+                max_tokens=2500,
+                response_format={"type": "json_object"}  # طلب تنسيق JSON
+            )
+            
+            # تحليل الاستجابة
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
+            
+        except Exception as e:
+            logger.error(f"خطأ في تقييم المهمة المدمجة: {e}")
+            return {
+                "grade": "خطأ",
+                "summary": f"حدث خطأ أثناء التقييم: {str(e)}",
+                "text_evaluation": "غير متوفر بسبب خطأ",
+                "image_evaluation": ["غير متوفر بسبب خطأ"] * len(image_paths),
+                "strengths": [],
+                "improvements": ["حاول مرة أخرى لاحقًا"],
+                "score": 0
             }

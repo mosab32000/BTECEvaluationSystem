@@ -1,327 +1,254 @@
-from openai import OpenAI
-from flask import current_app
-import logging
+"""
+خدمة التقييم المركزية بالذكاء الاصطناعي لنظام تقييم BTEC
+"""
+
+import os
 import json
-import time
+import logging
+from typing import Dict, Any, Optional, List, Union
+from flask import current_app
+import openai
+
+# إعداد السجل
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AIEvaluator:
-    def __init__(self):
-        """Initialize the AI evaluator with OpenAI API key"""
-        api_key = current_app.config.get('OPENAI_API_KEY')
-        if not api_key:
-            logging.warning("OPENAI_API_KEY is not configured. AI evaluation will be simulated.")
-            self.api_key = None
-        else:
-            self.api_key = api_key
-            logging.info("AI Evaluator initialized with valid API key")
+    """صنف أساسي لتقييم مهام BTEC باستخدام الذكاء الاصطناعي"""
 
-    def evaluate(self, task_submission):
+    def __init__(self, api_key: Optional[str] = None, use_context: bool = False):
         """
-        Evaluates a BTEC task submission using OpenAI's API
-        Returns a grade and detailed feedback in text format
+        تهيئة مقيم الذكاء الاصطناعي
         
         Args:
-            task_submission (str): The text of the submission to evaluate
+            api_key: مفتاح API الخاص بـ OpenAI (اختياري، سيتم استخدام المتغير البيئي أو سياق التطبيق)
+            use_context: استخدام سياق تطبيق Flask (اختياري، افتراضيًا False)
+        """
+        # استخدام مفتاح API المقدم أو البحث عنه في سياق التطبيق أو المتغيرات البيئية
+        if api_key:
+            self.api_key = api_key
+        elif use_context:
+            self.api_key = current_app.config.get('OPENAI_API_KEY')
+        else:
+            self.api_key = os.environ.get('OPENAI_API_KEY')
+        
+        if self.api_key:
+            logger.info("تم تهيئة AIEvaluator بمفتاح API صالح")
+            openai.api_key = self.api_key
+            self.simulation_mode = False
+        else:
+            logger.warning("تحذير: لم يتم توفير مفتاح OpenAI API. سيتم استخدام وضع المحاكاة.")
+            self.simulation_mode = True
+        
+        # ضبط نموذج OpenAI المستخدم
+        self.model = "gpt-4o"  # استخدام نموذج GPT-4o الأحدث
+    
+    def evaluate(self, task: str) -> str:
+        """
+        تقييم مهمة BTEC وإرجاع نتيجة التقييم
+        
+        Args:
+            task: نص المهمة للتقييم
             
         Returns:
-            str: Formatted evaluation text with grade and feedback
+            نتيجة التقييم
         """
-        if not self.api_key:
-            # Simulate AI evaluation if API key is not available
-            logging.warning("Using simulated AI evaluation (no API key)")
-            return (
-                "GRADE: Merit\n\n"
-                "FEEDBACK:\n"
-                "• This is a simulated evaluation as OpenAI API key is missing.\n"
-                "• The submission demonstrates good understanding of the subject.\n"
-                "• Some key concepts are well explained but lack depth.\n\n"
-                "AREAS FOR IMPROVEMENT:\n"
-                "• Add more critical analysis\n"
-                "• Include more industry examples\n"
-                "• Expand on theoretical frameworks"
-            )
+        if self.simulation_mode:
+            return "هذا تقييم محاكي. لم يتم إجراء استدعاء فعلي لـ OpenAI API بسبب عدم وجود مفتاح API."
         
         try:
-            # Use the OpenAI client for API v1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت مقيّم تعليمي متخصص في تقييم مهام BTEC. قم بتحليل المهمة التالية:
             
-            # Create the AI completion using ChatGPT
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            ```
+            {task}
+            ```
+            
+            أرجو تقديم تقييم شامل يتضمن:
+            
+            1. ملخص المهمة ومدى وضوحها
+            2. تقييم التنظيم والهيكل
+            3. تقييم المحتوى والفهم العميق للموضوع
+            4. نقاط القوة في المهمة
+            5. مجالات التحسين
+            6. درجة التقييم حسب معايير BTEC (P, M, D)
+            
+            قدم تحليلًا عميقًا وبنّاءً.
+            """
+            
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": """You are a BTEC evaluator with expertise in UK vocational qualifications. 
-                     Grade submissions strictly as: Pass, Merit, or Distinction based on BTEC criteria.
-                     
-                     Follow these BTEC grading guidelines:
-                     - Pass: Basic understanding, meets minimum requirements, limited analysis
-                     - Merit: Good understanding, well-structured, some critical analysis, good application of theory
-                     - Distinction: Excellent understanding, comprehensive, insightful critical analysis, creative application of theory to practice
-                     
-                     Format your response EXACTLY as:
-                     
-                     GRADE: [Pass/Merit/Distinction]
-                     
-                     FEEDBACK:
-                     • [Key point 1]
-                     • [Key point 2]
-                     • [Key point 3]
-                     • [Key point 4]
-                     
-                     AREAS FOR IMPROVEMENT:
-                     • [Improvement 1]
-                     • [Improvement 2]
-                     • [Improvement 3]
-                     
-                     Ensure your feedback is specific, actionable, and aligned with BTEC standards."""},
-                    {"role": "user", "content": f"Evaluate the following BTEC task submission:\n\n{task_submission}"}
+                    {"role": "system", "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC. تقييماتك موضوعية ودقيقة وبناءة."},
+                    {"role": "user", "content": prompt}
                 ],
-                max_tokens=1500,
-                temperature=0.7
+                temperature=0.7,
+                max_tokens=1000
             )
-            
-            elapsed_time = time.time() - start_time
-            logging.info(f"OpenAI API evaluation completed in {elapsed_time:.2f} seconds")
             
             return response.choices[0].message.content.strip()
+        
+        except openai.error.RateLimitError:
+            logger.error("تم تجاوز حد معدل OpenAI API")
+            return "خطأ: تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا."
+        except openai.error.AuthenticationError:
+            logger.error("خطأ في مصادقة OpenAI API")
+            return "خطأ: فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API."
         except Exception as e:
-            logging.error(f"OpenAI API error: {e}")
-            return f"Error during AI evaluation: {str(e)}"
-            
-    def evaluate_with_json(self, task_submission):
+            logger.error(f"خطأ في OpenAI API: {e}")
+            return f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}"
+    
+    def evaluate_json(self, task: str) -> Dict[str, Any]:
         """
-        Evaluates a BTEC task submission and returns structured JSON response
+        تقييم مهمة BTEC وإرجاع نتيجة التقييم كقاموس
         
         Args:
-            task_submission (str): The text of the submission to evaluate
+            task: نص المهمة للتقييم
             
         Returns:
-            dict: Structured evaluation with grade, feedback, and improvement areas
+            نتيجة التقييم كقاموس
         """
-        if not self.api_key:
-            # Simulate AI evaluation if API key is not available
-            logging.warning("Using simulated AI evaluation (no API key)")
+        if self.simulation_mode:
             return {
-                "grade": "Merit",
-                "feedback": [
-                    "This is a simulated evaluation as OpenAI API key is missing.",
-                    "The submission demonstrates good understanding of the subject.",
-                    "Some key concepts are well explained but lack depth."
-                ],
-                "improvement_areas": [
-                    "Add more critical analysis",
-                    "Include more industry examples",
-                    "Expand on theoretical frameworks"
-                ],
-                "criteria_met": {
-                    "knowledge": 80,
-                    "application": 75,
-                    "analysis": 65,
-                    "evaluation": 60
-                }
+                "grade": "محاكاة",
+                "summary": "هذا تقييم محاكي. لم يتم إجراء استدعاء فعلي لـ OpenAI API.",
+                "strengths": ["نقطة قوة محاكية 1", "نقطة قوة محاكية 2"],
+                "improvements": ["مجال تحسين محاكي 1", "مجال تحسين محاكي 2"],
+                "score": 75
             }
         
         try:
-            # Use the OpenAI client for API v1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت مقيّم تعليمي متخصص في تقييم مهام BTEC. قم بتحليل المهمة التالية وتقديم تقييم بتنسيق JSON:
             
-            # Create the AI completion using ChatGPT with JSON output
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            ```
+            {task}
+            ```
+            
+            أرجو تقديم تقييم شامل بتنسيق JSON يتضمن الحقول التالية:
+            - grade: الدرجة النهائية حسب معايير BTEC (P, M, D)
+            - summary: ملخص التقييم العام
+            - organization: تقييم التنظيم والهيكل (0-10)
+            - content: تقييم المحتوى والفهم (0-10)
+            - strengths: قائمة بنقاط القوة (3-5 نقاط)
+            - improvements: قائمة بمجالات التحسين (3-5 مجالات)
+            - feedback: تعليقات تفصيلية
+            - score: درجة رقمية من 0 إلى 100
+            """
+            
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": """You are a BTEC evaluator with expertise in UK vocational qualifications.
-                     Grade submissions strictly as: Pass, Merit, or Distinction based on BTEC criteria.
-                     
-                     Follow these BTEC grading guidelines:
-                     - Pass: Basic understanding, meets minimum requirements, limited analysis (50-59%)
-                     - Merit: Good understanding, well-structured, some critical analysis (60-79%)
-                     - Distinction: Excellent understanding, comprehensive, insightful analysis (80-100%)
-                     
-                     Return your evaluation in the following JSON format:
-                     {
-                       "grade": "Pass/Merit/Distinction",
-                       "feedback": ["Point 1", "Point 2", "Point 3", "Point 4"],
-                       "improvement_areas": ["Area 1", "Area 2", "Area 3"],
-                       "criteria_met": {
-                         "knowledge": 0-100,
-                         "application": 0-100,
-                         "analysis": 0-100,
-                         "evaluation": 0-100
-                       }
-                     }
-                     
-                     Ensure your feedback is specific, actionable, and aligned with BTEC standards.
-                     The percentages in criteria_met should reflect performance in each area from 0-100.
-                     """}, 
-                    {"role": "user", "content": f"Evaluate the following BTEC task submission:\n\n{task_submission}"}
+                    {"role": "system", "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC. قم بإرجاع تقييمك بتنسيق JSON فقط."},
+                    {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
-                max_tokens=1500,
-                temperature=0.7
+                temperature=0.7,
+                max_tokens=1000,
+                response_format={"type": "json_object"}
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"OpenAI API JSON evaluation completed in {elapsed_time:.2f} seconds")
-            
-            result = json.loads(response.choices[0].message.content)
-            return result
-        except Exception as e:
-            logging.error(f"OpenAI API error in JSON evaluation: {e}")
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
+        
+        except openai.error.RateLimitError:
+            logger.error("تم تجاوز حد معدل OpenAI API")
             return {
-                "grade": "Error",
-                "feedback": [f"Error during AI evaluation: {str(e)}"],
-                "improvement_areas": ["Try again later"],
-                "criteria_met": {
-                    "knowledge": 0,
-                    "application": 0,
-                    "analysis": 0,
-                    "evaluation": 0
-                }
+                "grade": "خطأ",
+                "summary": "تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا.",
+                "strengths": [],
+                "improvements": ["حاول مرة أخرى لاحقًا"],
+                "score": 0
+            }
+        except openai.error.AuthenticationError:
+            logger.error("خطأ في مصادقة OpenAI API")
+            return {
+                "grade": "خطأ",
+                "summary": "فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API.",
+                "strengths": [],
+                "improvements": ["تحقق من صلاحية مفتاح API"],
+                "score": 0
+            }
+        except Exception as e:
+            logger.error(f"خطأ في OpenAI API: {e}")
+            return {
+                "grade": "خطأ",
+                "summary": f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}",
+                "strengths": [],
+                "improvements": ["حاول مرة أخرى لاحقًا"],
+                "score": 0
             }
     
-    def evaluate_with_rubric(self, task_submission, rubric=None):
+    def evaluate_with_rubric(self, task: str, rubric: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Evaluates a submission using a specific rubric
+        تقييم مهمة BTEC باستخدام معيار تقييم مخصص
         
         Args:
-            task_submission (str): The text of the submission to evaluate
-            rubric (dict, optional): Custom evaluation rubric. If None, default BTEC rubric is used.
+            task: نص المهمة للتقييم
+            rubric: معيار التقييم المخصص
             
         Returns:
-            dict: Detailed evaluation with scores for each rubric criterion
+            نتيجة التقييم كقاموس
         """
-        if not rubric:
-            # Default BTEC rubric
-            rubric = {
-                "sections": [
-                    {
-                        "name": "Knowledge and Understanding",
-                        "weight": 25,
-                        "criteria": ["Accurate use of concepts", "Coverage of key topics", "Depth of understanding"]
-                    },
-                    {
-                        "name": "Application of Theory",
-                        "weight": 25,
-                        "criteria": ["Relevant examples", "Practical application", "Industry context"]
-                    },
-                    {
-                        "name": "Analysis",
-                        "weight": 25,
-                        "criteria": ["Critical thinking", "Evaluation of evidence", "Logical arguments"]
-                    },
-                    {
-                        "name": "Communication",
-                        "weight": 25,
-                        "criteria": ["Structure", "Clarity", "Academic writing"]
-                    }
-                ]
-            }
-            
-        if not self.api_key:
-            # Simulate AI evaluation with rubric
-            logging.warning("Using simulated AI evaluation with rubric (no API key)")
-            
-            # Generate simulated scores for each section
-            sections_result = []
-            total_score = 0
-            
-            for section in rubric["sections"]:
-                section_score = min(85, max(60, 70 + hash(section["name"]) % 20))  # Random-ish but stable score
-                criteria_scores = {}
-                
-                for criterion in section["criteria"]:
-                    criteria_scores[criterion] = min(90, max(55, section_score + hash(criterion) % 15))
-                
-                section_result = {
-                    "name": section["name"],
-                    "score": section_score,
-                    "criteria_scores": criteria_scores,
-                    "feedback": f"Simulated feedback for {section['name']}"
-                }
-                sections_result.append(section_result)
-                total_score += section_score * section["weight"] / 100
-            
-            # Determine grade based on total score
-            grade = "Pass"
-            if total_score >= 80:
-                grade = "Distinction"
-            elif total_score >= 60:
-                grade = "Merit"
-                
+        if self.simulation_mode:
             return {
-                "grade": grade,
-                "total_score": round(total_score, 1),
-                "sections": sections_result,
-                "overall_feedback": "This is a simulated rubric-based evaluation (no API key)",
-                "simulated": True
+                "grade": "محاكاة",
+                "summary": "هذا تقييم محاكي باستخدام معيار مخصص. لم يتم إجراء استدعاء فعلي لـ OpenAI API.",
+                "rubric_results": {section["name"]: {"score": 7, "feedback": f"تعليق محاكي لقسم {section['name']}"} for section in rubric.get("sections", [])},
+                "total_score": 75,
+                "strengths": ["نقطة قوة محاكية 1", "نقطة قوة محاكية 2"],
+                "improvements": ["مجال تحسين محاكي 1", "مجال تحسين محاكي 2"]
             }
-            
+        
         try:
-            # Convert rubric to string format for the prompt
-            rubric_str = json.dumps(rubric, indent=2)
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            # تحويل معيار التقييم إلى نص
+            rubric_str = json.dumps(rubric, ensure_ascii=False)
             
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            # إنشاء المطالبة (Prompt)
+            prompt = f"""
+            أنت مقيّم تعليمي متخصص في تقييم مهام BTEC باستخدام معايير مخصصة. قم بتقييم المهمة التالية باستخدام معيار التقييم المخصص:
+            
+            المهمة:
+            ```
+            {task}
+            ```
+            
+            معيار التقييم:
+            ```json
+            {rubric_str}
+            ```
+            
+            أرجو تقييم المهمة وفق معيار التقييم المخصص، وتقديم النتائج بتنسيق JSON يتضمن:
+            - grade: الدرجة النهائية حسب معايير BTEC (P, M, D)
+            - summary: ملخص التقييم العام
+            - rubric_results: كائن يحتوي على نتائج كل قسم من معيار التقييم (اسم القسم، الدرجة، التعليق)
+            - total_score: الدرجة الإجمالية المرجحة (0-100)
+            - strengths: قائمة بنقاط القوة (3-5 نقاط)
+            - improvements: قائمة بمجالات التحسين (3-5 مجالات)
+            """
+            
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": f"""You are a BTEC evaluator using a specific rubric to evaluate submissions.
-                     
-                     Use this evaluation rubric:
-                     {rubric_str}
-                     
-                     For each section:
-                     1. Evaluate the submission against each criterion
-                     2. Provide a score from 0-100 for each criterion
-                     3. Calculate an overall score for the section (average of criteria)
-                     4. Provide specific feedback for the section
-                     
-                     Calculate the final score as the weighted average of section scores.
-                     
-                     Determine the grade as follows:
-                     - Distinction: 80-100
-                     - Merit: 60-79
-                     - Pass: 40-59
-                     - Fail: 0-39
-                     
-                     Return your evaluation as a JSON object with this structure:
-                     {{
-                       "grade": "Pass/Merit/Distinction/Fail",
-                       "total_score": number (0-100),
-                       "sections": [
-                         {{
-                           "name": "section name",
-                           "score": number (0-100),
-                           "criteria_scores": {{ "criterion1": score, "criterion2": score, ... }},
-                           "feedback": "specific feedback for this section"
-                         }},
-                         ...
-                       ],
-                       "overall_feedback": "summary feedback addressing strengths and weaknesses"
-                     }}
-                     """}, 
-                    {"role": "user", "content": f"Evaluate the following submission using the provided rubric:\n\n{task_submission}"}
+                    {"role": "system", "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC باستخدام معايير مخصصة. قم بإرجاع تقييمك بتنسيق JSON فقط."},
+                    {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
+                temperature=0.5,
                 max_tokens=2000,
-                temperature=0.7
+                response_format={"type": "json_object"}
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"OpenAI API rubric evaluation completed in {elapsed_time:.2f} seconds")
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
             
-            result = json.loads(response.choices[0].message.content)
-            return result
         except Exception as e:
-            logging.error(f"OpenAI API error in rubric evaluation: {e}")
+            logger.error(f"خطأ في تقييم المهمة باستخدام معيار مخصص: {e}")
             return {
-                "grade": "Error",
+                "grade": "خطأ",
+                "summary": f"خطأ في تقييم المهمة: {e}",
+                "rubric_results": {},
                 "total_score": 0,
-                "sections": [],
-                "overall_feedback": f"Error during AI evaluation: {str(e)}",
-                "error": True
+                "strengths": [],
+                "improvements": ["حاول مرة أخرى لاحقًا"]
             }

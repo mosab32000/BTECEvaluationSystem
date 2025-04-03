@@ -1,335 +1,244 @@
 """
-خدمة تقييم الذكاء الاصطناعي المخصصة للغة العربية في نظام تقييم BTEC
+خدمة التقييم باللغة العربية للذكاء الاصطناعي في نظام تقييم BTEC
 """
 
-from openai import OpenAI
-from flask import current_app
-import logging
+import os
 import json
-import time
+import logging
+import openai
+from flask import current_app
+from typing import Dict, Any, Optional
+
+# إعداد السجل
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AIEvaluatorArabic:
-    """
-    مُقيِّم الذكاء الاصطناعي المتخصص بتقييم المهام باللغة العربية
-    """
-    
-    def __init__(self):
-        """تهيئة المُقيِّم باستخدام مفتاح OpenAI API"""
-        api_key = current_app.config.get('OPENAI_API_KEY')
-        if not api_key:
-            logging.warning("لم يتم تكوين OPENAI_API_KEY. سيتم محاكاة التقييم.")
-            self.api_key = None
-        else:
-            self.api_key = api_key
-            logging.info("تم تهيئة مُقيِّم الذكاء الاصطناعي باللغة العربية بمفتاح API صالح")
+    """صنف لتقييم مهام BTEC باستخدام الذكاء الاصطناعي بتركيز على اللغة العربية"""
 
-    def evaluate(self, task_submission):
+    def __init__(self, api_key: Optional[str] = None, use_context: bool = False):
         """
-        تقييم مهمة BTEC المقدمة باللغة العربية
-        يعيد درجة وملاحظات مفصلة بتنسيق نصي
+        تهيئة مقيم الذكاء الاصطناعي العربي
         
         Args:
-            task_submission (str): نص المهمة المقدمة للتقييم
+            api_key: مفتاح API الخاص بـ OpenAI (اختياري، سيتم استخدام المتغير البيئي أو سياق التطبيق)
+            use_context: استخدام سياق تطبيق Flask (اختياري، افتراضيًا False)
+        """
+        # استخدام مفتاح API المقدم أو البحث عنه في سياق التطبيق أو المتغيرات البيئية
+        if api_key:
+            self.api_key = api_key
+        elif use_context:
+            self.api_key = current_app.config.get('OPENAI_API_KEY')
+        else:
+            self.api_key = os.environ.get('OPENAI_API_KEY')
+        
+        if self.api_key:
+            logger.info("تم تهيئة AIEvaluatorArabic بمفتاح API صالح")
+            openai.api_key = self.api_key
+            self.simulation_mode = False
+        else:
+            logger.warning("تحذير: لم يتم توفير مفتاح OpenAI API. سيتم استخدام وضع المحاكاة.")
+            self.simulation_mode = True
+        
+        # ضبط نموذج OpenAI المستخدم
+        self.model = "gpt-4o"  # استخدام نموذج GPT-4o الأحدث
+    
+    def evaluate_arabic(self, task: str) -> str:
+        """
+        تقييم مهمة BTEC بالعربية وإرجاع نتيجة التقييم
+        
+        Args:
+            task: نص المهمة للتقييم باللغة العربية
             
         Returns:
-            str: نص التقييم المنسق مع الدرجة والملاحظات
+            نتيجة التقييم باللغة العربية
         """
-        if not self.api_key:
-            # محاكاة تقييم الذكاء الاصطناعي إذا لم يكن مفتاح API متاحًا
-            logging.warning("استخدام تقييم ذكاء اصطناعي محاكى (لا يوجد مفتاح API)")
-            return (
-                "الدرجة: جيد جدًا\n\n"
-                "الملاحظات:\n"
-                "• هذا تقييم محاكى لأن مفتاح OpenAI API غير متوفر.\n"
-                "• يُظهر العمل المقدم فهمًا جيدًا للموضوع.\n"
-                "• تم شرح بعض المفاهيم الأساسية بشكل جيد ولكنها تفتقر إلى العمق.\n\n"
-                "مجالات التحسين:\n"
-                "• إضافة المزيد من التحليل النقدي\n"
-                "• تضمين المزيد من الأمثلة العملية\n"
-                "• التوسع في الأطر النظرية"
-            )
+        if self.simulation_mode:
+            return "هذا تقييم محاكي باللغة العربية. لم يتم إجراء استدعاء فعلي لـ OpenAI API بسبب عدم وجود مفتاح API."
         
         try:
-            # استخدام عميل OpenAI للإصدار 1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            # إنشاء المطالبة (Prompt) بالعربية
+            prompt = f"""
+            أنت مقيّم تعليمي متخصص في تقييم مهام BTEC باللغة العربية. قم بتحليل المهمة التالية بدقة وموضوعية:
             
-            # إنشاء إكمال الذكاء الاصطناعي باستخدام ChatGPT
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            المهمة:
+            ```
+            {task}
+            ```
+            
+            يرجى تقديم تقييم شامل يتضمن:
+            
+            1. تلخيص المهمة ومدى وضوحها
+            2. تقييم التنظيم والهيكل
+            3. تقييم المحتوى والفهم العميق للموضوع
+            4. تقييم الاستخدام السليم للغة العربية والمصطلحات الفنية
+            5. تحديد نقاط القوة في المهمة
+            6. تحديد مجالات التحسين
+            7. درجة التقييم حسب معايير BTEC (P, M, D)
+            8. توصيات محددة للتحسين
+            
+            قدم تحليلًا عميقًا وبنّاءً مع أمثلة محددة من النص.
+            """
+            
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": """أنت مقيّم BTEC خبير في المؤهلات المهنية البريطانية.
-                     قم بتقييم الأعمال المقدمة وتصنيفها بدقة كـ: مقبول، جيد، أو ممتاز بناءً على معايير BTEC.
-                     
-                     اتبع إرشادات تقييم BTEC التالية:
-                     - مقبول: فهم أساسي، يلبي الحد الأدنى من المتطلبات، تحليل محدود
-                     - جيد: فهم جيد، هيكل جيد، بعض التحليل النقدي، تطبيق جيد للنظرية
-                     - ممتاز: فهم ممتاز، شامل، تحليل نقدي عميق، تطبيق إبداعي للنظرية على الممارسة
-                     
-                     نسّق ردك بالضبط كما يلي:
-                     
-                     الدرجة: [مقبول/جيد/ممتاز]
-                     
-                     الملاحظات:
-                     • [نقطة رئيسية 1]
-                     • [نقطة رئيسية 2]
-                     • [نقطة رئيسية 3]
-                     • [نقطة رئيسية 4]
-                     
-                     مجالات التحسين:
-                     • [تحسين 1]
-                     • [تحسين 2]
-                     • [تحسين 3]
-                     
-                     تأكد من أن ملاحظاتك محددة وقابلة للتنفيذ ومتوافقة مع معايير BTEC."""},
-                    {"role": "user", "content": f"قيّم مهمة BTEC التالية:\n\n{task_submission}"}
+                    {"role": "system", "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC باللغة العربية. تحليلاتك دقيقة وموضوعية ومفيدة للطلاب."},
+                    {"role": "user", "content": prompt}
                 ],
-                max_tokens=1500,
-                temperature=0.7
+                temperature=0.4,  # درجة حرارة منخفضة للحصول على نتائج متسقة
+                max_tokens=1500   # زيادة الحد الأقصى للرموز للسماح بتقييمات مفصلة
             )
-            
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تقييم OpenAI API في {elapsed_time:.2f} ثانية")
             
             return response.choices[0].message.content.strip()
+        
+        except openai.error.RateLimitError:
+            logger.error("تم تجاوز حد معدل OpenAI API")
+            return "خطأ: تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا."
+        except openai.error.AuthenticationError:
+            logger.error("خطأ في مصادقة OpenAI API")
+            return "خطأ: فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API."
         except Exception as e:
-            logging.error(f"خطأ في OpenAI API: {e}")
-            return f"حدث خطأ أثناء تقييم الذكاء الاصطناعي: {str(e)}"
-            
-    def evaluate_with_json(self, task_submission):
+            logger.error(f"خطأ في OpenAI API: {e}")
+            return f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}"
+    
+    def evaluate_arabic_json(self, task: str) -> Dict[str, Any]:
         """
-        تقييم مهمة BTEC المقدمة باللغة العربية وإرجاع استجابة JSON منظمة
+        تقييم مهمة BTEC بالعربية وإرجاع نتيجة التقييم كقاموس JSON
         
         Args:
-            task_submission (str): نص المهمة المقدمة للتقييم
+            task: نص المهمة للتقييم باللغة العربية
             
         Returns:
-            dict: تقييم منظم مع الدرجة والملاحظات ومجالات التحسين
+            نتيجة التقييم كقاموس بالعربية
         """
-        if not self.api_key:
-            # محاكاة تقييم الذكاء الاصطناعي إذا لم يكن مفتاح API متاحًا
-            logging.warning("استخدام تقييم ذكاء اصطناعي محاكى (لا يوجد مفتاح API)")
+        if self.simulation_mode:
             return {
-                "grade": "جيد",
-                "feedback": [
-                    "هذا تقييم محاكى لأن مفتاح OpenAI API غير متوفر.",
-                    "يُظهر العمل المقدم فهمًا جيدًا للموضوع.",
-                    "تم شرح بعض المفاهيم الأساسية بشكل جيد ولكنها تفتقر إلى العمق."
-                ],
-                "improvement_areas": [
-                    "إضافة المزيد من التحليل النقدي",
-                    "تضمين المزيد من الأمثلة العملية",
-                    "التوسع في الأطر النظرية"
-                ],
-                "criteria_met": {
-                    "knowledge": 80,
-                    "application": 75,
-                    "analysis": 65,
-                    "evaluation": 60
-                }
+                "درجة": "محاكاة",
+                "تلخيص": "هذا تقييم محاكي. لم يتم إجراء استدعاء فعلي لـ OpenAI API.",
+                "نقاط_القوة": ["نقطة قوة محاكية 1", "نقطة قوة محاكية 2"],
+                "مجالات_التحسين": ["مجال تحسين محاكي 1", "مجال تحسين محاكي 2"],
+                "توصيات": ["توصية محاكية 1", "توصية محاكية 2"]
             }
         
         try:
-            # استخدام عميل OpenAI للإصدار 1.0.0+
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            # إنشاء المطالبة (Prompt) بالعربية مع طلب تنسيق JSON
+            prompt = f"""
+            أنت مقيّم تعليمي متخصص في تقييم مهام BTEC باللغة العربية. قم بتحليل المهمة التالية بدقة وموضوعية:
             
-            # إنشاء إكمال الذكاء الاصطناعي باستخدام ChatGPT مع مخرجات JSON
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            المهمة:
+            ```
+            {task}
+            ```
+            
+            يرجى تقديم تقييم شامل في تنسيق JSON يتضمن الحقول التالية:
+            - درجة: الدرجة النهائية حسب معايير BTEC (P, M, D)
+            - تلخيص: تلخيص موجز للمهمة وتقييمها العام
+            - تنظيم: تقييم لتنظيم وهيكل المهمة
+            - محتوى: تقييم لجودة المحتوى والفهم
+            - لغة: تقييم للاستخدام السليم للغة العربية
+            - نقاط_القوة: قائمة بنقاط القوة الرئيسية
+            - مجالات_التحسين: قائمة بمجالات التحسين
+            - توصيات: قائمة بالتوصيات المحددة للتحسين
+            
+            قدم تحليلًا عميقًا وبنّاءً مع أمثلة محددة من النص.
+            """
+            
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": """أنت مقيّم BTEC خبير في المؤهلات المهنية البريطانية.
-                     قم بتقييم الأعمال المقدمة وتصنيفها بدقة كـ: مقبول، جيد، أو ممتاز بناءً على معايير BTEC.
-                     
-                     اتبع إرشادات تقييم BTEC التالية:
-                     - مقبول: فهم أساسي، يلبي الحد الأدنى من المتطلبات، تحليل محدود (50-59%)
-                     - جيد: فهم جيد، هيكل جيد، بعض التحليل النقدي (60-79%)
-                     - ممتاز: فهم ممتاز، شامل، تحليل نقدي عميق (80-100%)
-                     
-                     أرجع تقييمك بتنسيق JSON التالي:
-                     {
-                       "grade": "مقبول/جيد/ممتاز",
-                       "feedback": ["نقطة 1", "نقطة 2", "نقطة 3", "نقطة 4"],
-                       "improvement_areas": ["مجال 1", "مجال 2", "مجال 3"],
-                       "criteria_met": {
-                         "knowledge": 0-100,
-                         "application": 0-100,
-                         "analysis": 0-100,
-                         "evaluation": 0-100
-                       }
-                     }
-                     
-                     تأكد من أن ملاحظاتك محددة وقابلة للتنفيذ ومتوافقة مع معايير BTEC.
-                     يجب أن تعكس النسب المئوية في criteria_met الأداء في كل مجال من 0 إلى 100.
-                     """}, 
-                    {"role": "user", "content": f"قيّم مهمة BTEC التالية:\n\n{task_submission}"}
+                    {"role": "system", "content": "أنت مقيّم تعليمي متخصص في تقييم مهام BTEC باللغة العربية. قم بإرجاع تقييمك بتنسيق JSON فقط."},
+                    {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
-                max_tokens=1500,
-                temperature=0.7
+                temperature=0.4,  # درجة حرارة منخفضة للحصول على نتائج متسقة
+                max_tokens=1500,   # زيادة الحد الأقصى للرموز للسماح بتقييمات مفصلة
+                response_format={"type": "json_object"}  # طلب تنسيق JSON
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تقييم OpenAI API بتنسيق JSON في {elapsed_time:.2f} ثانية")
-            
-            result = json.loads(response.choices[0].message.content)
-            return result
-        except Exception as e:
-            logging.error(f"خطأ في OpenAI API في تقييم JSON: {e}")
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
+        
+        except openai.error.RateLimitError:
+            logger.error("تم تجاوز حد معدل OpenAI API")
             return {
-                "grade": "خطأ",
-                "feedback": [f"حدث خطأ أثناء تقييم الذكاء الاصطناعي: {str(e)}"],
-                "improvement_areas": ["حاول مرة أخرى لاحقًا"],
-                "criteria_met": {
-                    "knowledge": 0,
-                    "application": 0,
-                    "analysis": 0,
-                    "evaluation": 0
-                }
+                "درجة": "خطأ",
+                "تلخيص": "تم تجاوز حد معدل OpenAI API. يرجى المحاولة مرة أخرى لاحقًا.",
+                "نقاط_القوة": [],
+                "مجالات_التحسين": [],
+                "توصيات": ["حاول مرة أخرى لاحقًا"]
+            }
+        except openai.error.AuthenticationError:
+            logger.error("خطأ في مصادقة OpenAI API")
+            return {
+                "درجة": "خطأ",
+                "تلخيص": "فشل مصادقة OpenAI API. تحقق من صلاحية مفتاح API.",
+                "نقاط_القوة": [],
+                "مجالات_التحسين": [],
+                "توصيات": ["تحقق من صلاحية مفتاح API"]
+            }
+        except Exception as e:
+            logger.error(f"خطأ في OpenAI API: {e}")
+            return {
+                "درجة": "خطأ",
+                "تلخيص": f"خطأ أثناء تقييم الذكاء الاصطناعي: {e}",
+                "نقاط_القوة": [],
+                "مجالات_التحسين": [],
+                "توصيات": ["حاول مرة أخرى لاحقًا"]
             }
     
-    def evaluate_with_rubric(self, task_submission, rubric=None):
+    def detect_language(self, text: str) -> str:
         """
-        تقييم عمل مقدم باستخدام معيار محدد
+        اكتشاف لغة النص المدخل
         
         Args:
-            task_submission (str): نص العمل المقدم للتقييم
-            rubric (dict, optional): معيار تقييم مخصص. إذا كان None، يتم استخدام معيار BTEC الافتراضي.
+            text: النص للتحليل
             
         Returns:
-            dict: تقييم مفصل مع درجات لكل معيار تقييم
+            رمز اللغة المكتشفة (ar, en, etc.) أو 'unknown'
         """
-        if not rubric:
-            # معيار BTEC الافتراضي باللغة العربية
-            rubric = {
-                "sections": [
-                    {
-                        "name": "المعرفة والفهم",
-                        "weight": 25,
-                        "criteria": ["استخدام دقيق للمفاهيم", "تغطية المواضيع الرئيسية", "عمق الفهم"]
-                    },
-                    {
-                        "name": "تطبيق النظرية",
-                        "weight": 25,
-                        "criteria": ["أمثلة ذات صلة", "التطبيق العملي", "سياق الصناعة"]
-                    },
-                    {
-                        "name": "التحليل",
-                        "weight": 25,
-                        "criteria": ["التفكير النقدي", "تقييم الأدلة", "الحجج المنطقية"]
-                    },
-                    {
-                        "name": "التواصل",
-                        "weight": 25,
-                        "criteria": ["الهيكل", "الوضوح", "الكتابة الأكاديمية"]
-                    }
-                ]
-            }
-            
-        if not self.api_key:
-            # محاكاة تقييم الذكاء الاصطناعي باستخدام معيار
-            logging.warning("استخدام تقييم ذكاء اصطناعي محاكى مع معيار (لا يوجد مفتاح API)")
-            
-            # توليد درجات محاكاة لكل قسم
-            sections_result = []
-            total_score = 0
-            
-            for section in rubric["sections"]:
-                section_score = min(85, max(60, 70 + hash(section["name"]) % 20))  # درجة شبه عشوائية ولكن ثابتة
-                criteria_scores = {}
-                
-                for criterion in section["criteria"]:
-                    criteria_scores[criterion] = min(90, max(55, section_score + hash(criterion) % 15))
-                
-                section_result = {
-                    "name": section["name"],
-                    "score": section_score,
-                    "criteria_scores": criteria_scores,
-                    "feedback": f"ملاحظات محاكاة لـ {section['name']}"
-                }
-                sections_result.append(section_result)
-                total_score += section_score * section["weight"] / 100
-            
-            # تحديد الدرجة بناءً على الدرجة الكلية
-            grade = "مقبول"
-            if total_score >= 80:
-                grade = "ممتاز"
-            elif total_score >= 60:
-                grade = "جيد"
-                
-            return {
-                "grade": grade,
-                "total_score": round(total_score, 1),
-                "sections": sections_result,
-                "overall_feedback": "هذا تقييم محاكى قائم على معيار (لا يوجد مفتاح API)",
-                "simulated": True
-            }
-            
+        if self.simulation_mode:
+            if any("\u0600" <= c <= "\u06FF" for c in text):
+                return "ar"
+            else:
+                return "en"
+        
         try:
-            # تحويل المعيار إلى تنسيق سلسلة للموجه
-            rubric_str = json.dumps(rubric, indent=2, ensure_ascii=False)
-            client = OpenAI(api_key=self.api_key)
-            start_time = time.time()
+            prompt = f"""
+            حدد اللغة الرئيسية المستخدمة في النص التالي. أرجع رمز اللغة فقط (مثل: ar للعربية، en للإنجليزية، fr للفرنسية، إلخ).
             
-            response = client.chat.completions.create(
-                model="gpt-4o", # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
+            النص:
+            ```
+            {text[:500]}  # استخدام أول 500 حرف فقط للاقتصاد في استخدام الرموز
+            ```
+            
+            رمز اللغة:
+            """
+            
+            response = openai.ChatCompletion.create(
+                model=self.model,
                 messages=[
-                    {"role": "system", "content": f"""أنت مقيّم BTEC يستخدم معيارًا محددًا لتقييم الأعمال المقدمة.
-                     
-                     استخدم معيار التقييم هذا:
-                     {rubric_str}
-                     
-                     لكل قسم:
-                     1. قيّم العمل المقدم مقابل كل معيار
-                     2. قدم درجة من 0-100 لكل معيار
-                     3. احسب درجة إجمالية للقسم (متوسط المعايير)
-                     4. قدم ملاحظات محددة للقسم
-                     
-                     احسب الدرجة النهائية كمتوسط مرجح لدرجات الأقسام.
-                     
-                     حدد الدرجة على النحو التالي:
-                     - ممتاز: 80-100
-                     - جيد: 60-79
-                     - مقبول: 40-59
-                     - راسب: 0-39
-                     
-                     أرجع تقييمك ككائن JSON بهذه البنية:
-                     {{
-                       "grade": "مقبول/جيد/ممتاز/راسب",
-                       "total_score": رقم (0-100),
-                       "sections": [
-                         {{
-                           "name": "اسم القسم",
-                           "score": رقم (0-100),
-                           "criteria_scores": {{ "معيار1": درجة, "معيار2": درجة, ... }},
-                           "feedback": "ملاحظات محددة لهذا القسم"
-                         }},
-                         ...
-                       ],
-                       "overall_feedback": "ملاحظات ملخصة تتناول نقاط القوة والضعف"
-                     }}
-                     """}, 
-                    {"role": "user", "content": f"قيّم العمل المقدم التالي باستخدام المعيار المقدم:\n\n{task_submission}"}
+                    {"role": "system", "content": "أنت أداة لتحديد اللغات. أرجع رمز اللغة فقط بدون أي نص إضافي."},
+                    {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
-                max_tokens=2000,
-                temperature=0.7
+                temperature=0.1,  # درجة حرارة منخفضة جدًا للحصول على إجابة محددة
+                max_tokens=10     # نحتاج فقط لعدد قليل من الرموز للإجابة
             )
             
-            elapsed_time = time.time() - start_time
-            logging.info(f"اكتمل تقييم المعيار باستخدام OpenAI API في {elapsed_time:.2f} ثانية")
+            language_code = response.choices[0].message.content.strip().lower()
             
-            result = json.loads(response.choices[0].message.content)
-            return result
+            # تنظيف الإخراج لضمان الحصول على رمز اللغة فقط
+            language_code = language_code.replace(".", "").replace(",", "").strip()
+            if language_code in ["ar", "arabic", "العربية"]:
+                return "ar"
+            elif language_code in ["en", "english", "الإنجليزية"]:
+                return "en"
+            else:
+                return language_code[:2]  # رجوع أول حرفين كرمز اللغة
+            
         except Exception as e:
-            logging.error(f"خطأ في OpenAI API في تقييم المعيار: {e}")
-            return {
-                "grade": "خطأ",
-                "total_score": 0,
-                "sections": [],
-                "overall_feedback": f"حدث خطأ أثناء تقييم الذكاء الاصطناعي: {str(e)}",
-                "error": True
-            }
+            logger.error(f"خطأ في اكتشاف اللغة: {e}")
+            # التحقق البسيط من وجود أحرف عربية
+            if any("\u0600" <= c <= "\u06FF" for c in text):
+                return "ar"
+            else:
+                return "unknown"
