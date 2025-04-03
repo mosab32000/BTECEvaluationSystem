@@ -1,2 +1,5 @@
 #!/bin/bash
-python3 start_server.py
+
+# تشغيل خادم نظام تقييم BTEC
+echo "بدء تشغيل خادم نظام تقييم BTEC..."
+python run.py

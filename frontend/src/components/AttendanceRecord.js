@@ -11,7 +11,7 @@ const AttendanceRecord = () => {
   // دالة لجلب سجلات الحضور من السيرفر
   const fetchAttendance = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/attendance', {
+      const response = await axios.get('http://localhost:3000/api/attendance/attendance', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       setRecords(response.data);
@@ -29,7 +29,7 @@ const AttendanceRecord = () => {
   const recordAttendance = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/attendance', {
+      await axios.post('http://localhost:3000/api/attendance/attendance', {
         student_id: studentId,
         attendance_date: attendanceDate || new Date().toISOString().split('T')[0],
         status

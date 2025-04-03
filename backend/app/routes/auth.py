@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from ..database import db
-from ..models import User
+from ..models import User  # استيراد من models.py مباشرة
 from ..security.token_utils import generate_token
 from . import auth_bp
 from werkzeug.security import generate_password_hash, check_password_hash

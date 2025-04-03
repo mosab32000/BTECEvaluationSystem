@@ -12,7 +12,7 @@ const InteractiveSessions = () => {
   // دالة لجلب جميع الجلسات من السيرفر
   const fetchSessions = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/sessions');
+      const response = await axios.get('http://localhost:3000/api/sessions/sessions');
       setSessions(response.data);
     } catch (error) {
       console.error('خطأ في جلب الجلسات:', error);
@@ -30,7 +30,7 @@ const InteractiveSessions = () => {
     try {
       // يجب إضافة توكن المصادقة في الهيدر إذا كان النظام يستخدم JWT
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/sessions', {
+      await axios.post('http://localhost:3000/api/sessions/sessions', {
         title,
         session_date: sessionDate,
         session_time: sessionTime,
