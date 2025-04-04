@@ -70,7 +70,8 @@ def create_app(config_name='default'):
     configure_logging(app)
     
     # تهيئة قاعدة البيانات
-    init_database(app)
+    with app.app_context():
+        init_database()
     
     # مسارات النظام الأساسية
     @app.route('/health')
