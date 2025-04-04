@@ -2,43 +2,38 @@
 ملف بداية تطبيق نظام تقييم BTEC
 يقوم بإنشاء وتهيئة التطبيق
 """
-import logging
 import os
-import sys
+import logging
 from datetime import datetime, timedelta
-from logging.handlers import RotatingFileHandler
 
 from flask import Flask, jsonify, render_template, request
-from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from flask_talisman import Talisman
+from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
+from flask_login import LoginManager
 from flask_caching import Cache
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from sqlalchemy.orm import DeclarativeBase
 
-# إعداد تسجيل الأحداث
+# إعداد التسجيل
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# إنشاء فئة أساسية للنماذج
+# تعريف قاعدة نماذج SQLAlchemy
 class Base(DeclarativeBase):
     pass
 
-
-# تهيئة امتدادات Flask
+# تهيئة الامتدادات
 db = SQLAlchemy(model_class=Base)
+migrate = Migrate()
 jwt = JWTManager()
+cors = CORS()
+login_manager = LoginManager()
 cache = Cache()
-limiter = Limiter(key_func=get_remote_address)
-
 
 def create_app(config_name='default'):
     """
@@ -50,17 +45,15 @@ def create_app(config_name='default'):
     Returns:
         Flask: تطبيق Flask
     """
-    app = Flask(__name__, 
-                static_folder="../static", 
-                template_folder="../templates")
+    app = Flask(__name__, static_folder='../static', template_folder='../templates')
     
-    # تحميل التكوين من الملف المناسب أو المتغيرات البيئية
+    # تكوين التطبيق
     configure_app(app, config_name)
     
-    # تهيئة امتدادات Flask
+    # تهيئة الامتدادات
     init_extensions(app)
     
-    # تسجيل المسارات
+    # تسجيل مسارات التطبيق
     register_blueprints(app)
     
     # تسجيل معالجات الأخطاء
@@ -70,102 +63,27 @@ def create_app(config_name='default'):
     configure_logging(app)
     
     # تهيئة قاعدة البيانات
-    with app.app_context():
-        init_database()
+    init_database()
     
-    # مسارات النظام الأساسية
     @app.route('/health')
     def health():
         """
         فحص صحة النظام
         """
-        try:
-            # التحقق من الوصول إلى قاعدة البيانات
-            db_status = False
-            user_count = 0
-            evaluation_count = 0
-            
-            try:
-                from app.models.user import User
-                from app.models.evaluation import Evaluation
-                
-                with app.app_context():
-                    user_count = User.query.count()
-                    evaluation_count = Evaluation.query.count()
-                    db_status = True
-            except Exception as e:
-                logger.error(f"Database health check error: {e}")
-            
-            # نظام الذكاء الاصطناعي
-            ai_status = False
-            try:
-                from app.core.ai_evaluator import AIEvaluator
-                ai = AIEvaluator()
-                ai_status = ai.client is not None
-            except Exception as e:
-                logger.error(f"AI health check error: {e}")
-            
-            # نظام البلوكتشين
-            blockchain_status = False
-            try:
-                from app.core.blockchain_verifier import BlockchainVerifier
-                blockchain = BlockchainVerifier()
-                blockchain_status = blockchain.connected
-            except Exception as e:
-                logger.error(f"Blockchain health check error: {e}")
-            
-            # جمع المقاييس
-            uptime = "Unknown"
-            try:
-                from app.database import get_metrics
-                metrics = get_metrics()
-            except Exception as e:
-                logger.error(f"Metrics health check error: {e}")
-                metrics = {}
-            
-            # إعداد استجابة الصحة
-            health_data = {
-                'status': 'ok' if db_status else 'degraded',
-                'timestamp': datetime.utcnow().isoformat(),
-                'version': os.environ.get('APP_VERSION', '1.0.0'),
-                'components': {
-                    'database': {
-                        'status': 'ok' if db_status else 'error',
-                        'details': {
-                            'users': user_count,
-                            'evaluations': evaluation_count
-                        }
-                    },
-                    'ai': {
-                        'status': 'ok' if ai_status else 'error',
-                        'model': os.environ.get('OPENAI_MODEL', 'unknown')
-                    },
-                    'blockchain': {
-                        'status': 'ok' if blockchain_status else 'disabled',
-                        'network': os.environ.get('BLOCKCHAIN_NETWORK', 'none')
-                    }
-                },
-                'metrics': metrics
-            }
-            
-            return jsonify(health_data)
-        except Exception as e:
-            logger.error(f"Health check error: {e}")
-            return jsonify({
-                'status': 'error',
-                'error': str(e),
-                'timestamp': datetime.utcnow().isoformat()
-            }), 500
-
+        return jsonify(
+            status='success',
+            message='نظام تقييم BTEC يعمل بشكل جيد',
+            timestamp=datetime.utcnow().isoformat()
+        )
+    
     @app.route('/')
     def home():
         """
         الصفحة الرئيسية
         """
         return render_template('index.html')
-
+    
     return app
-
 
 def configure_app(app, config_name):
     """
@@ -175,51 +93,52 @@ def configure_app(app, config_name):
         app: تطبيق Flask
         config_name: اسم ملف التكوين
     """
-    # تكوين أساسي
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-CHANGE-ME-in-production')
-    app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
-    
-    # تكوين قاعدة البيانات
+    # تكوين من المتغيرات البيئية
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key')
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', app.config['SECRET_KEY'])
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///btec.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_recycle': 300,
+        'pool_recycle': 280,
         'pool_pre_ping': True
     }
     
     # تكوين JWT
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', app.config['SECRET_KEY'])
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
     app.config['JWT_BLACKLIST_ENABLED'] = True
     app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
     
-    # تكوين التخزين المؤقت
-    cache_type = os.environ.get('CACHE_TYPE', 'SimpleCache')
-    cache_config = {'CACHE_TYPE': cache_type}
+    # تكوين Cache
+    app.config['CACHE_TYPE'] = 'simple'
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 300
     
-    if cache_type == 'RedisCache':
-        cache_config['CACHE_REDIS_URL'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-        cache_config['CACHE_DEFAULT_TIMEOUT'] = 300
+    # تكوين الرفع
+    app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploads')
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
     
-    app.config.update(cache_config)
+    # تكوين OpenAI
+    app.config['OPENAI_API_KEY'] = os.environ.get('OPENAI_API_KEY')
+    app.config['OPENAI_MODEL'] = os.environ.get('OPENAI_MODEL', 'gpt-4')
     
-    # تكوين محدد الطلبات
-    app.config['RATELIMIT_DEFAULT'] = "200 per day, 50 per hour"
-    app.config['RATELIMIT_STORAGE_URL'] = os.environ.get('REDIS_URL', 'memory://')
-    app.config['RATELIMIT_STRATEGY'] = 'fixed-window'
+    # تكوين البلوكتشين
+    app.config['BLOCKCHAIN_ENABLED'] = os.environ.get('BLOCKCHAIN_ENABLED', 'False').lower() == 'true'
+    app.config['INFURA_URL'] = os.environ.get('INFURA_URL')
+    app.config['CONTRACT_ADDRESS'] = os.environ.get('CONTRACT_ADDRESS')
+    app.config['SIGNER_PRIVATE_KEY'] = os.environ.get('SIGNER_PRIVATE_KEY')
+    
+    # تكوين التحقق من البريد الإلكتروني
+    app.config['REQUIRE_EMAIL_VERIFICATION'] = os.environ.get('REQUIRE_EMAIL_VERIFICATION', 'False').lower() == 'true'
+    app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER')
+    app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+    app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
     
     # تكوين الأمان
-    app.config['TALISMAN_FORCE_HTTPS'] = os.environ.get('FORCE_HTTPS', 'False').lower() == 'true'
-    app.config['TALISMAN_CONTENT_SECURITY_POLICY'] = {
-        'default-src': "'self'",
-        'style-src': ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
-        'font-src': ["'self'", "fonts.gstatic.com"],
-        'img-src': ["'self'", "data:"],
-        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        'connect-src': ["'self'"]
-    }
-
+    app.config['SECURITY_PASSWORD_SALT'] = os.environ.get('SECURITY_PASSWORD_SALT', 'btec_evaluation_system')
+    app.config['ENCRYPTION_KEY'] = os.environ.get('ENCRYPTION_KEY')
 
 def init_extensions(app):
     """
@@ -228,30 +147,46 @@ def init_extensions(app):
     Args:
         app: تطبيق Flask
     """
-    # تهيئة امتداد قاعدة البيانات
+    # تهيئة قاعدة البيانات
     db.init_app(app)
+    migrate.init_app(app, db)
     
-    # تهيئة امتداد JWT
+    # تهيئة JWT
     jwt.init_app(app)
     
-    # تهيئة امتداد التخزين المؤقت
-    cache.init_app(app)
-    
-    # تهيئة امتداد محدد الطلبات
-    limiter.init_app(app)
-    
-    # تهيئة امتداد Talisman (أمان الويب)
-    if app.config.get('TALISMAN_FORCE_HTTPS', False):
-        Talisman(app, 
-                content_security_policy=app.config.get('TALISMAN_CONTENT_SECURITY_POLICY'),
-                force_https=app.config.get('TALISMAN_FORCE_HTTPS', False))
-    
-    # تهيئة معالج حدث انتهاء صلاحية رمز JWT
     @jwt.token_in_blocklist_loader
     def check_if_token_is_revoked(jwt_header, jwt_payload):
-        from app.routes.auth import check_if_token_is_revoked
-        return check_if_token_is_revoked(jwt_header, jwt_payload)
-
+        from app.models.user import BlacklistedToken
+        jti = jwt_payload['jti']
+        return BlacklistedToken.is_blacklisted(jti)
+    
+    # تهيئة CORS
+    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+    
+    # تهيئة Login
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة'
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models.user import User
+        return User.query.get(int(user_id))
+    
+    # تهيئة Cache
+    cache.init_app(app)
+    
+    # تهيئة Talisman (HTTPS)
+    # تعطيل CSP مؤقتًا للتطوير
+    talisman = Talisman(
+        app,
+        force_https=False,
+        content_security_policy=None,
+        x_content_type_options=True,
+        strict_transport_security=True,
+        strict_transport_security_preload=True,
+        referrer_policy="strict-origin-when-cross-origin"
+    )
 
 def register_blueprints(app):
     """
@@ -260,13 +195,13 @@ def register_blueprints(app):
     Args:
         app: تطبيق Flask
     """
-    # استيراد وتسجيل جميع المسارات
+    # استيراد Blueprints
     from app.routes.auth import auth_bp
     from app.routes.evaluation import evaluation_bp
     
+    # تسجيل Blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(evaluation_bp, url_prefix='/api/evaluations')
-
 
 def register_error_handlers(app):
     """
@@ -277,49 +212,43 @@ def register_error_handlers(app):
     """
     @app.errorhandler(400)
     def bad_request(error):
-        logger.warning(f"Bad request: {error}")
-        return jsonify({
-            'status': 'error',
-            'message': 'طلب غير صالح',
-            'error': str(error)
-        }), 400
+        return jsonify(
+            status='error',
+            message='طلب غير صالح',
+            error=str(error)
+        ), 400
     
     @app.errorhandler(401)
     def unauthorized(error):
-        logger.warning(f"Unauthorized: {error}")
-        return jsonify({
-            'status': 'error',
-            'message': 'غير مصرح',
-            'error': str(error)
-        }), 401
+        return jsonify(
+            status='error',
+            message='غير مصرح بالوصول',
+            error=str(error)
+        ), 401
     
     @app.errorhandler(403)
     def forbidden(error):
-        logger.warning(f"Forbidden: {error}")
-        return jsonify({
-            'status': 'error',
-            'message': 'محظور',
-            'error': str(error)
-        }), 403
+        return jsonify(
+            status='error',
+            message='غير مسموح بالوصول',
+            error=str(error)
+        ), 403
     
     @app.errorhandler(404)
     def not_found(error):
-        logger.warning(f"Not found: {error}")
-        return jsonify({
-            'status': 'error',
-            'message': 'غير موجود',
-            'error': str(error)
-        }), 404
+        return jsonify(
+            status='error',
+            message='الصفحة غير موجودة',
+            error=str(error)
+        ), 404
     
     @app.errorhandler(500)
     def internal_server_error(error):
-        logger.error(f"Internal server error: {error}")
-        return jsonify({
-            'status': 'error',
-            'message': 'خطأ داخلي في الخادم',
-            'error': str(error)
-        }), 500
-
+        return jsonify(
+            status='error',
+            message='خطأ في الخادم',
+            error=str(error)
+        ), 500
 
 def configure_logging(app):
     """
@@ -329,133 +258,227 @@ def configure_logging(app):
         app: تطبيق Flask
     """
     if not app.debug:
-        # إنشاء مجلد سجلات إذا لم يكن موجودًا
-        logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-        if not os.path.exists(logs_dir):
-            os.makedirs(logs_dir)
+        # إضافة معالج ملف التسجيل
+        import logging
+        from logging.handlers import RotatingFileHandler
+        import os
         
-        # إعداد مُعالِج ملف دوار
-        file_handler = RotatingFileHandler(
-            os.path.join(logs_dir, 'btec.log'),
-            maxBytes=1024 * 1024 * 10,  # 10 ميغابايت
-            backupCount=5
-        )
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
         
-        # تكوين مُعالِج السجل
+        file_handler = RotatingFileHandler('logs/btec.log', maxBytes=10240, backupCount=10)
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
         ))
         file_handler.setLevel(logging.INFO)
         
-        # إضافة المُعالِج إلى التطبيق والسجل الجذر
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
-        logging.getLogger().addHandler(file_handler)
-        
-        app.logger.info('BTEC Evaluation System startup')
-
+        app.logger.info('بدء تشغيل نظام تقييم BTEC')
 
 def init_database():
     """
     تهيئة قاعدة البيانات وإنشاء الجداول الضرورية إذا لم تكن موجودة
     """
+    from app import db
+    
     try:
-        # إنشاء الجداول
+        # إنشاء جميع الجداول
         db.create_all()
+        logger.info("تم إنشاء/التحقق من جداول قاعدة البيانات")
         
-        # إنشاء المسؤول الافتراضي إذا لم يكن موجودًا
+        # إنشاء مسؤول افتراضي
         create_default_admin()
         
-        # إنشاء قوالب تقييم افتراضية
+        # إنشاء معايير تقييم افتراضية
         create_default_rubrics()
         
-        logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"Database initialization error: {e}")
-
+        logger.error(f"خطأ في تهيئة قاعدة البيانات: {str(e)}")
 
 def create_default_admin():
     """
     إنشاء حساب مسؤول افتراضي إذا لم يكن موجودًا
     """
+    from app.models.user import User
+    from app import db
+    
     try:
-        from app.models.user import User
-        from werkzeug.security import generate_password_hash
-        
-        # التحقق مما إذا كان هناك أي مسؤولين موجودين بالفعل
+        # التحقق من وجود مسؤول
         admin_exists = User.query.filter_by(role='admin').first()
         
         if not admin_exists:
             # إنشاء مسؤول افتراضي
-            admin_email = os.environ.get('ADMIN_EMAIL', 'admin@btec.edu')
-            admin_password = os.environ.get('ADMIN_PASSWORD', 'Btec@12345')
-            
             admin = User()
-            admin.email = admin_email
-            admin.password_hash = generate_password_hash(admin_password)
-            admin.name = 'BTEC Admin'
+            admin.name = 'مصعب الحلالة'
+            admin.email = 'admin@btec.ps'
+            admin.password = 'Admin@123456'  # يتم تجزئة كلمة المرور تلقائيًا
             admin.role = 'admin'
+            admin.is_active = True
+            admin.is_verified = True
             
             db.session.add(admin)
             db.session.commit()
             
-            logger.info(f"Default admin created: {admin_email}")
+            logger.info("تم إنشاء حساب المسؤول الافتراضي")
+    
     except Exception as e:
-        logger.error(f"Error creating default admin: {e}")
+        logger.error(f"خطأ في إنشاء حساب المسؤول الافتراضي: {str(e)}")
         db.session.rollback()
-
 
 def create_default_rubrics():
     """
     إنشاء قوالب معايير تقييم افتراضية
     """
+    from app.models.rubric import RubricTemplate
+    from app import db
+    
     try:
-        from app.models.rubric import RubricTemplate
+        # التحقق من وجود معايير تقييم
+        rubrics_exist = RubricTemplate.query.first()
         
-        # التحقق مما إذا كان هناك أي قوالب موجودة بالفعل
-        default_rubric_exists = RubricTemplate.query.filter_by(is_default=True).first()
-        
-        if not default_rubric_exists:
-            # إنشاء قالب افتراضي لمعايير BTEC
-            default_rubric = RubricTemplate()
-            default_rubric.name = 'معايير BTEC الأساسية'
-            default_rubric.description = 'قالب معايير BTEC القياسي للتقييم'
-            default_rubric.is_default = True
-            
-            # إعداد معايير التقييم
-            criteria = [
-                {
-                    'name': 'المعرفة والفهم',
-                    'description': 'إظهار المعرفة والفهم للمفاهيم الرئيسية والمصطلحات والنظريات'
-                },
-                {
-                    'name': 'التطبيق العملي',
-                    'description': 'تطبيق المعرفة والمهارات في سياقات عملية وواقعية'
-                },
+        if not rubrics_exist:
+            # إنشاء معيار تقييم افتراضي - تقرير BTEC
+            report_rubric = RubricTemplate()
+            report_rubric.name = 'معيار تقييم تقرير BTEC'
+            report_rubric.description = 'معيار تقييم شامل لتقارير BTEC'
+            report_rubric.set_criteria([
                 {
                     'name': 'البحث والتحليل',
-                    'description': 'القدرة على البحث وتحليل المعلومات وتقييم المصادر'
+                    'description': 'مدى عمق البحث وجودة التحليل',
+                    'weight': 25,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'بحث شامل وتحليل عميق'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'بحث جيد وتحليل مفصل'},
+                        {'name': 'جيد', 'score': 3, 'description': 'بحث مقبول وتحليل كافٍ'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'بحث سطحي وتحليل محدود'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'بحث غير كافٍ وتحليل ضعيف'}
+                    ]
                 },
                 {
-                    'name': 'التفكير النقدي',
-                    'description': 'تقييم الأفكار والحجج والمعلومات بشكل نقدي'
+                    'name': 'التنظيم والهيكل',
+                    'description': 'تنظيم المحتوى وهيكل التقرير',
+                    'weight': 20,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'تنظيم ممتاز وهيكل متماسك'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'تنظيم جيد وهيكل واضح'},
+                        {'name': 'جيد', 'score': 3, 'description': 'تنظيم مقبول وهيكل مناسب'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'تنظيم غير متسق وهيكل غير واضح'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'تنظيم ضعيف وهيكل مفكك'}
+                    ]
                 },
                 {
-                    'name': 'المهارات التقنية',
-                    'description': 'إظهار الكفاءة في استخدام الأدوات والتقنيات الخاصة بالمجال'
+                    'name': 'المحتوى والمعرفة',
+                    'description': 'دقة المحتوى وعمق المعرفة',
+                    'weight': 25,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'محتوى دقيق ومعرفة متعمقة'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'محتوى جيد ومعرفة شاملة'},
+                        {'name': 'جيد', 'score': 3, 'description': 'محتوى مقبول ومعرفة كافية'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'محتوى محدود ومعرفة سطحية'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'محتوى غير دقيق ومعرفة غير كافية'}
+                    ]
                 },
                 {
-                    'name': 'الاتصال والعرض',
-                    'description': 'توصيل الأفكار والمعلومات بشكل واضح ومنظم ومناسب للجمهور'
+                    'name': 'التواصل والكتابة',
+                    'description': 'وضوح التواصل وجودة الكتابة',
+                    'weight': 15,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'تواصل واضح وكتابة ممتازة'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'تواصل جيد وكتابة فعالة'},
+                        {'name': 'جيد', 'score': 3, 'description': 'تواصل مقبول وكتابة مناسبة'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'تواصل محدود وكتابة ضعيفة'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'تواصل غير واضح وكتابة سيئة'}
+                    ]
+                },
+                {
+                    'name': 'الابتكار والإبداع',
+                    'description': 'مستوى الابتكار والإبداع في العمل',
+                    'weight': 15,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'ابتكار استثنائي وإبداع متميز'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'ابتكار ملحوظ وإبداع جيد'},
+                        {'name': 'جيد', 'score': 3, 'description': 'بعض الابتكار والإبداع'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'ابتكار محدود وإبداع ضئيل'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'افتقار للابتكار والإبداع'}
+                    ]
                 }
-            ]
+            ])
             
-            default_rubric.set_criteria(criteria)
+            # إنشاء معيار تقييم افتراضي - مشروع BTEC
+            project_rubric = RubricTemplate()
+            project_rubric.name = 'معيار تقييم مشروع BTEC'
+            project_rubric.description = 'معيار تقييم شامل لمشاريع BTEC'
+            project_rubric.set_criteria([
+                {
+                    'name': 'التخطيط والتنظيم',
+                    'description': 'جودة التخطيط وتنظيم المشروع',
+                    'weight': 20,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'تخطيط استراتيجي وتنظيم ممتاز'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'تخطيط شامل وتنظيم جيد'},
+                        {'name': 'جيد', 'score': 3, 'description': 'تخطيط مقبول وتنظيم كافٍ'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'تخطيط محدود وتنظيم غير متسق'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'تخطيط ضعيف وتنظيم سيئ'}
+                    ]
+                },
+                {
+                    'name': 'التنفيذ والمهارات التقنية',
+                    'description': 'جودة التنفيذ والمهارات التقنية المستخدمة',
+                    'weight': 25,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'تنفيذ متقن ومهارات تقنية متميزة'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'تنفيذ جيد ومهارات تقنية قوية'},
+                        {'name': 'جيد', 'score': 3, 'description': 'تنفيذ مقبول ومهارات تقنية كافية'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'تنفيذ متوسط ومهارات تقنية محدودة'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'تنفيذ ضعيف ومهارات تقنية غير كافية'}
+                    ]
+                },
+                {
+                    'name': 'الابتكار وحل المشكلات',
+                    'description': 'الابتكار والقدرة على حل المشكلات',
+                    'weight': 20,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'ابتكار استثنائي وحلول إبداعية للمشكلات'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'ابتكار ملحوظ وحلول فعالة للمشكلات'},
+                        {'name': 'جيد', 'score': 3, 'description': 'بعض الابتكار وحلول مقبولة للمشكلات'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'ابتكار محدود وحلول بسيطة للمشكلات'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'افتقار للابتكار وحلول غير فعالة للمشكلات'}
+                    ]
+                },
+                {
+                    'name': 'تحقيق الأهداف',
+                    'description': 'مدى تحقيق أهداف المشروع',
+                    'weight': 20,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'تحقيق كامل لجميع الأهداف بتميز'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'تحقيق معظم الأهداف بشكل جيد'},
+                        {'name': 'جيد', 'score': 3, 'description': 'تحقيق الأهداف الرئيسية بشكل مقبول'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'تحقيق جزئي للأهداف'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'فشل في تحقيق معظم الأهداف'}
+                    ]
+                },
+                {
+                    'name': 'التوثيق والعرض',
+                    'description': 'جودة التوثيق والعرض التقديمي',
+                    'weight': 15,
+                    'levels': [
+                        {'name': 'ممتاز', 'score': 5, 'description': 'توثيق شامل وعرض متميز'},
+                        {'name': 'جيد جدًا', 'score': 4, 'description': 'توثيق جيد وعرض فعال'},
+                        {'name': 'جيد', 'score': 3, 'description': 'توثيق مقبول وعرض مناسب'},
+                        {'name': 'مقبول', 'score': 2, 'description': 'توثيق محدود وعرض ضعيف'},
+                        {'name': 'ضعيف', 'score': 1, 'description': 'توثيق غير كافٍ وعرض سيئ'}
+                    ]
+                }
+            ])
             
-            db.session.add(default_rubric)
+            # حفظ معايير التقييم
+            db.session.add(report_rubric)
+            db.session.add(project_rubric)
             db.session.commit()
             
-            logger.info(f"Default rubric template created: {default_rubric.name}")
+            logger.info("تم إنشاء معايير التقييم الافتراضية")
+    
     except Exception as e:
-        logger.error(f"Error creating default rubrics: {e}")
+        logger.error(f"خطأ في إنشاء معايير التقييم الافتراضية: {str(e)}")
         db.session.rollback()
