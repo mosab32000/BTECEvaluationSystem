@@ -1,12 +1,20 @@
-run = "python run.py"
+[run]
+language = "python"
+entrypoint = "app.py"
+encoding = "utf8"
+exec = "python3 app.py"
 
-[env]
+[environment]
+FLASK_APP = "app.py"
 FLASK_ENV = "development"
+FLASK_DEBUG = "True"
+HOST = "0.0.0.0"
+PORT = "5000"
 
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[ports.btecserver]
-localPort = 5000
-externalPort = 80
+[workflow.btec_app]
+defaultBranch = "main"
+run = "python app.py"
+id = "btec_app"
+language = "Python"
+type = "browser"
+onBoot = false

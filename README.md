@@ -1,141 +1,66 @@
-# نظام تقييم BTEC - BTEC Evaluation System
+# نظام تقييم BTEC
 
-<div style="direction: rtl; text-align: right;">
-
-## نظرة عامة
-
-نظام تقييم BTEC هو منصة متطورة تسمح بالتقييم الآلي لمهام وتسليمات طلاب BTEC باستخدام الذكاء الاصطناعي. يوفر النظام تقييمًا دقيقًا وشفافًا مع إمكانية التحقق من صحة التقييمات باستخدام تقنية blockchain.
+نظام تقييم متطور مدعوم بالذكاء الاصطناعي لتقييم مهام الطلاب وفق معايير BTEC. النظام مبني باستخدام أحدث التقنيات ويوفر واجهة سهلة الاستخدام بدعم كامل للغة العربية.
 
 ## الميزات الرئيسية
 
-- **التقييم المدعوم بالذكاء الاصطناعي**: يستخدم نماذج OpenAI المتقدمة لتحليل وتقييم المهام.
-- **التحقق باستخدام Blockchain**: تسجيل تقييمات مقاومة للتلاعب يمكن التحقق منها لاحقًا.
-- **الأمان**: تشفير المحتوى الحساس في قاعدة البيانات وتوثيق قوي.
-- **معايير تقييم BTEC**: تقييم بناءً على معايير BTEC الرسمية (Pass/Merit/Distinction).
-- **مرونة التقييم**: إمكانية استخدام معايير تقييم مخصصة.
-- **واجهة برمجة تطبيقات قوية**: واجهة برمجة RESTful كاملة للتكامل مع أنظمة أخرى.
+- **تقييم ذكي**: تقييم المهام باستخدام تقنيات الذكاء الاصطناعي المتقدمة
+- **توثيق آمن**: توثيق التقييمات باستخدام تقنية البلوكتشين لضمان النزاهة
+- **تقارير تفصيلية**: تحليلات وتقارير مفصلة لمتابعة تقدم الطلاب
+- **دعم متعدد اللغات**: دعم كامل للغة العربية والإنجليزية
+- **تعاون فعال**: منصة تعاونية للمعلمين والطلاب
+- **تصميم متجاوب**: واجهة سهلة الاستخدام تعمل على جميع الأجهزة
 
-## التقنيات المستخدمة
+## المتطلبات التقنية
 
-- **Backend**: Flask, SQLAlchemy, PostgreSQL
-- **AI**: OpenAI GPT-4o API
-- **الأمان**: JWT, تشفير Fernet
-- **التحقق**: تقنية Blockchain (Ethereum)
-
-## البنية التقنية
-
-- نظام مقسم إلى خدمات منفصلة للمصادقة والتقييم والتشفير والتحقق
-- دعم كامل للغة العربية في التقييمات والنتائج
-- تنظيم قاعدة بيانات بعلاقات واضحة
-- سجل تدقيق كامل للتقييمات
-
-## واجهة برمجة التطبيقات (API)
-
-### المصادقة
-
-- `POST /auth/register`: تسجيل مستخدم جديد
-- `POST /auth/login`: تسجيل الدخول والحصول على رمز JWT
-
-### التقييم
-
-- `POST /evaluation/evaluate`: تقييم مهمة BTEC (نص أو JSON)
-- `GET /evaluation/evaluations`: الحصول على جميع تقييمات المستخدم
-- `GET /evaluation/evaluation/{id}`: الحصول على تقييم محدد
-- `POST /evaluation/evaluate/rubric`: تقييم باستخدام معايير مخصصة
-- `GET /evaluation/verify/{hash}`: التحقق من تقييم باستخدام رمز التدقيق
-- `GET /evaluation/evaluation/{id}/verify`: التحقق من تقييم المستخدم
+- Python 3.9+
+- Flask 2.3.3+
+- PostgreSQL Database
+- React.js (للواجهة الأمامية)
+- OpenAI API Key (للذكاء الاصطناعي)
 
 ## التثبيت والإعداد
 
-1. استنساخ المستودع
-2. تثبيت المتطلبات: `pip install -r backend/requirements.txt`
-3. إعداد متغيرات البيئة في ملف `.env`:
-   - `DATABASE_URL`: عنوان قاعدة البيانات PostgreSQL
-   - `SECRET_KEY`: مفتاح سري لجلسات Flask
-   - `JWT_SECRET_KEY`: مفتاح سري لرموز JWT
-   - `ENCRYPTION_KEY`: مفتاح لتشفير البيانات الحساسة
-   - `OPENAI_API_KEY`: مفتاح API لـ OpenAI
-   - (اختياري) مفاتيح Blockchain - `INFURA_URL`, `CONTRACT_ADDRESS`, `SIGNER_PRIVATE_KEY`
+1. **استنساخ المستودع**:
+   ```bash
+   git clone https://github.com/username/btec-evaluation-system.git
+   cd btec-evaluation-system
+   ```
 
-4. تهيئة قاعدة البيانات: `flask db upgrade`
-5. تشغيل الخادم: `python run_flask_server.py`
+2. **إعداد البيئة الافتراضية**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # على Linux/Mac
+   venv\Scripts\activate  # على Windows
+   ```
 
-## التطوير المستقبلي
+3. **تثبيت التبعيات**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- واجهة مستخدم رسومية كاملة
-- دعم للتقييم بلغات متعددة
-- تحليلات متقدمة للتقييمات
-- تكامل كامل مع blockchain الإنتاجية
+4. **إعداد ملف .env**:
+   قم بإنشاء ملف `.env` في المجلد الرئيسي واضبط المتغيرات البيئية المطلوبة.
 
-</div>
+5. **تهيئة قاعدة البيانات**:
+   ```bash
+   python init_db.py
+   ```
 
---- 
+6. **تشغيل التطبيق**:
+   ```bash
+   ./run_btec_server.sh  # على Linux/Mac
+   run_btec_server.bat  # على Windows
+   ```
 
-<div style="direction: ltr; text-align: left;">
+## استخدام النظام
 
-## Overview
+1. افتح المتصفح وانتقل إلى `http://localhost:5000`
+2. قم بتسجيل الدخول باستخدام حساب المسؤول الافتراضي:
+   - البريد الإلكتروني: `admin@btec.edu`
+   - كلمة المرور: `Btec@12345`
+3. اتبع التعليمات على الشاشة لإعداد النظام وإضافة المستخدمين والمساقات
 
-The BTEC Evaluation System is an advanced platform that enables automated assessment of BTEC student submissions using AI. The system provides accurate and transparent evaluation with blockchain verification capabilities.
+## الرخصة
 
-## Key Features
-
-- **AI-Powered Assessment**: Utilizes advanced OpenAI models to analyze and evaluate submissions.
-- **Blockchain Verification**: Tamper-resistant evaluation records that can be verified later.
-- **Security**: Encryption of sensitive content in the database and robust authentication.
-- **BTEC Grading Standards**: Evaluation based on official BTEC criteria (Pass/Merit/Distinction).
-- **Flexible Assessment**: Ability to use custom rubrics for evaluation.
-- **Robust API**: Complete RESTful API for integration with other systems.
-
-## Technologies Used
-
-- **Backend**: Flask, SQLAlchemy, PostgreSQL
-- **AI**: OpenAI GPT-4o API
-- **Security**: JWT, Fernet encryption
-- **Verification**: Blockchain technology (Ethereum)
-
-## Technical Architecture
-
-- System divided into separate services for authentication, evaluation, encryption, and verification
-- Full Arabic language support in evaluations and results
-- Organized database with clear relationships
-- Complete audit trail of evaluations
-
-## API Reference
-
-### Authentication
-
-- `POST /auth/register`: Register a new user
-- `POST /auth/login`: Login and obtain JWT token
-
-### Evaluation
-
-- `POST /evaluation/evaluate`: Evaluate a BTEC task (text or JSON)
-- `GET /evaluation/evaluations`: Get all user evaluations
-- `GET /evaluation/evaluation/{id}`: Get a specific evaluation
-- `POST /evaluation/evaluate/rubric`: Evaluate using custom rubric
-- `GET /evaluation/verify/{hash}`: Verify an evaluation by audit hash
-- `GET /evaluation/evaluation/{id}/verify`: Verify a user's evaluation
-
-## Installation & Setup
-
-1. Clone the repository
-2. Install requirements: `pip install -r backend/requirements.txt`
-3. Set up environment variables in `.env` file:
-   - `DATABASE_URL`: PostgreSQL database URL
-   - `SECRET_KEY`: Secret key for Flask sessions
-   - `JWT_SECRET_KEY`: Secret key for JWT tokens
-   - `ENCRYPTION_KEY`: Key for encrypting sensitive data
-   - `OPENAI_API_KEY`: API key for OpenAI
-   - (Optional) Blockchain keys - `INFURA_URL`, `CONTRACT_ADDRESS`, `SIGNER_PRIVATE_KEY`
-
-4. Initialize database: `flask db upgrade`
-5. Run the server: `python run_flask_server.py`
-
-## Future Development
-
-- Complete graphical user interface
-- Support for multi-language evaluation
-- Advanced analytics for evaluations
-- Full integration with production blockchain
-
-</div>
+جميع الحقوق محفوظة © 2025 نظام تقييم BTEC

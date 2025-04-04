@@ -3,21 +3,18 @@
 """
 import os
 import logging
-from flask import Flask, jsonify, render_template, send_from_directory, request
+from flask import Flask, render_template, jsonify
+
+# ضبط تسجيل الأحداث
+logging.basicConfig(level=logging.INFO,
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# استيراد التطبيق
 from app import create_app
 
-# إعداد السجل
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)s] - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('server.log')
-    ]
-)
-
 # إنشاء تطبيق Flask
-app = create_app(os.getenv('FLASK_ENV', 'development'))
+app = create_app()
 
 @app.route('/health')
 def health():
@@ -25,25 +22,15 @@ def health():
     نقطة نهاية للتحقق من صحة النظام
     """
     return jsonify({
-        'status': 'success',
-        'message': 'BTEC Evaluation System is running'
+        'status': 'ok',
+        'message': 'نظام تقييم BTEC يعمل بشكل جيد'
     })
 
-@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
     """
     التقاط جميع المسارات غير المعالجة وتوجيهها إلى القالب الأساسي
     """
-    if path.startswith('static/'):
-        return send_from_directory('.', path)
-    
-    if path.startswith('api/'):
-        return jsonify({
-            'status': 'error',
-            'message': 'API endpoint not found'
-        }), 404
-    
     return render_template('index.html')
 
 @app.errorhandler(404)
@@ -51,14 +38,13 @@ def page_not_found(e):
     """
     معالج الخطأ 404 - الصفحة غير موجودة
     """
-    if request.path.startswith('/api/'):
-        return jsonify({
-            'status': 'error',
-            'message': 'API endpoint not found'
-        }), 404
-    
     return render_template('index.html')
 
-if __name__ == '__main__':
-    # تشغيل الخادم على المنفذ 5000
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    # تشغيل التطبيق
+    host = os.environ.get('HOST', '0.0.0.0')
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    
+    logger.info(f"تشغيل تطبيق نظام تقييم BTEC على {host}:{port} (وضع التصحيح: {debug})")
+    app.run(host=host, port=port, debug=debug)

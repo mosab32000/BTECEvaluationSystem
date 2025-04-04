@@ -1,0 +1,1213 @@
+حسنًا، سأقوم الآن بدمج التحسينات والميزات المقترحة التي ذكرتها في بنية الكود الحالية لمشروع BTEC Rebel System. نظرًا لحجم التغييرات، سأركز على:
+
+تعديل ملفات الخلفية (Flask/Python): إضافة التكوينات، تعديل الهياكل، إضافة نقاط نهاية جديدة (مع منطق أساسي أو تعليقات للمنطق المعقد)، وتحديث الملفات الموجودة.
+
+تعديل ملفات التكوين: requirements.txt, .env.example, Dockerfiles, docker-compose.yml.
+
+الإشارة إلى التعديلات المطلوبة في الواجهة (React): وصف التغييرات اللازمة في الواجهة دون كتابة الكود الكامل لكل مكون جديد.
+
+إضافة تعليقات توضيحية لشرح التغييرات والغرض منها.
+
+ملاحظات هامة قبل البدء:
+
+التعقيد: دمج كل هذه الميزات دفعة واحدة هو عملية معقدة جدًا. في مشروع حقيقي، يتم تنفيذها بشكل تدريجي مع اختبار مكثف.
+
+الافتراضات: سأفترض أنك ستستخدم الأدوات المقترحة (مثل Vault, Talisman, Caching) ولكن قد تحتاج إلى إعدادها بشكل منفصل.
+
+الكود التمثيلي: بعض أجزاء الكود (خاصة للتكاملات المعقدة مثل Vault أو WebSockets أو ORM) ستكون تمثيلية أو مفاهيمية لإظهار مكان وكيفية الدمج.
+
+تحديثات ملفات المشروع لدمج التحسينات
+1. تحديثات ملفات الجذر
+
+requirements.txt (إضافة تبعيات جديدة)
+
+# إطار عمل الويب الرئيسي
+Flask==2.3.3
+Flask-Limiter==3.5.0
+Flask-Cors==4.0.0
+Flask-Talisman==1.1.0   # <-- لإضافة رؤوس الأمان
+Flask-Caching==2.0.2   # <-- للتخزين المؤقت
+Flask-SocketIO==5.3.6  # <-- للإشعارات الفورية / الجلسات التفاعلية (اختياري)
+
+# المصادقة والتشفير
+PyJWT==2.8.0
+cryptography==41.0.4
+Werkzeug==2.3.7
+passlib[bcrypt]==1.7.4
+
+# الاتصال بـ OpenAI
+openai==0.28.1
+
+# التعامل مع قواعد البيانات
+# psycopg2-binary        # <-- (إذا انتقلت إلى PostgreSQL)
+# mysql-connector-python # <-- (إذا انتقلت إلى MySQL)
+# Flask-SQLAlchemy==3.0.5 # <-- (إذا استخدمت SQLAlchemy ORM)
+# Flask-Migrate==4.0.5    # <-- (لإدارة تحديثات مخطط DB مع SQLAlchemy)
+
+# طلبات HTTP (لمزامنة LMS)
+requests==2.31.0
+
+# تشغيل الإنتاج
+gunicorn==21.2.0
+
+# أدوات مساعدة
+python-dotenv==1.0.0
+redis==4.5.1           # <-- الواجهة الخلفية لـ Flask-Caching أو Flask-Limiter
+hvac==1.1.0            # <-- عميل HashiCorp Vault (إذا تم استخدامه)
+
+# تحليل النصوص (اختياري)
+# textblob==0.17.1
+# plagiarism-checker==0.1.6 # قد تتطلب تبعيات أخرى
+
+# WebSockets (تابع لـ Flask-SocketIO)
+python-engineio==4.8.0
+python-socketio==5.10.0
+# اختر خلفية لـ SocketIO (eventlet أو gevent هي الشائعة للإنتاج)
+# eventlet
+# gevent
+# gevent-websocket
+
+
+.env.example (إضافة متغيرات جديدة)
+
+# ... (المتغيرات السابقة) ...
+
+# Flask-Talisman Configuration (Optional - Defaults are often reasonable)
+# TALISMAN_FORCE_HTTPS=True # Recommended behind a reverse proxy that handles TLS
+
+# Cache Configuration
+CACHE_TYPE=redis # أو simple (للذاكرة), أو غيرها
+CACHE_REDIS_URL=redis://localhost:6379/0 # عنوان Redis
+CACHE_DEFAULT_TIMEOUT=300 # المهلة الافتراضية بالثواني
+
+# Vault Configuration (إذا تم استخدامه)
+# VAULT_ADDR=http://localhost:8200 # عنوان Vault
+# VAULT_TOKEN=your_vault_dev_token # أو تكوين طريقة مصادقة أخرى (AppRole, K8s)
+# VAULT_SECRET_PATH=secret/data/btec-rebel # مسار الأسرار في Vault KV v2
+
+# Database Configuration (إذا انتقلت من SQLite)
+# DATABASE_TYPE=postgresql # أو mysql
+# DATABASE_URL=postgresql://user:password@host:port/dbname # أو متغيرات منفصلة
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USER=btec_user
+# DB_PASSWORD=your_db_password
+# DB_NAME=btec_rebel_db
+
+# SocketIO Configuration (Optional)
+# ASYNC_MODE=eventlet # أو gevent
+
+# Add other new config variables as needed
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Env
+IGNORE_WHEN_COPYING_END
+
+Dockerfile (للخلفية - تحديث لتثبيت التبعيات الجديدة)
+
+# --- مرحلة البناء ---
+FROM python:3.9-slim as builder
+# ... (نفس إعدادات ENV) ...
+WORKDIR /opt/app
+# (تعديل) تثبيت تبعيات النظام الإضافية إذا لزم الأمر
+# مثال لـ psycopg2: apt-get install -y libpq-dev build-essential
+# RUN apt-get update && apt-get install -y --no-install-recommends <needed_packages> && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+# (تعديل) تثبيت جميع التبعيات الجديدة
+RUN pip install --no-cache-dir -r requirements.txt
+
+# --- مرحلة الإنتاج ---
+FROM python:3.9-slim as production
+WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv
+COPY ./app /app
+# (تعديل) قد تحتاج إلى تثبيت تبعيات وقت التشغيل هنا إذا لم تكن جزءًا من venv
+ENV PATH="/opt/venv/bin:$PATH"
+EXPOSE 5000
+# (تعديل) اختيار مشغل Gunicorn المناسب إذا كنت تستخدم SocketIO مع async_mode
+# مثال لـ eventlet:
+# CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--worker-class", "eventlet", "-k", "eventlet", "main:app"]
+# مثال لـ gevent:
+# CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "main:app"]
+# الأمر الافتراضي (بدون SocketIO أو باستخدام threading mode):
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "main:app"]
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Dockerfile
+IGNORE_WHEN_COPYING_END
+
+docker-compose.yml (إضافة خدمة Redis للتخزين المؤقت)
+
+version: '3.8'
+
+services:
+  backend:
+    # ... (نفس الإعدادات السابقة) ...
+    environment:
+      # (تعديل) تأكد من تضمين متغيرات البيئة الجديدة أو تحميلها من .env
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY}
+      - CACHE_TYPE=${CACHE_TYPE:-redis} # استخدام قيمة افتراضية
+      - CACHE_REDIS_URL=${CACHE_REDIS_URL:-redis://redis:6379/0} # استخدام اسم خدمة redis
+      # ... (باقي المتغيرات) ...
+    depends_on:
+      - redis # (تعديل) إضافة اعتمادية على Redis إذا كنت تستخدمه للتخزين المؤقت
+    # ... (باقي الإعدادات) ...
+
+  frontend:
+    # ... (نفس الإعدادات السابقة) ...
+    # (تعديل) قد تحتاج إلى تمرير REACT_APP_API_URL إذا لم يكن localhost:5000
+    # environment:
+    #   - REACT_APP_API_URL=http://backend:5000/api/v1 # مثال لاستخدام اسم الخدمة
+    depends_on:
+      - backend
+
+  # (جديد) إضافة خدمة Redis للتخزين المؤقت
+  redis:
+    image: "redis:alpine"
+    container_name: btec_rebel_redis
+    ports:
+      - "6379:6379" # تعريض المنفذ محليًا للاختبار (اختياري)
+    volumes:
+      - redis_data:/data # وحدة تخزين للحفاظ على بيانات Redis (إذا لزم الأمر)
+    restart: unless-stopped
+
+volumes:
+  redis_data: # تعريف وحدة التخزين
+  # db_data: # إذا كنت لا تزال تستخدم SQLite مع ربط
+  # backup_data:
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Yaml
+IGNORE_WHEN_COPYING_END
+2. تحديثات الخلفية (app/)
+
+app/main.py (تحديث التهيئات)
+
+# ... (imports السابقة) ...
+# (جديد) استيراد المكتبات المضافة
+from flask_talisman import Talisman
+from flask_caching import Cache
+from flask_socketio import SocketIO # (إذا تم استخدام SocketIO)
+import hvac # (إذا تم استخدام Vault)
+
+# ... (تحميل .env) ...
+
+# --- استيراد وحدات المشروع ---
+# ... (نفس الاستيرادات) ...
+# (جديد) قد تحتاج إلى استيراد Blueprints جديدة
+from app.routes import sessions, attendance, analytics, rewards # أمثلة
+
+# --- إعداد التطبيق الأساسي ---
+app = Flask(__name__)
+
+# --- إعدادات التكوين ---
+# (جديد) تحميل الأسرار من Vault (مثال مفاهيمي، انظر القسم 1.1)
+# try:
+#     vault_client = hvac.Client(...) # تهيئة العميل
+#     secrets = vault_client.secrets.kv.v2.read_secret_version(...)['data']['data']
+#     app.secret_key = secrets.get('FLASK_SECRET_KEY')
+#     app.config['DATA_ENCRYPTION_KEY'] = secrets.get('DATA_ENCRYPTION_KEY').encode()
+#     openai.api_key = secrets.get('OPENAI_API_KEY')
+#     # ... تحميل باقي الأسرار وتعيينها في app.config أو os.environ
+#     logger.info("Secrets loaded from Vault.")
+# except Exception as e:
+#     logger.critical(f"Failed to load secrets from Vault: {e}", exc_info=True)
+#     exit(1)
+
+# --- تحميل التكوينات من متغيرات البيئة (إذا لم تستخدم Vault) ---
+# (تعديل) تأكد من تحميل جميع المفاتيح المطلوبة
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "default_insecure_key")
+app.config['DATA_ENCRYPTION_KEY_STR'] = os.environ.get("DATA_ENCRYPTION_KEY") # تخزين كسلسلة أولاً
+# ... (باقي المتغيرات)
+
+# ... (إعداد CORS) ...
+# ... (إعداد Logging) ...
+
+# --- تهيئة قاعدة البيانات ---
+# (تعديل) ضع في اعتبارك استخدام ORM مثل SQLAlchemy هنا
+# if os.environ.get('DATABASE_TYPE') == 'postgresql':
+#     from flask_sqlalchemy import SQLAlchemy
+#     from flask_migrate import Migrate
+#     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+#     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#     db = SQLAlchemy(app)
+#     migrate = Migrate(app, db)
+#     # ستحتاج إلى تعريف النماذج (Models) في مكان آخر (مثل app/models.py)
+#     # وتشغيل flask db init/migrate/upgrade
+# else:
+#     # استخدام SQLite الحالي
+#     try:
+#         # ... (نفس كود تهيئة SQLite)
+#     except Exception as e:
+#         # ...
+try:
+    # ... (نفس كود تهيئة SQLite)
+    # (تعديل) نقل تهيئة secure_vault بعد تحميل المفتاح بنجاح
+    if not app.config.get('DATA_ENCRYPTION_KEY_STR'):
+        raise ValueError("DATA_ENCRYPTION_KEY is not set.")
+    secure_vault = SecureVault(app.config['DATA_ENCRYPTION_KEY_STR']) # تمرير المفتاح مباشرة
+    app.config['SECURE_VAULT'] = secure_vault
+    logger.info("SecureVault initialized.")
+except Exception as e:
+    logger.critical(f"CRITICAL: Database or SecureVault initialization failed: {e}", exc_info=True)
+    exit(1)
+
+
+# --- (جديد) تهيئة Flask-Talisman ---
+try:
+    csp = { 'default-src': "'self'" } # سياسة بسيطة جدًا، تحتاج لتخصيص!
+    talisman = Talisman(app, content_security_policy=csp, force_https=False) # force_https=False إذا كان الوكيل يعالج HTTPS
+    logger.info("Flask-Talisman initialized with basic CSP.")
+except Exception as e:
+    logger.error(f"Failed to initialize Flask-Talisman: {e}", exc_info=True)
+
+
+# --- (جديد) تهيئة Flask-Caching ---
+try:
+    redis_url = os.environ.get("CACHE_REDIS_URL", "redis://localhost:6379/0")
+    cache_config = {
+        "CACHE_TYPE": "RedisCache" if redis_url.startswith("redis://") else "SimpleCache",
+        "CACHE_DEFAULT_TIMEOUT": int(os.environ.get("CACHE_DEFAULT_TIMEOUT", 300)),
+        "CACHE_REDIS_URL": redis_url
+    }
+    cache = Cache(app, config=cache_config)
+    app.config['CACHE'] = cache # جعله متاحًا إذا لزم الأمر
+    logger.info(f"Cache initialized with type: {cache_config['CACHE_TYPE']}")
+except Exception as e:
+    logger.error(f"Failed to initialize Cache: {e}", exc_info=True)
+
+
+# --- (جديد/اختياري) تهيئة Flask-SocketIO ---
+# async_mode = os.environ.get('ASYNC_MODE')
+# socketio = SocketIO(app, async_mode=async_mode, cors_allowed_origins="*")
+# logger.info(f"SocketIO initialized with async_mode: {async_mode}")
+
+
+# ... (إعداد OpenAI API Key) ...
+# ... (إعداد Limiter) ...
+
+# --- تسجيل المسارات (Blueprints) ---
+# ... (تسجيل Blueprints الحالية) ...
+# (جديد) تسجيل Blueprints للميزات الجديدة
+# app.register_blueprint(review.bp, url_prefix='/api/v1/review') # للمراجعة البشرية
+# app.register_blueprint(analytics.bp, url_prefix='/api/v1/analytics')
+# app.register_blueprint(rewards.bp, url_prefix='/api/v1/rewards')
+# app.register_blueprint(sessions.bp, url_prefix='/api/v1/sessions')
+# app.register_blueprint(attendance.bp, url_prefix='/api/v1/attendance')
+logger.info("API blueprints registered.")
+
+
+# --- معالجات الأخطاء العامة ---
+# ... (نفس المعالجات) ...
+
+# --- (جديد/اختياري) معالجات أحداث SocketIO ---
+# @socketio.on('connect')
+# def handle_connect():
+#     user_email = # ... (الحصول على المستخدم من التوكن أو الجلسة)
+#     join_room(user_email) # ربط المستخدم بغرفة خاصة لتلقي الإشعارات
+#     logger.info(f'Client connected: {request.sid}, User: {user_email}')
+
+# @socketio.on('disconnect')
+# def handle_disconnect():
+#     logger.info(f'Client disconnected: {request.sid}')
+
+# ... (نقطة نهاية الجذر) ...
+
+# --- تشغيل التطبيق ---
+if __name__ == '__main__':
+    is_debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
+    logger.info(f"Starting Flask server (Debug: {is_debug})...")
+    # (تعديل) استخدام socketio.run إذا تم تمكينه
+    # if 'socketio' in locals():
+    #     socketio.run(app, host='0.0.0.0', port=5000, debug=is_debug, use_reloader=is_debug)
+    # else:
+    app.run(host='0.0.0.0', port=5000, debug=is_debug)
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+app/core/security.py (تعديل SecureVault لدعم المفاتيح المتعددة - مفاهيمي)
+
+# ... (imports) ...
+
+class SecureVault:
+    """
+    (تعديل) فئة لتشفير وفك تشفير البيانات باستخدام Fernet، مع دعم مفاتيح متعددة للتدوير.
+    """
+    def __init__(self, current_key_str: str, previous_keys_str: List[str] = None):
+        self.keys = []
+        self.cipher_suites = {} # قاموس لتخزين كائنات Fernet لكل مفتاح
+
+        # معالجة المفتاح الحالي
+        try:
+            current_key = current_key_str.encode('utf-8')
+            self.cipher_suites['current'] = Fernet(current_key)
+            self.keys.append('current')
+            logger.info("Current DATA_ENCRYPTION_KEY loaded and validated.")
+        except (ValueError, TypeError, InvalidToken) as e:
+             logger.critical(f"Invalid current DATA_ENCRYPTION_KEY format: {e}", exc_info=True)
+             raise ValueError("Invalid current DATA_ENCRYPTION_KEY format") from e
+
+        # معالجة المفاتيح السابقة (إذا تم توفيرها)
+        if previous_keys_str:
+            for i, key_str in enumerate(previous_keys_str):
+                try:
+                    key = key_str.encode('utf-8')
+                    key_id = f'previous_{i}'
+                    self.cipher_suites[key_id] = Fernet(key)
+                    self.keys.append(key_id)
+                    logger.info(f"Loaded previous encryption key {i+1}.")
+                except (ValueError, TypeError, InvalidToken) as e:
+                    logger.warning(f"Ignoring invalid previous encryption key {i+1}: {e}")
+
+        if not self.keys:
+            raise ValueError("No valid encryption keys loaded into SecureVault.")
+
+        self.current_cipher = self.cipher_suites['current']
+
+    def encrypt(self, text: str) -> str:
+        """تشفير النص باستخدام المفتاح الأحدث دائمًا."""
+        try:
+            # ... (نفس منطق التحقق من النوع) ...
+            encrypted_text = self.current_cipher.encrypt(text.encode('utf-8'))
+            return encrypted_text.decode('utf-8')
+        except Exception as e:
+            # ... (نفس معالجة الخطأ) ...
+
+    def decrypt(self, encrypted_text: str) -> str:
+        """(تعديل) فك تشفير النص بمحاولة استخدام جميع المفاتيح المتاحة."""
+        if not encrypted_text:
+            return ""
+        last_error = None
+        # محاولة فك التشفير بكل مفتاح، بدءًا من الأحدث
+        for key_id in self.keys:
+            try:
+                cipher = self.cipher_suites[key_id]
+                decrypted_text = cipher.decrypt(encrypted_text.encode('utf-8'))
+                # إذا نجح، أرجع النتيجة فورًا
+                return decrypted_text.decode('utf-8')
+            except InvalidToken:
+                # هذا هو الخطأ المتوقع إذا كان المفتاح خاطئًا، استمر في المحاولة
+                last_error = "Invalid token (key mismatch or corrupted data)"
+                continue
+            except Exception as e:
+                # أخطاء أخرى غير متوقعة
+                logger.error(f"Decryption attempt failed with key '{key_id}': {e}", exc_info=True)
+                last_error = e # تخزين الخطأ الأخير
+                # قد ترغب في التوقف هنا أو الاستمرار حسب السياسة
+
+        # إذا فشلت جميع المفاتيح
+        logger.error(f"Decryption failed after trying all keys. Last error: {last_error}")
+        raise ValueError(f"Decryption failed: {last_error}") from last_error
+
+# ... (باقي وظائف security.py كما هي) ...
+# (تعديل) تحتاج إلى تعديل كيفية تهيئة SecureVault في main.py لتمرير المفتاح (أو المفاتيح)
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+app/database/db_setup.py (إضافة جداول للميزات الجديدة)
+
+# ... (imports والكود السابق) ...
+
+def init_secure_db():
+    """(تعديل) إنشاء وتحديث الجداول في قاعدة البيانات."""
+    conn = None
+    try:
+        logger.info(f"Initializing/Updating database schema in '{DATABASE_NAME}'...")
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        # --- الجداول الحالية (مع تعديلات بسيطة) ---
+        c.execute('''CREATE TABLE IF NOT EXISTS students (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        lms_id TEXT UNIQUE NOT NULL,
+                        name TEXT NOT NULL,
+                        enrollment_date DATE,
+                        performance_level TEXT DEFAULT 'beginner' CHECK(performance_level IN ('beginner', 'intermediate', 'advanced')),
+                        points INTEGER DEFAULT 0, -- (جديد) نقاط المكافآت
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                     )''')
+        logger.debug("Table 'students' checked/updated.")
+
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+                        email TEXT PRIMARY KEY,
+                        password_hash TEXT NOT NULL,
+                        role TEXT NOT NULL CHECK(role IN ('admin', 'evaluator', 'student')),
+                        is_active BOOLEAN DEFAULT TRUE,
+                        # (جديد/اختياري) تخزين معلومات MFA
+                        # otp_secret TEXT,
+                        # mfa_enabled BOOLEAN DEFAULT FALSE,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                     )''')
+        logger.debug("Table 'users' checked/updated.")
+
+        c.execute('''CREATE TABLE IF NOT EXISTS grades (
+                        grade_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        student_id INTEGER NOT NULL,
+                        task_identifier TEXT NOT NULL,
+                        grade_encrypted TEXT NOT NULL,
+                        feedback_encrypted TEXT,
+                        bias_score REAL,
+                        integrity_hash TEXT NOT NULL,
+                        evaluator_email TEXT,
+                        evaluation_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        # (جديد) حقول المراجعة البشرية
+                        status TEXT DEFAULT 'ai_evaluated' CHECK(status IN ('ai_evaluated', 'pending_review', 'approved', 'rejected')),
+                        reviewer_email TEXT,
+                        review_timestamp DATETIME,
+                        review_comments TEXT,
+                        FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+                        FOREIGN KEY (evaluator_email) REFERENCES users (email) ON DELETE SET NULL,
+                        FOREIGN KEY (reviewer_email) REFERENCES users (email) ON DELETE SET NULL
+                     )''')
+        logger.debug("Table 'grades' checked/updated.")
+
+        c.execute('''CREATE TABLE IF NOT EXISTS audit_log (...)''') # نفس السابق
+        logger.debug("Table 'audit_log' checked/updated.")
+
+        # --- (جديد) جداول الميزات الإضافية ---
+
+        # جدول قوالب التقييم
+        c.execute('''CREATE TABLE IF NOT EXISTS evaluation_templates (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        level TEXT NOT NULL,      -- مستوى BTEC (مثل 'Level 3')
+                        subject TEXT,             -- المادة (اختياري)
+                        criteria TEXT NOT NULL,   -- نص المعايير للقالب
+                        UNIQUE(level, subject)    -- ضمان تفرد القالب للمستوى/المادة
+                     )''')
+        logger.debug("Table 'evaluation_templates' checked/created.")
+
+        # جدول الموارد التعليمية (للتعلم التكيفي)
+        c.execute('''CREATE TABLE IF NOT EXISTS resources (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        topic TEXT NOT NULL,      -- الموضوع المرتبط (مثل 'Experimental Design')
+                        url TEXT NOT NULL,        -- رابط المورد
+                        type TEXT DEFAULT 'article' CHECK(type IN ('article', 'video', 'exercise')), -- نوع المورد
+                        level TEXT DEFAULT 'beginner' CHECK(level IN ('beginner', 'intermediate', 'advanced')), -- مستوى المورد
+                        UNIQUE(topic, url)
+                     )''')
+        logger.debug("Table 'resources' checked/created.")
+
+        # جدول الشارات (للمكافآت)
+        c.execute('''CREATE TABLE IF NOT EXISTS badges (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT UNIQUE NOT NULL, -- اسم الشارة (مثل 'Creative Thinker')
+                        description TEXT NOT NULL,   -- وصف الشارة
+                        icon_url TEXT             -- رابط أيقونة الشارة (اختياري)
+                     )''')
+        logger.debug("Table 'badges' checked/created.")
+
+        # جدول لربط الشارات بالطلاب
+        c.execute('''CREATE TABLE IF NOT EXISTS student_badges (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        student_id INTEGER NOT NULL,
+                        badge_id INTEGER NOT NULL,
+                        awarded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        grade_id INTEGER, -- (اختياري) ربط الشارة بالتقييم الذي أدى للحصول عليها
+                        FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+                        FOREIGN KEY (badge_id) REFERENCES badges (id) ON DELETE CASCADE,
+                        FOREIGN KEY (grade_id) REFERENCES grades (grade_id) ON DELETE SET NULL,
+                        UNIQUE(student_id, badge_id) -- الطالب يحصل على الشارة مرة واحدة
+                     )''')
+        logger.debug("Table 'student_badges' checked/created.")
+
+        # جدول المكافآت القابلة للاستبدال
+        c.execute('''CREATE TABLE IF NOT EXISTS rewards (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT UNIQUE NOT NULL, -- اسم المكافأة (مثل 'Free Course Access')
+                        description TEXT,
+                        point_cost INTEGER NOT NULL CHECK(point_cost > 0), -- تكلفة النقاط
+                        quantity_available INTEGER DEFAULT NULL -- الكمية المتاحة (NULL = غير محدود)
+                     )''')
+        logger.debug("Table 'rewards' checked/created.")
+
+        # جدول لتتبع المكافآت التي استبدلها الطلاب
+        c.execute('''CREATE TABLE IF NOT EXISTS student_rewards (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        student_id INTEGER NOT NULL,
+                        reward_id INTEGER NOT NULL,
+                        redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        points_spent INTEGER NOT NULL,
+                        FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+                        FOREIGN KEY (reward_id) REFERENCES rewards (id) ON DELETE RESTRICT -- منع حذف مكافأة إذا تم استبدالها
+                     )''')
+        logger.debug("Table 'student_rewards' checked/created.")
+
+        # جدول الجلسات التفاعلية
+        c.execute('''CREATE TABLE IF NOT EXISTS sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title TEXT NOT NULL,
+                        description TEXT,
+                        scheduled_time DATETIME NOT NULL,
+                        duration_minutes INTEGER,
+                        instructor_email TEXT NOT NULL,
+                        session_type TEXT NOT NULL DEFAULT 'live' CHECK(session_type IN ('live', 'recorded')),
+                        meeting_or_video_url TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (instructor_email) REFERENCES users (email) ON DELETE CASCADE
+                     )''')
+        logger.debug("Table 'sessions' checked/created.")
+
+        # جدول المشاركين في الجلسات (يمكن استخدامه للحضور)
+        c.execute('''CREATE TABLE IF NOT EXISTS session_participants (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id INTEGER NOT NULL,
+                        student_email TEXT NOT NULL, -- استخدام البريد لسهولة الربط
+                        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE,
+                        FOREIGN KEY (student_email) REFERENCES users (email) ON DELETE CASCADE,
+                        UNIQUE(session_id, student_email)
+                     )''')
+        logger.debug("Table 'session_participants' checked/created.")
+
+        # جدول سجلات الحضور (بديل أو مكمل لـ participants)
+        c.execute('''CREATE TABLE IF NOT EXISTS attendance_records (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        student_id INTEGER NOT NULL,
+                        session_id INTEGER,           -- ربط بجلسة معينة (اختياري)
+                        attendance_date DATE NOT NULL,  -- تاريخ الحضور/الغياب
+                        status TEXT NOT NULL CHECK(status IN ('present', 'absent', 'late', 'excused')),
+                        notes TEXT,                   -- ملاحظات (مثل سبب الغياب)
+                        marked_by_email TEXT,         -- من قام بتسجيل الحضور
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+                        FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE SET NULL,
+                        FOREIGN KEY (marked_by_email) REFERENCES users (email) ON DELETE SET NULL,
+                        UNIQUE(student_id, attendance_date, session_id) -- منع تكرار السجل لنفس الطالب/اليوم/الجلسة
+                     )''')
+        logger.debug("Table 'attendance_records' checked/created.")
+
+        # (تعديل) إضافة فهارس لتحسين الأداء للجداول الجديدة
+        c.execute("CREATE INDEX IF NOT EXISTS idx_grades_status ON grades (status);")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_session_time ON sessions (scheduled_time);")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON attendance_records (student_id, attendance_date);")
+
+        conn.commit()
+        logger.info("Database schema initialization/update process completed.")
+
+    except sqlite3.Error as e:
+        # ... (نفس معالجة الخطأ)
+    finally:
+        # ... (نفس إغلاق الاتصال)
+
+# --- (جديد/مفاهيمي) استخدام SQLAlchemy ORM ---
+# إذا قررت استخدام SQLAlchemy، ستقوم بتعريف النماذج هنا أو في app/models.py
+# from flask_sqlalchemy import SQLAlchemy
+# from main import db # استيراد كائن db من main.py
+
+# class Student(db.Model):
+#     __tablename__ = 'students'
+#     id = db.Column(db.Integer, primary_key=True)
+#     lms_id = db.Column(db.String, unique=True, nullable=False)
+#     name = db.Column(db.String, nullable=False)
+#     # ... باقي الحقول ...
+#     grades = db.relationship('Grade', backref='student', lazy=True) # مثال على علاقة
+
+# class User(db.Model):
+#      __tablename__ = 'users'
+#      email = db.Column(db.String, primary_key=True)
+#      # ...
+
+# class Grade(db.Model):
+#      __tablename__ = 'grades'
+#      grade_id = db.Column(db.Integer, primary_key=True)
+#      student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+#      # ...
+
+# # ... تعريف باقي النماذج ...
+
+# def init_orm_db():
+#     with app.app_context():
+#         db.create_all() # إنشاء الجداول بناءً على النماذج
+#         # يمكنك استخدام Flask-Migrate (Alembic) لإدارة تحديثات المخطط
+#         # flask db init, flask db migrate, flask db upgrade
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+app/services/ai_evaluation.py (تعديل لاستخدام القوالب/المستوى)
+
+# ... (imports) ...
+from app.database.db_setup import get_db_conn # استيراد للبحث عن القوالب
+
+def perform_ai_evaluation(
+    task_submission: str,
+    criteria: str, # يمكن أن يكون هذا هو المعيار الافتراضي أو المحدد
+    student_lms_id: str,
+    task_id: str,
+    performance_level: str = 'beginner',
+    level: str = None, # (جديد) مستوى BTEC للمهمة
+    subject: str = None # (جديد) مادة المهمة
+    ) -> Tuple[Dict[str, Any] | None, str | None]:
+
+    # ... (نفس التحقق من مفتاح API) ...
+
+    # (جديد) البحث عن قالب مخصص إذا تم توفير المستوى/المادة
+    final_criteria = criteria # استخدام المعيار الممرر كافتراضي
+    if level:
+        conn_template = None
+        try:
+            conn_template = get_db_conn()
+            c_template = conn_template.cursor()
+            query = "SELECT criteria FROM evaluation_templates WHERE level = ?"
+            params = [level]
+            if subject:
+                query += " AND subject = ?"
+                params.append(subject)
+            else:
+                 query += " AND (subject IS NULL OR subject = '')" # مطابقة القوالب العامة للمستوى
+
+            c_template.execute(query + " LIMIT 1", params)
+            template_record = c_template.fetchone()
+            if template_record:
+                final_criteria = template_record['criteria']
+                logger.info(f"Using evaluation template for Level: {level}, Subject: {subject or 'General'}")
+            else:
+                 logger.info(f"No specific template found for Level: {level}, Subject: {subject or 'General'}. Using provided/default criteria.")
+        except sqlite3.Error as e:
+            logger.warning(f"Database error fetching evaluation template: {e}", exc_info=True)
+            # استمر باستخدام المعيار الافتراضي
+        finally:
+            if conn_template:
+                conn_template.close()
+
+    # --- (جديد/اختياري) خطوة تحليل النصوص المتقدم قبل AI ---
+    # try:
+    #     from textblob import TextBlob
+    #     # from plagiarism_checker import check_plagiarism # قد تكون غير موثوقة أو تتطلب خدمة خارجية
+    #
+    #     blob = TextBlob(task_submission)
+    #     # مثال بسيط لاكتشاف الأخطاء الإملائية (ليس مثاليًا)
+    #     corrected_text = blob.correct()
+    #     spelling_errors_detected = corrected_text != task_submission
+    #     # يمكنك حساب نسبة التشابه أو استخدام أدوات أدق
+    #
+    #     # فحص الانتحال (كن حذرًا، قد يكون بطيئًا أو يتطلب API)
+    #     # plagiarism_result = check_plagiarism(task_submission)
+    #     # if plagiarism_result and plagiarism_result['is_plagiarized']:
+    #     #     return None, f"Potential plagiarism detected ({plagiarism_result['percent']}% match)."
+    #
+    #     pre_analysis_notes = f"Automated pre-check: Spelling errors detected = {spelling_errors_detected}."
+    #
+    # except ImportError:
+    #     pre_analysis_notes = "Pre-analysis tools (TextBlob/Plagiarism) not installed."
+    # except Exception as e:
+    #      pre_analysis_notes = f"Error during pre-analysis: {e}"
+    #      logger.error(f"Error during text pre-analysis: {e}", exc_info=True)
+
+
+    # (تعديل) بناء المطالبة النهائية
+    prompt = f"""
+[SYSTEM OVERRIDE: REBEL_ANALYSIS=TRUE | BIAS_MITIGATION_PROTOCOLS=ACTIVE]
+Role: AI BTEC Evaluator (Tailored for a '{performance_level}' student level)
+Objective: ... (نفس السابق) ...
+
+Level/Subject Context (if applicable): BTEC Level {level or 'N/A'}, Subject: {subject or 'General'}
+Criteria to Use:
+---
+{final_criteria}
+---
+
+Task ID: {task_id}
+Student LMS ID: {student_lms_id}
+
+Student's Task Submission Text:
+---
+{task_submission}
+---
+
+{f"Pre-Analysis Notes: {pre_analysis_notes}" if 'pre_analysis_notes' in locals() else ""}
+
+Required Evaluation Output Format (Use Markdown strictly):
+### Evaluation Summary
+# ... (نفس تنسيق الإخراج المطلوب) ...
+### Bias Check Findings
+# ...
+"""
+
+    # ... (نفس استدعاء OpenAI API) ...
+
+    if feedback: # التحقق من وجود feedback قبل المتابعة
+        # (جديد) تحليل التعليقات لاقتراح موارد أو منح شارات
+        suggested_resources = []
+        awarded_badges = []
+
+        # مثال بسيط لاقتراح الموارد
+        conn_res = None
+        try:
+            conn_res = get_db_conn()
+            c_res = conn_res.cursor()
+            # البحث عن مواضيع في التعليقات (مثال بسيط جدًا)
+            if "experimental design" in feedback.lower():
+                c_res.execute("SELECT url, topic FROM resources WHERE topic = ? AND level IN (?, 'any')", ("Experimental Design", performance_level))
+                resource = c_res.fetchone()
+                if resource:
+                    suggested_resources.append({"topic": resource['topic'], "url": resource['url']})
+            # أضف عمليات بحث عن مواضيع أخرى
+        except sqlite3.Error as e:
+             logger.warning(f"Database error suggesting resources: {e}")
+        finally:
+            if conn_res:
+                conn_res.close()
+
+        # مثال بسيط لمنح الشارات
+        conn_badge = None
+        try:
+             conn_badge = get_db_conn()
+             c_badge = conn_badge.cursor()
+             if "exceptional creativity" in feedback.lower():
+                 c_badge.execute("SELECT id, name FROM badges WHERE name = ?", ("Creative Thinker",)) # افترض وجود هذه الشارة
+                 badge = c_badge.fetchone()
+                 if badge:
+                     awarded_badges.append({"id": badge['id'], "name": badge['name']})
+             # أضف منطقًا لمنح شارات أخرى
+        except sqlite3.Error as e:
+             logger.warning(f"Database error awarding badges: {e}")
+        finally:
+            if conn_badge:
+                conn_badge.close()
+
+
+        result = {
+            "feedback": feedback,
+            "bias_detected": bias_detected_in_feedback,
+            "integrity_hash": integrity_hash,
+            "suggested_resources": suggested_resources, # (جديد)
+            "awarded_badges": awarded_badges,         # (جديد)
+            # "extracted_grade": extracted_grade
+        }
+        return result, None # نجاح
+    else:
+         # التعامل مع حالة عدم وجود feedback
+         logger.error(f"AI evaluation returned empty feedback content for task {task_id}.")
+         return None, "AI evaluation service returned empty content."
+
+    # ... (نفس معالجة أخطاء OpenAI) ...
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+app/routes/evaluation.py (تحديث لحفظ ومنح الميزات الجديدة)
+
+# ... (imports) ...
+from app.main import cache # (جديد) استيراد cache
+
+@bp.route('/evaluate', methods=['POST'])
+@token_required(allowed_roles=['admin', 'evaluator'])
+@limiter.limit("30 per hour", error_message="Evaluation rate limit exceeded.")
+def evaluate_task():
+    # ... (نفس كود جلب البيانات والبحث عن الطالب) ...
+    level = sanitize_input(data.get('level')) # (جديد) جلب المستوى
+    subject = sanitize_input(data.get('subject')) # (جديد) جلب المادة
+
+    evaluation_result, error_message = perform_ai_evaluation(
+        # ... (تمرير الوسائط، بما في ذلك level و subject) ...
+        level=level,
+        subject=subject
+    )
+
+    if error_message:
+        # ... (نفس معالجة الخطأ) ...
+
+    # --- تشفير وحفظ النتائج ---
+    try:
+        # ... (استخراج feedback, bias_detected, integrity_hash) ...
+        suggested_resources = evaluation_result.get('suggested_resources', [])
+        awarded_badges = evaluation_result.get('awarded_badges', [])
+        extracted_grade = "Pass" # ... (أو استخرجه)
+
+        # ... (تشفير grade و feedback) ...
+
+        # تحديد حالة المراجعة الأولية
+        initial_status = 'pending_review' if bias_detected else 'ai_evaluated' # مثال
+
+        conn_save = get_db_conn()
+        c_save = conn_save.cursor()
+        # (تعديل) إضافة حقل status
+        c_save.execute("""
+            INSERT INTO grades (student_id, task_identifier, grade_encrypted, feedback_encrypted, bias_score, integrity_hash, evaluator_email, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (student_internal_id, task_id, encrypted_grade, encrypted_feedback, bias_score, integrity_hash, current_user_email, initial_status))
+        grade_id = c_save.lastrowid
+
+        # (جديد) منح الشارات للطالب
+        for badge in awarded_badges:
+             try:
+                 # استخدام INSERT OR IGNORE لمنع الخطأ إذا حصل الطالب على الشارة بالفعل
+                 c_save.execute("""
+                     INSERT OR IGNORE INTO student_badges (student_id, badge_id, grade_id)
+                     VALUES (?, ?, ?)
+                 """, (student_internal_id, badge['id'], grade_id))
+                 if c_save.rowcount > 0: # إذا تم إدراج صف جديد
+                      logger.info(f"Awarded badge '{badge['name']}' to student {student_internal_id} for grade {grade_id}")
+             except sqlite3.Error as e_badge:
+                  logger.error(f"Error awarding badge {badge['id']} to student {student_internal_id}: {e_badge}")
+
+        # (جديد) إضافة نقاط للطالب (مثال بسيط)
+        points_to_add = 10 if extracted_grade == "Pass" else 0 # مثال
+        if points_to_add > 0:
+             c_save.execute("UPDATE students SET points = points + ? WHERE id = ?", (points_to_add, student_internal_id))
+             logger.info(f"Added {points_to_add} points to student {student_internal_id}")
+
+
+        conn_save.commit()
+        conn_save.close()
+
+        logger.info(f"Evaluation results saved for grade_id {grade_id}.")
+        log_audit(...)
+
+        # (جديد) إلغاء التخزين المؤقت للبيانات ذات الصلة (مثل قائمة تقييمات الطالب)
+        # cache.delete_memoized(get_student_evaluations, student_lms_id) # مثال إذا استخدمت memoize
+
+        # (جديد/اختياري) إرسال إشعار للطالب عبر SocketIO
+        # try:
+        #     from app.main import socketio # استيراد بحذر لتجنب الاستيراد الدائري
+        #     notification_msg = f"Your evaluation for task '{task_id}' is ready."
+        #     if awarded_badges:
+        #          notification_msg += f" You earned {len(awarded_badges)} new badge(s)!"
+        #     # البحث عن بريد الطالب لإرسال الإشعار إلى غرفته
+        #     c_student = get_db_conn().cursor()
+        #     c_student.execute("SELECT email FROM users u JOIN students s ON u.email = s.lms_id WHERE s.id = ?", (student_internal_id,)) # افتراض أن email المستخدم هو lms_id
+        #     student_user = c_student.fetchone()
+        #     if student_user:
+        #          socketio.emit('notification', {'message': notification_msg}, room=student_user['email'])
+        #          logger.info(f"Sent notification to student {student_user['email']}")
+        # except Exception as e_sock:
+        #      logger.error(f"Failed to send SocketIO notification: {e_sock}")
+
+
+        # إرجاع الاستجابة مع المعلومات الجديدة
+        return jsonify({
+            'message': 'Evaluation completed successfully.',
+            'grade_id': grade_id,
+            'feedback': feedback,
+            'bias_potentially_detected_in_ai_response': bias_detected,
+            'integrity_hash': integrity_hash,
+            'suggested_resources': suggested_resources,
+            'awarded_badges': awarded_badges,
+            'status': initial_status # إرجاع الحالة للمراجعة
+        }), 200
+
+    except Exception as e:
+        # ... (نفس معالجة الأخطاء)
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+(جديد) app/routes/review.py (مثال أساسي للمراجعة البشرية)
+
+import logging
+import sqlite3
+from flask import Blueprint, request, jsonify, g, current_app
+from app.core.security import token_required, SecureVault
+from app.core.utils import log_audit, sanitize_input
+from app.database.db_setup import get_db_conn
+from app.main import cache # لاستخدام cache
+
+logger = logging.getLogger(__name__)
+bp = Blueprint('review', __name__)
+
+@bp.route('/pending', methods=['GET'])
+@token_required(allowed_roles=['admin', 'evaluator'])
+@cache.cached(timeout=60) # تخزين مؤقت قصير لقائمة المراجعة
+def get_pending_reviews():
+    """جلب قائمة بالتقييمات التي تنتظر المراجعة البشرية."""
+    conn = None
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+        # جلب المعلومات الأساسية للتقييمات المعلقة
+        c.execute("""
+            SELECT g.grade_id, g.task_identifier, s.name as student_name, s.lms_id, g.evaluation_timestamp
+            FROM grades g
+            JOIN students s ON g.student_id = s.id
+            WHERE g.status = 'pending_review'
+            ORDER BY g.evaluation_timestamp ASC
+        """)
+        pending = [dict(row) for row in c.fetchall()]
+        return jsonify(pending), 200
+    except sqlite3.Error as e:
+        logger.error(f"Database error fetching pending reviews: {e}", exc_info=True)
+        return jsonify({"error": "Failed to fetch pending reviews."}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@bp.route('/<int:grade_id>', methods=['GET'])
+@token_required(allowed_roles=['admin', 'evaluator'])
+def get_review_details(grade_id):
+    """جلب تفاصيل تقييم معين للمراجعة (بما في ذلك التعليقات المفكوكة)."""
+    secure_vault: SecureVault = current_app.config['SECURE_VAULT']
+    conn = None
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+        c.execute("""
+            SELECT g.*, s.name as student_name, s.lms_id
+            FROM grades g
+            JOIN students s ON g.student_id = s.id
+            WHERE g.grade_id = ?
+        """, (grade_id,))
+        grade = c.fetchone()
+        if not grade:
+            return jsonify({"error": "Grade not found."}), 404
+
+        grade_dict = dict(grade)
+        # فك تشفير التعليقات والدرجة للعرض
+        try:
+             grade_dict['feedback'] = secure_vault.decrypt(grade['feedback_encrypted'])
+             grade_dict['grade'] = secure_vault.decrypt(grade['grade_encrypted'])
+        except ValueError as e:
+             logger.error(f"Decryption error for grade {grade_id} details: {e}")
+             # قد ترغب في إرجاع خطأ أو إشارة إلى مشكلة التشفير
+             grade_dict['feedback'] = "[Decryption Error]"
+             grade_dict['grade'] = "[Decryption Error]"
+        # حذف النسخ المشفرة من الاستجابة
+        del grade_dict['feedback_encrypted']
+        del grade_dict['grade_encrypted']
+
+        return jsonify(grade_dict), 200
+    except sqlite3.Error as e:
+        logger.error(f"Database error fetching grade details for review: {e}", exc_info=True)
+        return jsonify({"error": "Failed to fetch grade details."}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@bp.route('/<int:grade_id>', methods=['POST'])
+@token_required(allowed_roles=['admin', 'evaluator'])
+def submit_review(grade_id):
+    """تقديم المراجعة البشرية لتقييم معين."""
+    current_user_email = g.user_email
+    secure_vault: SecureVault = current_app.config['SECURE_VAULT']
+    data = request.get_json()
+
+    new_status = sanitize_input(data.get('status', '')).lower()
+    review_comments = sanitize_input(data.get('comments', ''), max_length=2000)
+    # السماح بتعديل الدرجة (اختياري)
+    new_grade = sanitize_input(data.get('grade')) if 'grade' in data else None
+
+    if new_status not in ['approved', 'rejected']:
+        return jsonify({"error": "Invalid status provided. Must be 'approved' or 'rejected'."}), 400
+
+    conn = None
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        # التحقق من وجود التقييم وأنه في الحالة الصحيحة
+        c.execute("SELECT status FROM grades WHERE grade_id = ?", (grade_id,))
+        current_grade = c.fetchone()
+        if not current_grade:
+            return jsonify({"error": "Grade not found."}), 404
+        # يمكنك إضافة تحقق إذا كان status هو 'pending_review' فقط
+
+        update_fields = {
+            "status": new_status,
+            "reviewer_email": current_user_email,
+            "review_comments": review_comments,
+            "review_timestamp": datetime.datetime.utcnow()
+        }
+        set_clauses = ["status = :status", "reviewer_email = :reviewer_email",
+                       "review_comments = :review_comments", "review_timestamp = :review_timestamp"]
+
+        # تشفير الدرجة الجديدة إذا تم توفيرها
+        if new_grade is not None:
+            try:
+                encrypted_new_grade = secure_vault.encrypt(new_grade)
+                update_fields["grade_encrypted"] = encrypted_new_grade
+                set_clauses.append("grade_encrypted = :grade_encrypted")
+            except ValueError as e:
+                 logger.error(f"Failed to encrypt new grade during review: {e}")
+                 return jsonify({"error": "Failed to process the provided grade."}), 500
+
+        query = f"UPDATE grades SET {', '.join(set_clauses)} WHERE grade_id = {grade_id}"
+        c.execute(query, update_fields)
+
+        if c.rowcount == 0:
+             # لم يتم تحديث أي صف (قد يكون ID خاطئ)
+             return jsonify({"error": "Grade not found or no update occurred."}), 404
+
+        conn.commit()
+
+        log_audit("Human Review Submitted", current_user_email, f"Review for grade {grade_id} submitted with status: {new_status}")
+        logger.info(f"Review submitted for grade {grade_id} by {current_user_email}, new status: {new_status}")
+
+        # إلغاء التخزين المؤقت لقائمة المراجعة
+        cache.delete_memoized(get_pending_reviews)
+
+        # (اختياري) إرسال إشعار (للمعلم الأصلي أو الطالب)
+        # socketio.emit(...)
+
+        return jsonify({"message": "Review submitted successfully."}), 200
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error submitting review for grade {grade_id}: {e}", exc_info=True)
+        return jsonify({"error": "Failed to submit review due to database error."}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error submitting review for grade {grade_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred."}), 500
+    finally:
+        if conn:
+            conn.close()
+
+import datetime # تأكد من استيراده
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+(جديد) app/routes/analytics.py (مثال أساسي)
+
+import logging
+import sqlite3
+from flask import Blueprint, request, jsonify, current_app
+from app.core.security import token_required
+from app.database.db_setup import get_db_conn
+from app.main import cache # لاستخدام cache
+
+logger = logging.getLogger(__name__)
+bp = Blueprint('analytics', __name__)
+
+@bp.route('/summary', methods=['GET'])
+@token_required(allowed_roles=['admin']) # فقط المسؤولون يمكنهم رؤية الملخص العام
+@cache.cached(timeout=3600) # تخزين مؤقت طويل للملخصات
+def get_analytics_summary():
+    """جلب ملخصات إحصائية عامة عن التقييمات."""
+    conn = None
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        # إجمالي عدد التقييمات
+        c.execute("SELECT COUNT(*) as total_evaluations FROM grades")
+        total_evaluations = c.fetchone()['total_evaluations']
+
+        # توزيع الحالات (كمثال)
+        c.execute("SELECT status, COUNT(*) as count FROM grades GROUP BY status")
+        status_distribution = {row['status']: row['count'] for row in c.fetchall()}
+
+        # يمكنك إضافة استعلامات أخرى هنا (متوسط درجة التحيز، إلخ)
+
+        summary = {
+            "total_evaluations": total_evaluations,
+            "status_distribution": status_distribution,
+            # أضف إحصائيات أخرى
+        }
+        return jsonify(summary), 200
+    except sqlite3.Error as e:
+        logger.error(f"Database error fetching analytics summary: {e}", exc_info=True)
+        return jsonify({"error": "Failed to fetch analytics summary."}), 500
+    finally:
+        if conn:
+            conn.close()
+
+# أضف نقاط نهاية أخرى للتحليلات المفصلة (تقدم الطالب، ملخص مهمة، إلخ)
+# GET /student/<student_lms_id>/progress
+# GET /task/<task_id>/summary
+# ...
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+(جديد) ملفات rewards, sessions, attendance: ستحتاج إلى إنشاء ملفات Blueprint مشابهة لـ analytics.py أو review.py مع نقاط نهاية CRUD المناسبة للجداول الجديدة التي تم إنشاؤها في db_setup.py.
+
+3. الواجهة الأمامية (React) - وصف التغييرات
+
+التخزين المؤقت: لا تغيير مباشر مطلوب في الواجهة، لكنها ستستفيد من الاستجابات الأسرع من الخلفية.
+
+الأمان:
+
+Vault: لا تغيير مباشر، الأسرار يتم التعامل معها في الخلفية.
+
+Security Headers (CSP): قد تحتاج إلى تعديل سياسة CSP في main.py أو Nginx للسماح بتحميل الخطوط أو الصور أو السكربتات من مصادر CDN إذا كنت تستخدمها في الواجهة. اختبر الواجهة بعناية بعد تفعيل CSP.
+
+MFA: قم بتعديل مكون Login.jsx للتعامل مع خطوة إدخال OTP الإضافية كما هو موضح في المثال السابق.
+
+الأداء:
+
+ORM: لا تغيير مباشر.
+
+Caching: لا تغيير مباشر.
+
+تجربة المستخدم:
+
+Dynamic UI: عدّل App.jsx لعرض StudentDashboard, EvaluatorDashboard, AdminDashboard بناءً على userRole. أنشئ هذه المكونات الجديدة وضع فيها الميزات ذات الصلة بكل دور (مثل نموذج التقييم في Evaluator/Admin، قائمة التقييمات السابقة في Student).
+
+Notifications (SocketIO): في App.jsx أو مكون Layout, استخدم useEffect لإنشاء اتصال SocketIO عند تسجيل الدخول (io(API_BASE_URL)). استمع لحدث notification (socket.on('notification', ...)). اعرض الإشعار باستخدام مكتبة Toasts (مثل react-toastify) أو مكون إشعارات مخصص. تذكر قطع الاتصال عند تسجيل الخروج (socket.disconnect()).
+
+LMS Integration:
+
+في AdminDashboard, أضف قسمًا لعرض قائمة بالدرجات (مع Checkboxes) وزر "Sync to LMS" الذي يستدعي نقطة النهاية /admin/sync-lms مع قائمة الـ IDs المحددة. اعرض ملخص وتفاصيل الاستجابة للمستخدم.
+
+Human Review:
+
+أنشئ مكون ReviewQueue.jsx (مرئي للمراجعين) يستدعي /review/pending ويعرض قائمة بالتقييمات المعلقة.
+
+أنشئ مكون ReviewDetail.jsx يستدعي /review/{grade_id} (عند النقر على عنصر في القائمة) ويعرض تفاصيل التقييم ونموذج للمراجع لتقديم قراره (status, comments, new_grade اختياري) ويرسل الطلب إلى POST /review/{grade_id}.
+
+QC Dashboard:
+
+في AdminDashboard, أضف قسم "Quality Control".
+
+استدعِ نقاط نهاية التحليقات (/analytics/summary, وغيرها) واعرض البيانات باستخدام جداول ورسوم بيانية (Recharts أو Chart.js).
+
+Advanced Rewards:
+
+في StudentDashboard, اعرض حقل النقاط points.
+
+أنشئ مكون RewardsStore.jsx يستدعي /rewards ويعرض المكافآت المتاحة وتكلفتها وزر "Redeem". عند النقر، يستدعي POST /rewards/{reward_id}/redeem.
+
+في StudentDashboard, اعرض قائمة بالمكافآت المستبدلة (من GET /students/me/rewards).
+
+Comprehensive Analytics:
+
+أنشئ مكونات منفصلة لعرض التقارير المختلفة (مثل StudentProgressChart.jsx, TaskSummary.jsx) تستدعي نقاط نهاية التحليلات المقابلة وتعرض البيانات. أضف روابط لهذه التقارير في لوحات التحكم المناسبة.
+
+Interactive Sessions / Attendance:
+
+أنشئ أقسامًا جديدة في الواجهة ("Sessions", "Attendance").
+
+مكون SessionList.jsx: يستدعي GET /sessions ويعرض قائمة بالجلسات مع فلاتر (قادمة/مسجلة).
+
+مكون SessionForm.jsx: (للمعلمين) يستدعي POST /sessions لإنشاء جلسة.
+
+مكون SessionDetail.jsx: يعرض تفاصيل الجلسة مع زر للانضمام/المشاهدة (يستدعي POST /sessions/{session_id}/join أو يفتح meeting_or_video_url).
+
+مكون AttendanceTracker.jsx: (للمعلمين) واجهة لتسجيل الحضور (يستدعي POST /attendance).
+
+مكون AttendanceView.jsx: (للطلاب/المسؤولين) لعرض سجلات الحضور (يستدعي GET /attendance/...).
+
+هذا الدمج يوفر بنية أساسية قوية للعديد من الميزات المقترحة. يتطلب كل جزء جديد المزيد من التفصيل في المنطق، معالجة الأخطاء، واختبار شامل. تذكر أن هذه التعديلات قد تتطلب أيضًا تحديثات في الاختبارات (tests/) والتوثيق (docs/).
