@@ -5,15 +5,20 @@
 
 import os
 from dotenv import load_dotenv
-from backend.app import create_app
+import logging
+from app import create_app
 
-# تحميل متغيرات البيئة من ملف .env
+# تهيئة السجل
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# تحميل المتغيرات البيئية
 load_dotenv()
 
-# إنشاء تطبيق Flask
+# إنشاء وتهيئة التطبيق
 app = create_app()
 
-if __name__ == "__main__":
-    # تشغيل التطبيق على المنفذ المحدد في المتغيرات البيئية أو 3000 افتراضيًا
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    logger.info(f"Starting BTEC Evaluation System on port {port}...")
+    app.run(host='0.0.0.0', port=port, debug=True)

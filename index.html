@@ -3,56 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام تقييم BTEC</title>
+    <title>نظام تقييم BTEC | منصة تقييم ذكية</title>
+    <meta name="description" content="منصة تقييم BTEC - نظام تقييم ذكي مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين للتحقق من صحة التقييمات">
     <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="icon" href="/static/icons/favicon.ico" type="image/x-icon">
 </head>
 <body>
+    <!-- أيقونات SVG -->
+    <div class="svg-sprites">
+        <object data="/static/icons/icons.svg" type="image/svg+xml" style="position: absolute; width: 0; height: 0;"></object>
+    </div>
+
+    <!-- رأس الصفحة -->
     <header>
         <div class="container">
             <nav class="navbar">
-                <div class="logo">نظام تقييم BTEC</div>
+                <div class="logo">
+                    <span>نظام تقييم BTEC</span>
+                </div>
+                
+                <button class="nav-toggle" aria-label="تبديل القائمة">
+                    <svg class="svg-icon">
+                        <use href="#icon-menu"></use>
+                    </svg>
+                </button>
+                
                 <ul class="nav-links">
-                    <li><a href="/">الرئيسية</a></li>
-                    <li><a href="/login">تسجيل الدخول</a></li>
-                    <li><a href="/register">تسجيل جديد</a></li>
+                    <li>
+                        <a href="/">
+                            <svg class="svg-icon">
+                                <use href="#icon-home"></use>
+                            </svg>
+                            الرئيسية
+                        </a>
+                    </li>
+                    <li class="logged-out-only">
+                        <a href="/login">
+                            <svg class="svg-icon">
+                                <use href="#icon-login"></use>
+                            </svg>
+                            تسجيل الدخول
+                        </a>
+                    </li>
+                    <li class="logged-out-only">
+                        <a href="/register">
+                            <svg class="svg-icon">
+                                <use href="#icon-user"></use>
+                            </svg>
+                            تسجيل جديد
+                        </a>
+                    </li>
+                    <li class="logged-in-only" style="display: none;">
+                        <a href="/dashboard">
+                            <svg class="svg-icon">
+                                <use href="#icon-dashboard"></use>
+                            </svg>
+                            لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="logged-in-only" style="display: none;">
+                        <a href="/evaluate">
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                            تقييم جديد
+                        </a>
+                    </li>
+                    <li class="logged-in-only" style="display: none;">
+                        <a href="#" id="logout-btn">
+                            <svg class="svg-icon">
+                                <use href="#icon-logout"></use>
+                            </svg>
+                            تسجيل الخروج
+                        </a>
+                    </li>
                 </ul>
             </nav>
         </div>
     </header>
 
     <div class="container">
+        <!-- قسم البطل (Hero) -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title" data-animate="fade-in">نظام تقييم BTEC المطوّر</h1>
+                <p class="hero-subtitle" data-animate="fade-in">منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
+                
+                <div class="hero-actions" data-animate="fade-in">
+                    <a href="/login" class="btn btn-lg">
+                        <svg class="svg-icon">
+                            <use href="#icon-login"></use>
+                        </svg>
+                        تسجيل الدخول
+                    </a>
+                    <a href="/register" class="btn btn-success btn-lg">
+                        <svg class="svg-icon">
+                            <use href="#icon-user"></use>
+                        </svg>
+                        إنشاء حساب جديد
+                    </a>
+                </div>
+            </div>
+        </section>
+
         <main>
-            <div class="card">
-                <h1>مرحباً بك في نظام تقييم BTEC</h1>
-                <p>منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
-            </div>
-
-            <div class="features">
-                <div class="card">
-                    <h2>تقييم مُعزز بالذكاء الاصطناعي</h2>
-                    <p>تقييم المهام بدقة وموضوعية باستخدام نماذج الذكاء الاصطناعي المتقدمة والمدربة خصيصاً لمعايير BTEC.</p>
+            <!-- قسم الميزات -->
+            <section class="features" data-animate="fade-in">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="svg-icon">
+                            <use href="#icon-ai"></use>
+                        </svg>
+                    </div>
+                    <h2 class="feature-title">تقييم مُعزز بالذكاء الاصطناعي</h2>
+                    <p class="feature-description">تقييم المهام بدقة وموضوعية باستخدام نماذج الذكاء الاصطناعي المتقدمة والمدربة خصيصاً لمعايير BTEC.</p>
                 </div>
-                <div class="card">
-                    <h2>تحقق من خلال البلوكتشين</h2>
-                    <p>ضمان سلامة التقييمات ومنع التلاعب من خلال تخزين سجلات التقييم على شبكة البلوكتشين.</p>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="svg-icon">
+                            <use href="#icon-blockchain"></use>
+                        </svg>
+                    </div>
+                    <h2 class="feature-title">تحقق من خلال البلوكتشين</h2>
+                    <p class="feature-description">ضمان سلامة التقييمات ومنع التلاعب من خلال تخزين سجلات التقييم على شبكة البلوكتشين.</p>
                 </div>
-                <div class="card">
-                    <h2>دعم متعدد اللغات</h2>
-                    <p>تحليل وتقييم المهام باللغتين العربية والإنجليزية مع فهم عميق للمحتوى.</p>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="svg-icon">
+                            <use href="#icon-arabic"></use>
+                        </svg>
+                    </div>
+                    <h2 class="feature-title">دعم متعدد اللغات</h2>
+                    <p class="feature-description">تحليل وتقييم المهام باللغتين العربية والإنجليزية مع فهم عميق للمحتوى.</p>
                 </div>
-            </div>
-
-            <div class="card" style="text-align: center; margin-top: 40px;">
-                <h2>ابدأ الآن</h2>
+            </section>
+            
+            <!-- معلومات إضافية -->
+            <section class="info-section" data-animate="fade-in">
+                <div class="card card-featured">
+                    <div class="card-content">
+                        <h2>كيف يعمل نظام التقييم؟</h2>
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <div class="feature-item-icon">1</div>
+                                <div class="feature-item-content">
+                                    <h3 class="feature-item-title">تحميل المهمة</h3>
+                                    <p class="feature-item-description">قم بتحميل مهمة الطالب بتنسيق نصي أو PDF.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <div class="feature-item-icon">2</div>
+                                <div class="feature-item-content">
+                                    <h3 class="feature-item-title">اختيار معايير التقييم</h3>
+                                    <p class="feature-item-description">حدد معايير BTEC المناسبة للوحدة التعليمية.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <div class="feature-item-icon">3</div>
+                                <div class="feature-item-content">
+                                    <h3 class="feature-item-title">تحليل ذكي</h3>
+                                    <p class="feature-item-description">يقوم النظام بتحليل المحتوى وتقييمه باستخدام الذكاء الاصطناعي.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <div class="feature-item-icon">4</div>
+                                <div class="feature-item-content">
+                                    <h3 class="feature-item-title">تحقق وتوثيق</h3>
+                                    <p class="feature-item-description">يتم تسجيل نتائج التقييم على البلوكتشين لضمان النزاهة.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- إحصائيات -->
+            <section class="stats-section" data-animate="fade-in">
+                <div class="stat-card">
+                    <div class="stat-value floating">99.7%</div>
+                    <div class="stat-label">دقة التقييم</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value floating">20+</div>
+                    <div class="stat-label">معايير BTEC مدعومة</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value floating">3000+</div>
+                    <div class="stat-label">تقييمات منجزة</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value floating">100%</div>
+                    <div class="stat-label">تحقق آمن</div>
+                </div>
+            </section>
+            
+            <!-- دعوة للعمل -->
+            <section class="cta-section" data-animate="fade-in">
+                <h2 class="cta-title">ابدأ رحلتك مع نظام تقييم BTEC الآن</h2>
                 <p>انضم إلى منصة تقييم BTEC واستفد من قوة الذكاء الاصطناعي في تقييم المهام.</p>
-                <a href="/login" class="btn">تسجيل الدخول</a>
-                <a href="/register" class="btn btn-success" style="margin-right: 10px;">إنشاء حساب جديد</a>
-            </div>
+                <div class="hero-actions" style="justify-content: center; margin-top: 2rem;">
+                    <a href="/register" class="btn btn-lg">إنشاء حساب جديد</a>
+                    <a href="/login" class="btn btn-outline btn-lg">تسجيل الدخول</a>
+                </div>
+            </section>
         </main>
 
         <footer>
-            <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
-            <p>تم تطويره بواسطة مصعب العجارمة</p>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h3 class="footer-title">عن النظام</h3>
+                        <p>نظام تقييم BTEC هو منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">روابط سريعة</h3>
+                        <ul class="footer-links">
+                            <li><a href="/">الرئيسية</a></li>
+                            <li><a href="/login">تسجيل الدخول</a></li>
+                            <li><a href="/register">إنشاء حساب</a></li>
+                            <li><a href="/about">حول النظام</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">تواصل معنا</h3>
+                        <ul class="footer-links">
+                            <li><a href="mailto:info@btec-eval.com">info@btec-eval.com</a></li>
+                            <li><a href="tel:+9701234567">+970-123-4567</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
+                    <p>تم تطويره بواسطة مصعب العجارمة</p>
+                </div>
+            </div>
         </footer>
     </div>
 

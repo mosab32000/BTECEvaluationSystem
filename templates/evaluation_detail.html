@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل التقييم | نظام تقييم BTEC</title>
+    <meta name="description" content="تفاصيل التقييم في نظام تقييم BTEC - نظام مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="icon" href="/static/icons/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <!-- أيقونات SVG -->
+    <div class="svg-sprites">
+        <object data="/static/icons/icons.svg" type="image/svg+xml" style="position: absolute; width: 0; height: 0;"></object>
+    </div>
+
+    <!-- رأس الصفحة -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <a href="/" style="text-decoration: none; color: inherit;">
+                        <span>نظام تقييم BTEC</span>
+                    </a>
+                </div>
+                
+                <button class="nav-toggle" aria-label="تبديل القائمة">
+                    <svg class="svg-icon">
+                        <use href="#icon-menu"></use>
+                    </svg>
+                </button>
+                
+                <ul class="nav-links">
+                    <li>
+                        <a href="/">
+                            <svg class="svg-icon">
+                                <use href="#icon-home"></use>
+                            </svg>
+                            الرئيسية
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/dashboard">
+                            <svg class="svg-icon">
+                                <use href="#icon-dashboard"></use>
+                            </svg>
+                            لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/evaluate">
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                            تقييم جديد
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/evaluations">
+                            <svg class="svg-icon">
+                                <use href="#icon-reports"></use>
+                            </svg>
+                            التقييمات
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="#" id="logout-btn">
+                            <svg class="svg-icon">
+                                <use href="#icon-logout"></use>
+                            </svg>
+                            تسجيل الخروج
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            <!-- شريط المسار -->
+            <div class="breadcrumbs" data-animate="fade-in">
+                <a href="/dashboard">لوحة التحكم</a>
+                <svg class="svg-icon">
+                    <use href="#icon-chevron-left"></use>
+                </svg>
+                <a href="/evaluations">التقييمات</a>
+                <svg class="svg-icon">
+                    <use href="#icon-chevron-left"></use>
+                </svg>
+                <span>تفاصيل التقييم #<span id="evaluation-id">...</span></span>
+            </div>
+            
+            <!-- تفاصيل التقييم -->
+            <section class="evaluation-details" data-animate="fade-in">
+                <div class="evaluation-header">
+                    <h1>
+                        تفاصيل تقييم المهمة
+                        <span id="evaluation-id-title">...</span>
+                    </h1>
+                    <div class="evaluation-actions">
+                        <button id="verify-btn" class="btn">
+                            <svg class="svg-icon">
+                                <use href="#icon-blockchain"></use>
+                            </svg>
+                            التحقق
+                        </button>
+                        <button id="export-btn" class="btn btn-success">
+                            <svg class="svg-icon">
+                                <use href="#icon-export"></use>
+                            </svg>
+                            تصدير التقييم
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="evaluation-meta">
+                    <div class="meta-item">
+                        <svg class="svg-icon">
+                            <use href="#icon-calendar"></use>
+                        </svg>
+                        <span>تاريخ التقييم: <span id="evaluation-date">...</span></span>
+                    </div>
+                    <div class="meta-item">
+                        <svg class="svg-icon">
+                            <use href="#icon-verify"></use>
+                        </svg>
+                        <span>حالة التحقق: <span id="verification-status">...</span></span>
+                    </div>
+                </div>
+                
+                <div class="evaluation-cards-grid">
+                    <!-- بطاقة الدرجة -->
+                    <div class="card evaluation-result-card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <svg class="svg-icon">
+                                    <use href="#icon-grade"></use>
+                                </svg>
+                                نتيجة التقييم
+                            </h2>
+                        </div>
+                        <div class="card-content">
+                            <div class="grade-display">
+                                <div class="grade-circle">
+                                    <span id="grade-numerical">...</span>
+                                </div>
+                                <div class="grade-text">
+                                    <h3 id="grade-text">...</h3>
+                                    <p>الدرجة النهائية</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- بطاقة التحقق -->
+                    <div class="card evaluation-result-card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <svg class="svg-icon">
+                                    <use href="#icon-blockchain"></use>
+                                </svg>
+                                معلومات التحقق
+                            </h2>
+                        </div>
+                        <div class="card-content verification-card-content">
+                            <div id="verification-info">
+                                <div class="verification-status" id="verification-card-status">
+                                    <!-- سيتم ملؤها عبر JavaScript -->
+                                </div>
+                                <div class="verification-details" id="blockchain-details">
+                                    <p class="hash-code">رمز التحقق: <code id="audit-hash">...</code></p>
+                                    <p id="verification-timestamp">وقت التحقق: ...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- بطاقة المهمة -->
+                <div class="card evaluation-result-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg class="svg-icon">
+                                <use href="#icon-task"></use>
+                            </svg>
+                            المهمة المقدمة
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="task-content" id="task-content">
+                            <!-- سيتم ملؤها عبر JavaScript -->
+                            <div class="loading-container">
+                                <div class="loading"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- بطاقة الملاحظات -->
+                <div class="card evaluation-result-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg class="svg-icon">
+                                <use href="#icon-feedback"></use>
+                            </svg>
+                            ملاحظات التقييم
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="feedback-content" id="feedback-content">
+                            <!-- سيتم ملؤها عبر JavaScript -->
+                            <div class="loading-container">
+                                <div class="loading"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- بطاقة معايير التقييم -->
+                <div class="card evaluation-result-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg class="svg-icon">
+                                <use href="#icon-rubric"></use>
+                            </svg>
+                            تفاصيل التقييم حسب المعايير
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="rubric-results" id="rubric-results">
+                            <!-- سيتم ملؤها عبر JavaScript -->
+                            <div class="loading-container">
+                                <div class="loading"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h3 class="footer-title">عن النظام</h3>
+                        <p>نظام تقييم BTEC هو منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">روابط سريعة</h3>
+                        <ul class="footer-links">
+                            <li><a href="/">الرئيسية</a></li>
+                            <li><a href="/dashboard">لوحة التحكم</a></li>
+                            <li><a href="/evaluate">تقييم جديد</a></li>
+                            <li><a href="/about">حول النظام</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">تواصل معنا</h3>
+                        <ul class="footer-links">
+                            <li><a href="mailto:info@btec-eval.com">info@btec-eval.com</a></li>
+                            <li><a href="tel:+9701234567">+970-123-4567</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
+                    <p>تم تطويره بواسطة مصعب العجارمة</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <style>
+        /* أنماط إضافية لصفحة تفاصيل التقييم */
+        .breadcrumbs {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .breadcrumbs a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all var(--transition-fast) ease;
+        }
+        
+        .breadcrumbs a:hover {
+            color: var(--primary-color);
+        }
+        
+        .breadcrumbs .svg-icon {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        .evaluation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .evaluation-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .evaluation-meta {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .meta-item .svg-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            color: var(--primary-color);
+        }
+        
+        .evaluation-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .evaluation-cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .grade-display {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .grade-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #10B981, #3B82F6);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .grade-text h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .grade-text p {
+            color: var(--text-secondary);
+        }
+        
+        .task-content, .feedback-content, .rubric-results {
+            padding: 1.5rem;
+            background-color: var(--off-white);
+            border-radius: var(--radius-md);
+            min-height: 150px;
+        }
+        
+        .verification-card-content {
+            min-height: 120px;
+        }
+        
+        .verification-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+        }
+        
+        .verification-status .status-badge {
+            padding: 0.25rem 1rem;
+            border-radius: var(--radius-full);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .verification-status .status-badge.verified {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+        
+        .verification-status .status-badge.unverified {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .verification-details {
+            font-size: 0.875rem;
+        }
+        
+        .hash-code {
+            word-break: break-all;
+        }
+        
+        .hash-code code {
+            display: inline-block;
+            margin-top: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: var(--radius-sm);
+            font-family: monospace;
+            font-size: 0.75rem;
+        }
+        
+        /* معايير التقييم المفصلة */
+        .rubric-criteria {
+            margin-top: 1rem;
+        }
+        
+        .rubric-criterion {
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding-bottom: 1.5rem;
+        }
+        
+        .rubric-criterion:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .criterion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .criterion-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+        }
+        
+        .criterion-score {
+            background-color: var(--primary-light);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .criterion-description {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .criterion-feedback {
+            background-color: white;
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+        }
+    </style>
+</body>
+</html>
