@@ -3,254 +3,414 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام تقييم BTEC | منصة تقييم ذكية</title>
-    <meta name="description" content="منصة تقييم BTEC - نظام تقييم ذكي مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين للتحقق من صحة التقييمات">
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <link rel="icon" href="/static/icons/favicon.ico" type="image/x-icon">
+    <title>نظام تقييم BTEC</title>
+    <!-- تضمين Fontawesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- تضمين خط Cairo من Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1e88e5;
+            --secondary-color: #ff8f00;
+            --accent-color: #00c853;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #424242;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-left: 10px;
+            color: var(--secondary-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-right: 20px;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-menu a:hover {
+            color: var(--secondary-color);
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        .hero {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: #1565c0;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f57c00;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-card i {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        @media (max-width: 768px) {
+            .header-content, .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .nav-menu, .footer-links {
+                margin-top: 1rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* إضافة أنماط خاصة بالواجهة غير المثيلة */
+        .floating-element {
+            position: relative;
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shine-effect:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 100%);
+            transform: skewX(-25deg);
+            animation: shine 6s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        .gradient-text {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: bold;
+        }
+
+        .modern-shadow {
+            box-shadow: 
+                0 10px 20px rgba(0,0,0,0.1),
+                0 6px 6px rgba(0,0,0,0.1);
+        }
+
+        .hero-visual {
+            position: relative;
+            width: 80%;
+            max-width: 500px;
+            height: 200px;
+            margin: 2rem auto;
+            background: linear-gradient(135deg, #1e88e5 0%, #64b5f6 50%, #bbdefb 100%);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .hero-visual::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 100%
+            );
+            transform: rotate(45deg);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .gradient-border {
+            position: relative;
+            border-radius: var(--border-radius);
+        }
+
+        .gradient-border::after {
+            content: "";
+            position: absolute;
+            top: -2px; right: -2px; bottom: -2px; left: -2px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+            border-radius: calc(var(--border-radius) + 2px);
+            z-index: -1;
+        }
+    </style>
 </head>
 <body>
-    <!-- أيقونات SVG -->
-    <div class="svg-sprites">
-        <object data="/static/icons/icons.svg" type="image/svg+xml" style="position: absolute; width: 0; height: 0;"></object>
-    </div>
-
-    <!-- رأس الصفحة -->
     <header>
         <div class="container">
-            <nav class="navbar">
+            <div class="header-content">
                 <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
                     <span>نظام تقييم BTEC</span>
                 </div>
-                
-                <button class="nav-toggle" aria-label="تبديل القائمة">
-                    <svg class="svg-icon">
-                        <use href="#icon-menu"></use>
-                    </svg>
-                </button>
-                
-                <ul class="nav-links">
-                    <li>
-                        <a href="/">
-                            <svg class="svg-icon">
-                                <use href="#icon-home"></use>
-                            </svg>
-                            الرئيسية
-                        </a>
-                    </li>
-                    <li class="logged-out-only">
-                        <a href="/login">
-                            <svg class="svg-icon">
-                                <use href="#icon-login"></use>
-                            </svg>
-                            تسجيل الدخول
-                        </a>
-                    </li>
-                    <li class="logged-out-only">
-                        <a href="/register">
-                            <svg class="svg-icon">
-                                <use href="#icon-user"></use>
-                            </svg>
-                            تسجيل جديد
-                        </a>
-                    </li>
-                    <li class="logged-in-only" style="display: none;">
-                        <a href="/dashboard">
-                            <svg class="svg-icon">
-                                <use href="#icon-dashboard"></use>
-                            </svg>
-                            لوحة التحكم
-                        </a>
-                    </li>
-                    <li class="logged-in-only" style="display: none;">
-                        <a href="/evaluate">
-                            <svg class="svg-icon">
-                                <use href="#icon-evaluation"></use>
-                            </svg>
-                            تقييم جديد
-                        </a>
-                    </li>
-                    <li class="logged-in-only" style="display: none;">
-                        <a href="#" id="logout-btn">
-                            <svg class="svg-icon">
-                                <use href="#icon-logout"></use>
-                            </svg>
-                            تسجيل الخروج
-                        </a>
-                    </li>
+                <ul class="nav-menu">
+                    <li><a href="#"><i class="fas fa-home"></i> الرئيسية</a></li>
+                    <li><a href="#"><i class="fas fa-tasks"></i> التقييمات</a></li>
+                    <li><a href="#"><i class="fas fa-user-graduate"></i> الطلاب</a></li>
+                    <li><a href="#"><i class="fas fa-chart-bar"></i> التقارير</a></li>
+                    <li><a href="#"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</a></li>
                 </ul>
-            </nav>
+            </div>
         </div>
     </header>
 
-    <div class="container">
-        <!-- قسم البطل (Hero) -->
-        <section class="hero">
-            <div class="hero-content">
-                <h1 class="hero-title" data-animate="fade-in">نظام تقييم BTEC المطوّر</h1>
-                <p class="hero-subtitle" data-animate="fade-in">منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
+    <main>
+        <div class="container">
+            <section class="hero fade-in modern-shadow">
+                <h1 class="gradient-text floating-element">مرحبًا بك في نظام تقييم BTEC المتطور</h1>
+                <p>نظام تقييم ذكي مدعوم بالذكاء الاصطناعي لتقييم مهام الطلاب وفق معايير BTEC</p>
                 
-                <div class="hero-actions" data-animate="fade-in">
-                    <a href="/login" class="btn btn-lg">
-                        <svg class="svg-icon">
-                            <use href="#icon-login"></use>
-                        </svg>
-                        تسجيل الدخول
-                    </a>
-                    <a href="/register" class="btn btn-success btn-lg">
-                        <svg class="svg-icon">
-                            <use href="#icon-user"></use>
-                        </svg>
-                        إنشاء حساب جديد
-                    </a>
+                <div class="hero-visual shine-effect"></div>
+                
+                <a href="#" class="btn pulse">ابدأ الآن</a>
+                <a href="#" class="btn btn-secondary">تعرف على المزيد</a>
+            </section>
+
+            <section class="features">
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-robot floating-element"></i>
+                    <h3>تقييم ذكي</h3>
+                    <p>تقييم المهام باستخدام تقنيات الذكاء الاصطناعي المتقدمة وفق معايير BTEC الدقيقة</p>
+                </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-shield-alt floating-element"></i>
+                    <h3>توثيق آمن</h3>
+                    <p>توثيق التقييمات باستخدام تقنية البلوكتشين لضمان النزاهة والشفافية</p>
+                </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-chart-line floating-element"></i>
+                    <h3>تقارير تفصيلية</h3>
+                    <p>تحليلات وتقارير مفصلة لمتابعة تقدم الطلاب وتحسين عملية التعليم</p>
+                </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-language floating-element"></i>
+                    <h3>دعم متعدد اللغات</h3>
+                    <p>دعم كامل للغة العربية والإنجليزية مع إمكانية التقييم بأكثر من لغة</p>
+                </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-users floating-element"></i>
+                    <h3>تعاون فعال</h3>
+                    <p>منصة تعاونية تتيح للمعلمين والطلاب التفاعل وتبادل الملاحظات بكفاءة</p>
+                </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-mobile-alt floating-element"></i>
+                    <h3>تصميم متجاوب</h3>
+                    <p>واجهة سهلة الاستخدام تعمل على جميع الأجهزة من الهواتف الذكية إلى أجهزة الكمبيوتر</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="copyright">
+                    &copy; 2025 نظام تقييم BTEC. جميع الحقوق محفوظة.
+                </div>
+                <div class="footer-links">
+                    <a href="#">سياسة الخصوصية</a>
+                    <a href="#">شروط الاستخدام</a>
+                    <a href="#">المساعدة</a>
+                    <a href="#">التواصل معنا</a>
                 </div>
             </div>
-        </section>
-
-        <main>
-            <!-- قسم الميزات -->
-            <section class="features" data-animate="fade-in">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg class="svg-icon">
-                            <use href="#icon-ai"></use>
-                        </svg>
-                    </div>
-                    <h2 class="feature-title">تقييم مُعزز بالذكاء الاصطناعي</h2>
-                    <p class="feature-description">تقييم المهام بدقة وموضوعية باستخدام نماذج الذكاء الاصطناعي المتقدمة والمدربة خصيصاً لمعايير BTEC.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg class="svg-icon">
-                            <use href="#icon-blockchain"></use>
-                        </svg>
-                    </div>
-                    <h2 class="feature-title">تحقق من خلال البلوكتشين</h2>
-                    <p class="feature-description">ضمان سلامة التقييمات ومنع التلاعب من خلال تخزين سجلات التقييم على شبكة البلوكتشين.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg class="svg-icon">
-                            <use href="#icon-arabic"></use>
-                        </svg>
-                    </div>
-                    <h2 class="feature-title">دعم متعدد اللغات</h2>
-                    <p class="feature-description">تحليل وتقييم المهام باللغتين العربية والإنجليزية مع فهم عميق للمحتوى.</p>
-                </div>
-            </section>
-            
-            <!-- معلومات إضافية -->
-            <section class="info-section" data-animate="fade-in">
-                <div class="card card-featured">
-                    <div class="card-content">
-                        <h2>كيف يعمل نظام التقييم؟</h2>
-                        <div class="feature-grid">
-                            <div class="feature-item">
-                                <div class="feature-item-icon">1</div>
-                                <div class="feature-item-content">
-                                    <h3 class="feature-item-title">تحميل المهمة</h3>
-                                    <p class="feature-item-description">قم بتحميل مهمة الطالب بتنسيق نصي أو PDF.</p>
-                                </div>
-                            </div>
-                            
-                            <div class="feature-item">
-                                <div class="feature-item-icon">2</div>
-                                <div class="feature-item-content">
-                                    <h3 class="feature-item-title">اختيار معايير التقييم</h3>
-                                    <p class="feature-item-description">حدد معايير BTEC المناسبة للوحدة التعليمية.</p>
-                                </div>
-                            </div>
-                            
-                            <div class="feature-item">
-                                <div class="feature-item-icon">3</div>
-                                <div class="feature-item-content">
-                                    <h3 class="feature-item-title">تحليل ذكي</h3>
-                                    <p class="feature-item-description">يقوم النظام بتحليل المحتوى وتقييمه باستخدام الذكاء الاصطناعي.</p>
-                                </div>
-                            </div>
-                            
-                            <div class="feature-item">
-                                <div class="feature-item-icon">4</div>
-                                <div class="feature-item-content">
-                                    <h3 class="feature-item-title">تحقق وتوثيق</h3>
-                                    <p class="feature-item-description">يتم تسجيل نتائج التقييم على البلوكتشين لضمان النزاهة.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- إحصائيات -->
-            <section class="stats-section" data-animate="fade-in">
-                <div class="stat-card">
-                    <div class="stat-value floating">99.7%</div>
-                    <div class="stat-label">دقة التقييم</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-value floating">20+</div>
-                    <div class="stat-label">معايير BTEC مدعومة</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-value floating">3000+</div>
-                    <div class="stat-label">تقييمات منجزة</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-value floating">100%</div>
-                    <div class="stat-label">تحقق آمن</div>
-                </div>
-            </section>
-            
-            <!-- دعوة للعمل -->
-            <section class="cta-section" data-animate="fade-in">
-                <h2 class="cta-title">ابدأ رحلتك مع نظام تقييم BTEC الآن</h2>
-                <p>انضم إلى منصة تقييم BTEC واستفد من قوة الذكاء الاصطناعي في تقييم المهام.</p>
-                <div class="hero-actions" style="justify-content: center; margin-top: 2rem;">
-                    <a href="/register" class="btn btn-lg">إنشاء حساب جديد</a>
-                    <a href="/login" class="btn btn-outline btn-lg">تسجيل الدخول</a>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <div class="container">
-                <div class="footer-content">
-                    <div class="footer-section">
-                        <h3 class="footer-title">عن النظام</h3>
-                        <p>نظام تقييم BTEC هو منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
-                    </div>
-                    
-                    <div class="footer-section">
-                        <h3 class="footer-title">روابط سريعة</h3>
-                        <ul class="footer-links">
-                            <li><a href="/">الرئيسية</a></li>
-                            <li><a href="/login">تسجيل الدخول</a></li>
-                            <li><a href="/register">إنشاء حساب</a></li>
-                            <li><a href="/about">حول النظام</a></li>
-                        </ul>
-                    </div>
-                    
-                    <div class="footer-section">
-                        <h3 class="footer-title">تواصل معنا</h3>
-                        <ul class="footer-links">
-                            <li><a href="mailto:info@btec-eval.com">info@btec-eval.com</a></li>
-                            <li><a href="tel:+9701234567">+970-123-4567</a></li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="footer-bottom">
-                    <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
-                    <p>تم تطويره بواسطة مصعب العجارمة</p>
-                </div>
-            </div>
-        </footer>
-    </div>
-
-    <script src="/static/js/app.js"></script>
+        </div>
+    </footer>
 </body>
 </html>

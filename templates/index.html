@@ -3,231 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام تقييم BTEC | الصفحة الرئيسية</title>
-    
-    <!-- Bootstrap RTL CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.rtl.min.css">
-    
-    <!-- Font Awesome -->
+    <title>نظام تقييم BTEC</title>
+    <!-- تضمين Fontawesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts - Cairo -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- تضمين خط Cairo من Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/styles.css">
-    
-    <!-- Favicon -->
-    <link rel="shortcut icon" href="/static/icons/favicon.svg" type="image/svg+xml">
+    <!-- نمط CSS الأساسي -->
+    <style>
+        :root {
+            --primary-color: #1e88e5;
+            --secondary-color: #ff8f00;
+            --accent-color: #00c853;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #424242;
+            --error-color: #f44336;
+            --success-color: #4caf50;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        /* إعادة تعيين المتصفح */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* نمط الرأس */
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-left: 10px;
+            color: var(--secondary-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-right: 20px;
+        }
+
+        .nav-menu li:last-child {
+            margin-right: 0;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-menu a:hover {
+            color: var(--secondary-color);
+        }
+
+        /* نمط القسم الرئيسي */
+        main {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        .hero {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: #1565c0;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f57c00;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-card i {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        /* نمط التذييل */
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-right: 15px;
+        }
+
+        .footer-links li:last-child {
+            margin-right: 0;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        /* الاستجابة للشاشات الصغيرة */
+        @media (max-width: 768px) {
+            .header-content, .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .nav-menu, .footer-links {
+                margin-top: 1rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* إضافة تأثيرات بسيطة للتظليل والحركة */
+        .shadow-hover {
+            transition: var(--transition);
+        }
+
+        .shadow-hover:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <header>
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="/static/icons/logo.svg" alt="BTEC" width="40" height="40" class="me-2">
-                <span class="fw-bold">نظام تقييم BTEC</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="عرض القائمة">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> الرئيسية</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/about"><i class="fas fa-info-circle me-1"></i> حول النظام</a>
-                    </li>
-                    <li class="nav-item" id="loginMenuItem">
-                        <a class="nav-link" href="/login"><i class="fas fa-sign-in-alt me-1"></i> تسجيل الدخول</a>
-                    </li>
-                    <li class="nav-item" id="registerMenuItem">
-                        <a class="nav-link" href="/register"><i class="fas fa-user-plus me-1"></i> التسجيل</a>
-                    </li>
-                    <!-- هذه العناصر ستكون مخفية بشكل افتراضي وستظهر فقط عند تسجيل الدخول -->
-                    <li class="nav-item d-none" id="dashboardMenuItem">
-                        <a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i> لوحة التحكم</a>
-                    </li>
-                    <li class="nav-item d-none" id="evaluationMenuItem">
-                        <a class="nav-link" href="/evaluation/new"><i class="fas fa-clipboard-check me-1"></i> تقييم جديد</a>
-                    </li>
-                    <li class="nav-item d-none" id="profileMenuItem">
-                        <a class="nav-link" href="/profile"><i class="fas fa-user me-1"></i> الملف الشخصي</a>
-                    </li>
-                    <li class="nav-item d-none" id="logoutMenuItem">
-                        <a class="nav-link" href="#" id="logoutLink"><i class="fas fa-sign-out-alt me-1"></i> تسجيل الخروج</a>
-                    </li>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>نظام تقييم BTEC</span>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#"><i class="fas fa-home"></i> الرئيسية</a></li>
+                    <li><a href="#"><i class="fas fa-tasks"></i> التقييمات</a></li>
+                    <li><a href="#"><i class="fas fa-user-graduate"></i> الطلاب</a></li>
+                    <li><a href="#"><i class="fas fa-chart-bar"></i> التقارير</a></li>
+                    <li><a href="#"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</a></li>
                 </ul>
             </div>
         </div>
-    </nav>
+    </header>
 
-    <!-- Hero Section -->
-    <div class="hero-section py-5 bg-gradient">
-        <div class="container py-5">
-            <div class="row align-items-center">
-                <div class="col-lg-6 text-center text-lg-end order-lg-2">
-                    <img src="/static/img/hero-illustration.svg" alt="تقييم مدعوم بالذكاء الاصطناعي" class="img-fluid hero-img" width="400">
-                </div>
-                <div class="col-lg-6 text-center text-lg-start order-lg-1">
-                    <h1 class="display-4 fw-bold text-primary mb-3">نظام تقييم BTEC</h1>
-                    <h2 class="h3 mb-4">نظام ذكي للتقييم الأكاديمي باستخدام الذكاء الاصطناعي</h2>
-                    <p class="lead mb-4">تقييم سريع ودقيق للمهام باستخدام تقنيات الذكاء الاصطناعي المتطورة مع التحقق عبر البلوكتشين لضمان النزاهة والأمان.</p>
-                    <div class="d-flex justify-content-center justify-content-lg-start gap-3">
-                        <a href="/register" class="btn btn-primary btn-lg"><i class="fas fa-user-plus me-2"></i> سجل الآن</a>
-                        <a href="/about" class="btn btn-outline-primary btn-lg"><i class="fas fa-info-circle me-2"></i> تعرف على المزيد</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Features Section -->
-    <section class="py-5">
+    <main>
         <div class="container">
-            <h2 class="text-center mb-5 section-title">مميزات النظام</h2>
-            <div class="row g-4">
-                <div class="col-lg-4">
-                    <div class="card h-100 feature-card">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon mb-3">
-                                <i class="fas fa-robot fa-3x text-primary"></i>
-                            </div>
-                            <h3 class="h4 card-title">تقييم ذكي</h3>
-                            <p class="card-text">تقييم آلي للمهام باستخدام نماذج الذكاء الاصطناعي المتقدمة مع تطبيق معايير BTEC الرسمية.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card h-100 feature-card">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon mb-3">
-                                <i class="fas fa-shield-alt fa-3x text-primary"></i>
-                            </div>
-                            <h3 class="h4 card-title">تحقق آمن</h3>
-                            <p class="card-text">تسجيل كافة التقييمات على البلوكتشين لضمان النزاهة والأمان والتحقق من صحة النتائج.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card h-100 feature-card">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon mb-3">
-                                <i class="fas fa-chart-line fa-3x text-primary"></i>
-                            </div>
-                            <h3 class="h4 card-title">تحليل متقدم</h3>
-                            <p class="card-text">تحليل شامل للأداء مع تقديم ملاحظات مفصلة ونقاط قوة ومجالات تحسين.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+            <section class="hero fade-in">
+                <h1>مرحبًا بك في نظام تقييم BTEC المتطور</h1>
+                <p>نظام تقييم ذكي مدعوم بالذكاء الاصطناعي لتقييم مهام الطلاب وفق معايير BTEC</p>
+                <a href="#" class="btn">ابدأ الآن</a>
+                <a href="#" class="btn btn-secondary">تعرف على المزيد</a>
+            </section>
 
-    <!-- How it Works Section -->
-    <section class="py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5 section-title">كيف يعمل النظام</h2>
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    <div class="steps">
-                        <div class="step">
-                            <div class="step-number">1</div>
-                            <div class="step-content">
-                                <h3 class="h5">إنشاء حساب</h3>
-                                <p>قم بإنشاء حساب على النظام باستخدام بريدك الإلكتروني وكلمة مرور آمنة.</p>
-                            </div>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">2</div>
-                            <div class="step-content">
-                                <h3 class="h5">تقديم مهمة للتقييم</h3>
-                                <p>قم بتحميل أو إدخال نص المهمة التي ترغب في تقييمها واختر معايير التقييم المناسبة.</p>
-                            </div>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">3</div>
-                            <div class="step-content">
-                                <h3 class="h5">الحصول على تقييم ذكي</h3>
-                                <p>يقوم النظام بتحليل المهمة وتقييمها بشكل ذكي وفقًا لمعايير BTEC وإصدار نتيجة دقيقة.</p>
-                            </div>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">4</div>
-                            <div class="step-content">
-                                <h3 class="h5">التحقق والمصادقة</h3>
-                                <p>يتم تسجيل التقييم على البلوكتشين للتحقق والمصادقة ودعم النزاهة الأكاديمية.</p>
-                            </div>
-                        </div>
-                    </div>
+            <section class="features">
+                <div class="feature-card shadow-hover">
+                    <i class="fas fa-robot"></i>
+                    <h3>تقييم ذكي</h3>
+                    <p>تقييم المهام باستخدام تقنيات الذكاء الاصطناعي المتقدمة وفق معايير BTEC الدقيقة</p>
                 </div>
-            </div>
+                <div class="feature-card shadow-hover">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>توثيق آمن</h3>
+                    <p>توثيق التقييمات باستخدام تقنية البلوكتشين لضمان النزاهة والشفافية</p>
+                </div>
+                <div class="feature-card shadow-hover">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>تقارير تفصيلية</h3>
+                    <p>تحليلات وتقارير مفصلة لمتابعة تقدم الطلاب وتحسين عملية التعليم</p>
+                </div>
+                <div class="feature-card shadow-hover">
+                    <i class="fas fa-language"></i>
+                    <h3>دعم متعدد اللغات</h3>
+                    <p>دعم كامل للغة العربية والإنجليزية مع إمكانية التقييم بأكثر من لغة</p>
+                </div>
+                <div class="feature-card shadow-hover">
+                    <i class="fas fa-users"></i>
+                    <h3>تعاون فعال</h3>
+                    <p>منصة تعاونية تتيح للمعلمين والطلاب التفاعل وتبادل الملاحظات بكفاءة</p>
+                </div>
+                <div class="feature-card shadow-hover">
+                    <i class="fas fa-mobile-alt"></i>
+                    <h3>تصميم متجاوب</h3>
+                    <p>واجهة سهلة الاستخدام تعمل على جميع الأجهزة من الهواتف الذكية إلى أجهزة الكمبيوتر</p>
+                </div>
+            </section>
         </div>
-    </section>
+    </main>
 
-    <!-- CTA Section -->
-    <section class="py-5 bg-primary text-white text-center">
+    <footer>
         <div class="container">
-            <h2 class="mb-4">ابدأ في استخدام نظام التقييم الذكي الآن</h2>
-            <p class="lead mb-4">تسجيل مجاني لجميع الطلاب والمدرسين في مؤسسات BTEC التعليمية</p>
-            <a href="/register" class="btn btn-light btn-lg px-4 py-2"><i class="fas fa-user-plus me-2"></i> سجل الآن</a>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer bg-dark text-white py-4">
-        <div class="container">
-            <div class="row gy-4">
-                <div class="col-lg-4">
-                    <h5 class="mb-3">عن نظام تقييم BTEC</h5>
-                    <p>نظام مبتكر لتقييم مهام BTEC باستخدام الذكاء الاصطناعي المتقدم والبلوكتشين لضمان النزاهة والدقة.</p>
+            <div class="footer-content">
+                <div class="copyright">
+                    &copy; 2025 نظام تقييم BTEC. جميع الحقوق محفوظة.
                 </div>
-                <div class="col-lg-4">
-                    <h5 class="mb-3">روابط سريعة</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="/" class="text-white"><i class="fas fa-angle-left me-1"></i> الرئيسية</a></li>
-                        <li><a href="/about" class="text-white"><i class="fas fa-angle-left me-1"></i> حول النظام</a></li>
-                        <li><a href="/login" class="text-white"><i class="fas fa-angle-left me-1"></i> تسجيل الدخول</a></li>
-                        <li><a href="/register" class="text-white"><i class="fas fa-angle-left me-1"></i> التسجيل</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-4">
-                    <h5 class="mb-3">تواصل معنا</h5>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-envelope me-2"></i> info@btec-eval.com</li>
-                        <li><i class="fas fa-phone me-2"></i> +970 59 123 4567</li>
-                        <li><i class="fas fa-map-marker-alt me-2"></i> فلسطين، غزة</li>
-                    </ul>
-                    <div class="social-links mt-3">
-                        <a href="#" class="text-white me-2"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="text-white me-2"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-white me-2"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
-                    </div>
-                </div>
-            </div>
-            <hr class="my-4 border-secondary">
-            <div class="row">
-                <div class="col-md-6 text-center text-md-start">
-                    <p class="mb-md-0">&copy; 2025 نظام تقييم BTEC. جميع الحقوق محفوظة.</p>
-                </div>
-                <div class="col-md-6 text-center text-md-end">
-                    <p class="mb-0">تم تطويره بواسطة: مصعب الحلالة</p>
-                </div>
+                <ul class="footer-links">
+                    <li><a href="#">سياسة الخصوصية</a></li>
+                    <li><a href="#">شروط الاستخدام</a></li>
+                    <li><a href="#">المساعدة</a></li>
+                    <li><a href="#">التواصل معنا</a></li>
+                </ul>
             </div>
         </div>
     </footer>
-
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Auth Script -->
-    <script src="/static/js/auth.js"></script>
-    
-    <!-- Custom Script -->
-    <script src="/static/js/app.js"></script>
 </body>
 </html>

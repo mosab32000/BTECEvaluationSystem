@@ -1,120 +1,187 @@
 """
-وحدة قاعدة البيانات لنظام تقييم BTEC
+وحدة التفاعل مع قاعدة البيانات
 """
-import logging
-from datetime import datetime
+import datetime
 import json
+import logging
+import os
+import time
+from functools import wraps
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from flask import request
+from flask import current_app, g
 from sqlalchemy import text
 
 from app import db
-from app.models.audit import AuditLog
-from app.models.system_metrics import SystemMetrics
 
-def get_db_conn():
-    """
-    الحصول على اتصال قاعدة البيانات
-    """
-    return db.session
+logger = logging.getLogger(__name__)
 
-def init_db():
-    """
-    تهيئة قاعدة بيانات النظام
-    """
-    db.create_all()
-    logging.info("تم تهيئة قاعدة البيانات بنجاح")
+# التحديثات الإحصائية والمقاييس
+_metrics = {
+    'active_users': 0,
+    'evaluations': 0,
+    'blockchain_verifications': 0,
+    'avg_response_time': 0,
+    'errors': 0,
+    'last_updated': None
+}
 
-def log_audit(event_type: str, user: str = "System", details: str = ""):
+# جدول تدقيق الأحداث (بديل مؤقت لجدول قاعدة البيانات)
+_audit_log = []
+
+
+def log_audit(event_type: str, user: str = "system", details: Any = None):
     """
     تسجيل حدث في سجل التدقيق
+    
+    Args:
+        event_type: نوع الحدث (مثل login, evaluation, error)
+        user: المستخدم المرتبط بالحدث (اختياري)
+        details: تفاصيل إضافية عن الحدث (اختياري)
     """
+    timestamp = datetime.datetime.utcnow().isoformat()
+    
+    # تحويل التفاصيل إلى سلسلة JSON إذا لم تكن سلسلة بالفعل
+    details_str = details
+    if details and not isinstance(details, str):
+        try:
+            details_str = json.dumps(details)
+        except Exception as e:
+            details_str = str(details)
+    
+    # إنشاء سجل الحدث
+    audit_entry = {
+        'timestamp': timestamp,
+        'event_type': event_type,
+        'user': user,
+        'details': details_str
+    }
+    
     try:
-        # إذا كانت التفاصيل قاموسًا، قم بتحويلها إلى سلسلة JSON
-        if isinstance(details, dict):
-            details = json.dumps(details)
+        # في المستقبل، سنضيف هذا إلى جدول قاعدة البيانات
+        # حاليًا، نضيفه إلى القائمة المؤقتة
+        _audit_log.append(audit_entry)
         
-        # إنشاء سجل تدقيق جديد
-        audit_log = AuditLog(
-            event_type=event_type,
-            user=user,
-            details=details,
-            ip_address=request.remote_addr if request else None,
-            user_agent=request.user_agent.string if request and request.user_agent else None
-        )
+        # تحديد حجم السجل المؤقت (حد أقصى 1000 حدث)
+        if len(_audit_log) > 1000:
+            _audit_log.pop(0)  # إزالة أقدم حدث
         
-        # إضافة سجل التدقيق إلى قاعدة البيانات
-        db.session.add(audit_log)
-        db.session.commit()
+        logger.debug(f"Audit log: {event_type} - {user}")
     except Exception as e:
-        db.session.rollback()
-        logging.error(f"خطأ في تسجيل حدث التدقيق: {str(e)}")
+        logger.error(f"Error logging audit event: {e}")
 
-def update_metrics(api_call=False, evaluation=False, blockchain=False, response_time=None, error=False, active_user=False):
+
+def update_metrics(active_user: bool = False, evaluation: bool = False, 
+                 blockchain: bool = False, response_time: float = None, 
+                 error: bool = False):
     """
-    تحديث مقاييس النظام
+    تحديث المقاييس الإحصائية للنظام
+    
+    Args:
+        active_user: ما إذا كان يجب زيادة عدد المستخدمين النشطين
+        evaluation: ما إذا كان يجب زيادة عدد التقييمات
+        blockchain: ما إذا كان يجب زيادة عدد عمليات التحقق من البلوكتشين
+        response_time: وقت الاستجابة بالثواني (لحساب المتوسط)
+        error: ما إذا كان يجب زيادة عدد الأخطاء
     """
+    global _metrics
+    
     try:
-        # الحصول على آخر مقاييس للنظام
-        latest_metrics = SystemMetrics.query.order_by(SystemMetrics.created_at.desc()).first()
-        
-        # إذا لم تكن هناك مقاييس سابقة، قم بإنشاء واحدة جديدة
-        if not latest_metrics:
-            latest_metrics = SystemMetrics()
-        
-        # إنشاء مقاييس جديدة بناءً على الأحدث
-        new_metrics = SystemMetrics(
-            user_count=latest_metrics.user_count,
-            evaluation_count=latest_metrics.evaluation_count,
-            verification_count=latest_metrics.verification_count,
-            api_calls_count=latest_metrics.api_calls_count,
-            active_users_count=latest_metrics.active_users_count,
-            average_response_time=latest_metrics.average_response_time,
-            error_count=latest_metrics.error_count
-        )
-        
-        # تحديث المقاييس بناءً على الحدث
-        if api_call:
-            new_metrics.api_calls_count += 1
+        if active_user:
+            _metrics['active_users'] += 1
         
         if evaluation:
-            new_metrics.evaluation_count += 1
+            _metrics['evaluations'] += 1
         
         if blockchain:
-            new_metrics.verification_count += 1
+            _metrics['blockchain_verifications'] += 1
+        
+        if response_time:
+            # حساب المتوسط المتحرك
+            current_avg = _metrics['avg_response_time']
+            count = _metrics['evaluations']
+            
+            if count > 0:
+                _metrics['avg_response_time'] = (current_avg * (count - 1) + response_time) / count
+            else:
+                _metrics['avg_response_time'] = response_time
         
         if error:
-            new_metrics.error_count += 1
+            _metrics['errors'] += 1
         
-        if active_user:
-            new_metrics.active_users_count += 1
-        
-        # تحديث الوقت المتوسط للاستجابة
-        if response_time:
-            current_total = latest_metrics.average_response_time * latest_metrics.api_calls_count
-            new_total = current_total + response_time
-            new_count = latest_metrics.api_calls_count + 1
-            new_metrics.average_response_time = new_total / new_count
-        
-        # تحديث عدد المستخدمين (يتم احتسابه مباشرة من قاعدة البيانات)
-        from app.models.user import User
-        user_count = User.query.count()
-        new_metrics.user_count = user_count
-        
-        # إضافة المقاييس الجديدة إلى قاعدة البيانات
-        db.session.add(new_metrics)
-        db.session.commit()
+        _metrics['last_updated'] = datetime.datetime.utcnow().isoformat()
     except Exception as e:
-        db.session.rollback()
-        logging.error(f"خطأ في تحديث مقاييس النظام: {str(e)}")
+        logger.error(f"Error updating metrics: {e}")
 
-def get_latest_metrics():
+
+def get_metrics() -> Dict:
     """
-    الحصول على أحدث مقاييس النظام
+    الحصول على المقاييس الحالية
+    
+    Returns:
+        dict: المقاييس الحالية
+    """
+    return _metrics
+
+
+def get_recent_audit_logs(limit: int = 100, event_type: str = None, user: str = None) -> List[Dict]:
+    """
+    الحصول على سجلات التدقيق الأخيرة
+    
+    Args:
+        limit: الحد الأقصى لعدد السجلات المراد إرجاعها
+        event_type: تصفية حسب نوع الحدث (اختياري)
+        user: تصفية حسب المستخدم (اختياري)
+        
+    Returns:
+        list: قائمة سجلات التدقيق
+    """
+    filtered_logs = _audit_log
+    
+    if event_type:
+        filtered_logs = [log for log in filtered_logs if log['event_type'] == event_type]
+    
+    if user:
+        filtered_logs = [log for log in filtered_logs if log['user'] == user]
+    
+    # ترتيب السجلات حسب الوقت (الأحدث أولاً)
+    sorted_logs = sorted(filtered_logs, key=lambda x: x['timestamp'], reverse=True)
+    
+    return sorted_logs[:limit]
+
+
+def db_transaction(func):
+    """
+    مزخرف لضمان تنفيذ العمليات داخل معاملة قاعدة بيانات
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            db.session.commit()
+            return result
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database transaction error: {e}")
+            raise
+    return wrapper
+
+
+def execute_raw_sql(query: str, params: Dict = None) -> List:
+    """
+    تنفيذ استعلام SQL خام
+    
+    Args:
+        query: استعلام SQL
+        params: المعلمات للاستعلام (اختياري)
+        
+    Returns:
+        list: نتائج الاستعلام
     """
     try:
-        latest_metrics = SystemMetrics.query.order_by(SystemMetrics.created_at.desc()).first()
-        return latest_metrics.to_dict() if latest_metrics else {}
+        result = db.session.execute(text(query), params or {})
+        return [dict(row) for row in result]
     except Exception as e:
-        logging.error(f"خطأ في الحصول على مقاييس النظام: {str(e)}")
-        return {}
+        logger.error(f"Error executing raw SQL: {e}")
+        db.session.rollback()
+        raise
