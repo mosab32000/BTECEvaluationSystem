@@ -1,5 +1,6 @@
 from flask import request, jsonify, current_app
 from ..database import db
+# استيراد نموذج Evaluation من المجلد الرئيسي
 from ..models import Evaluation
 from ..security.encryption import Vault
 from ..security.token_utils import token_required
