@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - نظام تقييم BTEC</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">نظام تقييم BTEC</div>
+                <ul class="nav-links">
+                    <li><a href="/">الرئيسية</a></li>
+                    <li><a href="/login">تسجيل الدخول</a></li>
+                    <li><a href="/register">تسجيل جديد</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            <div class="card">
+                <h1>تسجيل الدخول</h1>
+                <p>الرجاء إدخال بيانات الاعتماد الخاصة بك للوصول إلى حسابك.</p>
+                
+                <form action="/login" method="post" id="loginForm">
+                    <div class="form-group">
+                        <label for="email">البريد الإلكتروني</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">كلمة المرور</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn">تسجيل الدخول</button>
+                </form>
+                
+                <p style="margin-top: 20px;">
+                    ليس لديك حساب بعد؟ <a href="/register">إنشاء حساب جديد</a>
+                </p>
+            </div>
+        </main>
+
+        <footer>
+            <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
+            <p>تم تطويره بواسطة مصعب العجارمة</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        // التحقق من صحة نموذج تسجيل الدخول
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // هنا يمكنك إضافة المزيد من التحقق من البيانات قبل الإرسال
+            
+            // إرسال النموذج
+            this.submit();
+        });
+    </script>
+</body>
+</html>
