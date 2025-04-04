@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقييم جديد | نظام تقييم BTEC</title>
+    <meta name="description" content="إنشاء تقييم جديد في نظام تقييم BTEC - نظام مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="icon" href="/static/icons/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <!-- أيقونات SVG -->
+    <div class="svg-sprites">
+        <object data="/static/icons/icons.svg" type="image/svg+xml" style="position: absolute; width: 0; height: 0;"></object>
+    </div>
+
+    <!-- رأس الصفحة -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <a href="/" style="text-decoration: none; color: inherit;">
+                        <span>نظام تقييم BTEC</span>
+                    </a>
+                </div>
+                
+                <button class="nav-toggle" aria-label="تبديل القائمة">
+                    <svg class="svg-icon">
+                        <use href="#icon-menu"></use>
+                    </svg>
+                </button>
+                
+                <ul class="nav-links">
+                    <li>
+                        <a href="/">
+                            <svg class="svg-icon">
+                                <use href="#icon-home"></use>
+                            </svg>
+                            الرئيسية
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/dashboard">
+                            <svg class="svg-icon">
+                                <use href="#icon-dashboard"></use>
+                            </svg>
+                            لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/evaluate" class="active">
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                            تقييم جديد
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="#" id="logout-btn">
+                            <svg class="svg-icon">
+                                <use href="#icon-logout"></use>
+                            </svg>
+                            تسجيل الخروج
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            <h1 data-animate="fade-in">تقييم مهمة جديدة</h1>
+            
+            <!-- نموذج التقييم -->
+            <section class="evaluation-form-container" data-animate="fade-in">
+                <form id="evaluation-form">
+                    <div class="form-group">
+                        <label for="task-content">محتوى المهمة</label>
+                        <textarea id="task-content" name="task-content" rows="10" placeholder="أدخل محتوى المهمة المراد تقييمها هنا..." required></textarea>
+                        <small class="form-text">أدخل نص المهمة كاملاً ليتم تقييمها بشكل دقيق.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rubric-id">معايير التقييم</label>
+                        <select id="rubric-id" name="rubric-id">
+                            <option value="" selected>-- اختر معايير التقييم --</option>
+                            <option value="btec-level-3">BTEC المستوى 3 - معايير عامة</option>
+                            <option value="btec-level-4">BTEC المستوى 4 - معايير عامة</option>
+                            <option value="btec-level-5">BTEC المستوى 5 - معايير عامة</option>
+                            <option value="custom">معايير مخصصة</option>
+                        </select>
+                    </div>
+                    
+                    <div id="custom-rubric-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="custom-rubric">معايير التقييم المخصصة</label>
+                            <textarea id="custom-rubric" name="custom-rubric" rows="6" placeholder="أدخل معايير التقييم المخصصة بتنسيق JSON..."></textarea>
+                            <small class="form-text">مثال: {"المعيار الأول": {"وزن": 30}, "المعيار الثاني": {"وزن": 70}}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                            تقييم المهمة
+                        </button>
+                        <button type="reset" class="btn btn-outline">
+                            <svg class="svg-icon">
+                                <use href="#icon-close"></use>
+                            </svg>
+                            إعادة تعيين
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- رسالة التحميل -->
+                <div id="loading-message" class="loading-message" style="display: none;">
+                    <div class="loading"></div>
+                    <p>جاري تقييم المهمة باستخدام الذكاء الاصطناعي، يرجى الانتظار...</p>
+                    <div class="progress-bar">
+                        <div class="progress-inner"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- نتائج التقييم -->
+            <section id="evaluation-results" class="evaluation-results-container" style="display: none;">
+                <!-- سيتم ملء هذا القسم بواسطة JavaScript -->
+            </section>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h3 class="footer-title">عن النظام</h3>
+                        <p>نظام تقييم BTEC هو منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">روابط سريعة</h3>
+                        <ul class="footer-links">
+                            <li><a href="/">الرئيسية</a></li>
+                            <li><a href="/dashboard">لوحة التحكم</a></li>
+                            <li><a href="/evaluate">تقييم جديد</a></li>
+                            <li><a href="/about">حول النظام</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">تواصل معنا</h3>
+                        <ul class="footer-links">
+                            <li><a href="mailto:info@btec-eval.com">info@btec-eval.com</a></li>
+                            <li><a href="tel:+9701234567">+970-123-4567</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
+                    <p>تم تطويره بواسطة مصعب العجارمة</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        // اظهار/إخفاء حقل المعايير المخصصة
+        document.getElementById('rubric-id').addEventListener('change', function() {
+            const customRubricSection = document.getElementById('custom-rubric-section');
+            if (this.value === 'custom') {
+                customRubricSection.style.display = 'block';
+            } else {
+                customRubricSection.style.display = 'none';
+            }
+        });
+        
+        // تأثير شريط التقدم أثناء التحميل
+        const progressBar = document.querySelector('.progress-inner');
+        let progress = 0;
+        
+        function simulateProgress() {
+            // محاكاة تقدم التقييم
+            const interval = setInterval(() => {
+                progress += Math.random() * 3;
+                if (progress > 95) {
+                    progress = 95; // نترك 5% للانتهاء الفعلي
+                    clearInterval(interval);
+                }
+                progressBar.style.width = `${progress}%`;
+            }, 300);
+            
+            return interval;
+        }
+        
+        document.getElementById('evaluation-form').addEventListener('submit', function() {
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) {
+                loadingMessage.style.display = 'block';
+                progress = 0;
+                progressBar.style.width = '0%';
+                simulateProgress();
+            }
+        });
+    </script>
+    <style>
+        /* أنماط إضافية خاصة بصفحة التقييم */
+        .form-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .loading-message {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 2rem;
+            background-color: rgba(59, 130, 246, 0.05);
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+        
+        .loading-message .loading {
+            width: 3rem;
+            height: 3rem;
+            border-width: 4px;
+            border-top-color: var(--primary-color);
+            margin: 0 auto 1rem;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background-color: rgba(59, 130, 246, 0.1);
+            border-radius: var(--radius-full);
+            margin-top: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .progress-inner {
+            height: 100%;
+            width: 0;
+            background: var(--primary-gradient);
+            border-radius: var(--radius-full);
+            transition: width 0.3s ease;
+        }
+    </style>
+</body>
+</html>

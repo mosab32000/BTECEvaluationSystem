@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول | نظام تقييم BTEC</title>
-    <meta name="description" content="تسجيل الدخول إلى نظام تقييم BTEC - نظام مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين">
+    <title>التسجيل | نظام تقييم BTEC</title>
+    <meta name="description" content="تسجيل حساب جديد في نظام تقييم BTEC - نظام مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين">
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="icon" href="/static/icons/favicon.ico" type="image/x-icon">
 </head>
@@ -39,7 +39,7 @@
                             الرئيسية
                         </a>
                     </li>
-                    <li class="logged-out-only active">
+                    <li class="logged-out-only">
                         <a href="/login">
                             <svg class="svg-icon">
                                 <use href="#icon-login"></use>
@@ -47,7 +47,7 @@
                             تسجيل الدخول
                         </a>
                     </li>
-                    <li class="logged-out-only">
+                    <li class="logged-out-only active">
                         <a href="/register">
                             <svg class="svg-icon">
                                 <use href="#icon-register"></use>
@@ -65,25 +65,35 @@
             <div class="auth-container" data-animate="fade-in">
                 <div class="auth-header">
                     <svg class="svg-icon" style="width: 80px; height: 80px; color: var(--primary-color);">
-                        <use href="#icon-login"></use>
+                        <use href="#icon-register"></use>
                     </svg>
-                    <h1>تسجيل الدخول</h1>
-                    <p>مرحباً بعودتك! يرجى تسجيل الدخول للوصول إلى لوحة التحكم الخاصة بك.</p>
+                    <h1>إنشاء حساب جديد</h1>
+                    <p>أنشئ حساباً للوصول إلى نظام تقييم BTEC والاستفادة من جميع الميزات المتاحة.</p>
                 </div>
                 
                 <!-- رسالة الخطأ -->
-                <div class="error-message" id="login-error" style="display: none;" data-animate="fade-in"></div>
+                <div class="error-message" id="register-error" style="display: none;" data-animate="fade-in"></div>
                 
                 <!-- رسالة النجاح -->
-                <div class="login-success-message" id="login-success" style="display: none;" data-animate="fade-in">
+                <div class="register-success-message" id="register-success" style="display: none;" data-animate="fade-in">
                     <svg class="svg-icon success-icon">
                         <use href="#icon-success"></use>
                     </svg>
-                    <h2>تم تسجيل الدخول بنجاح!</h2>
-                    <p>جاري تحويلك إلى لوحة التحكم...</p>
+                    <h2>تم إنشاء حسابك بنجاح!</h2>
+                    <p>جاري تحويلك إلى صفحة تسجيل الدخول...</p>
                 </div>
                 
-                <form class="auth-form" id="login-form">
+                <form class="auth-form" id="register-form">
+                    <div class="form-group">
+                        <label for="name">الاسم الكامل</label>
+                        <div class="input-with-icon">
+                            <svg class="svg-icon input-icon">
+                                <use href="#icon-user"></use>
+                            </svg>
+                            <input type="text" id="name" name="name" placeholder="أدخل اسمك الكامل" required>
+                        </div>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="email">البريد الإلكتروني</label>
                         <div class="input-with-icon">
@@ -102,24 +112,34 @@
                             </svg>
                             <input type="password" id="password" name="password" placeholder="أدخل كلمة المرور" required>
                         </div>
+                        <small class="form-text">كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل مع رقم وحرف خاص.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm-password">تأكيد كلمة المرور</label>
+                        <div class="input-with-icon">
+                            <svg class="svg-icon input-icon">
+                                <use href="#icon-password"></use>
+                            </svg>
+                            <input type="password" id="confirm-password" name="confirm-password" placeholder="أعد إدخال كلمة المرور" required>
+                        </div>
                     </div>
                     
                     <div class="form-check">
-                        <input type="checkbox" id="remember-me" name="remember-me">
-                        <label for="remember-me">تذكرني</label>
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <label for="terms">أوافق على <a href="/terms">شروط الاستخدام</a> و <a href="/privacy">سياسة الخصوصية</a></label>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-block">
                         <svg class="svg-icon">
-                            <use href="#icon-login"></use>
+                            <use href="#icon-register"></use>
                         </svg>
-                        تسجيل الدخول
+                        إنشاء حساب
                     </button>
                 </form>
                 
                 <div class="auth-footer">
-                    <p>ليس لديك حساب؟ <a href="/register">أنشئ حساباً جديداً</a></p>
-                    <p><a href="/forgot-password">نسيت كلمة المرور؟</a></p>
+                    <p>لديك حساب بالفعل؟ <a href="/login">تسجيل الدخول</a></p>
                 </div>
             </div>
         </main>
@@ -160,5 +180,24 @@
     </div>
 
     <script src="/static/js/app.js"></script>
+    <script>
+        // تأكيد تطابق كلمة المرور
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            var password = document.getElementById('password').value;
+            var confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                var errorDiv = document.getElementById('register-error');
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'كلمات المرور غير متطابقة، يرجى المحاولة مرة أخرى.';
+                
+                document.getElementById('confirm-password').classList.add('shake');
+                setTimeout(function() {
+                    document.getElementById('confirm-password').classList.remove('shake');
+                }, 600);
+            }
+        });
+    </script>
 </body>
 </html>

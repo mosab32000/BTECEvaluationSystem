@@ -3,20 +3,33 @@
 """
 
 import os
-from backend.app import create_app
+from app import create_app
 from flask import jsonify
-from dotenv import load_dotenv
+import logging
 
-# تحميل المتغيرات البيئية من ملف .env
-load_dotenv()
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("server.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = create_app()
 
-# إضافة نقطة صحة API لفحص الخادم
-@app.route('/health')
+@app.route("/health/check")
 def health():
-    return jsonify({'status': 'healthy'}), 200
+    """
+    نقطة نهاية للتحقق من صحة النظام
+    """
+    return jsonify({
+        "status": "healthy",
+        "service": "BTEC_REBEL_SYSTEM"
+    })
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"Starting BTEC Evaluation System server on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=True)

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم | نظام تقييم BTEC</title>
+    <meta name="description" content="لوحة تحكم نظام تقييم BTEC - نظام تقييم ذكي مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="icon" href="/static/icons/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <!-- أيقونات SVG -->
+    <div class="svg-sprites">
+        <object data="/static/icons/icons.svg" type="image/svg+xml" style="position: absolute; width: 0; height: 0;"></object>
+    </div>
+
+    <!-- رأس الصفحة -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <a href="/" style="text-decoration: none; color: inherit;">
+                        <span>نظام تقييم BTEC</span>
+                    </a>
+                </div>
+                
+                <button class="nav-toggle" aria-label="تبديل القائمة">
+                    <svg class="svg-icon">
+                        <use href="#icon-menu"></use>
+                    </svg>
+                </button>
+                
+                <ul class="nav-links">
+                    <li>
+                        <a href="/">
+                            <svg class="svg-icon">
+                                <use href="#icon-home"></use>
+                            </svg>
+                            الرئيسية
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/dashboard" class="active">
+                            <svg class="svg-icon">
+                                <use href="#icon-dashboard"></use>
+                            </svg>
+                            لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/evaluate">
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                            تقييم جديد
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="#" id="logout-btn">
+                            <svg class="svg-icon">
+                                <use href="#icon-logout"></use>
+                            </svg>
+                            تسجيل الخروج
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            <!-- مرحبا المستخدم -->
+            <section class="welcome-section">
+                <div class="card card-featured" data-animate="fade-in">
+                    <div class="card-content">
+                        <div class="user-welcome">
+                            <div class="user-avatar" id="user-avatar">
+                                <!-- سيتم إضافة الأيقونة عبر JavaScript -->
+                            </div>
+                            <div class="user-info">
+                                <h1>مرحباً، <span id="user-name">المستخدم</span></h1>
+                                <p>نوع الحساب: <span id="user-role">مستخدم</span></p>
+                            </div>
+                        </div>
+                        <p>مرحباً بك في لوحة تحكم نظام تقييم BTEC. يمكنك من هنا إدارة التقييمات ومتابعة النتائج.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- إحصائيات سريعة -->
+            <section class="dashboard-stats">
+                <h2>لمحة سريعة</h2>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card" data-animate="fade-in">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">التقييمات</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <div class="stat-value" id="evaluations-count">0</div>
+                            <p>إجمالي التقييمات</p>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card" data-animate="fade-in">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">تم التحقق منها</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-verify"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <div class="stat-value" id="verified-count">0</div>
+                            <p>تقييمات تم التحقق منها</p>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card admin-only" style="display: none;" data-animate="fade-in">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">المستخدمون</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-user"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <div class="stat-value" id="users-count">0</div>
+                            <p>إجمالي المستخدمين</p>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card teacher-only" style="display: none;" data-animate="fade-in">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">معايير التقييم</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-rubric"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <div class="stat-value" id="rubrics-count">0</div>
+                            <p>معايير التقييم المتاحة</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- أحدث التقييمات -->
+            <section class="recent-evaluations" data-animate="fade-in">
+                <div class="section-header">
+                    <h2>أحدث التقييمات</h2>
+                    <a href="/evaluations" class="btn btn-sm">
+                        <svg class="svg-icon">
+                            <use href="#icon-evaluation"></use>
+                        </svg>
+                        عرض الكل
+                    </a>
+                </div>
+                
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>معرف</th>
+                                <th>التقييم</th>
+                                <th>الدرجة</th>
+                                <th>حالة التحقق</th>
+                                <th>تاريخ التقييم</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-evaluations-table">
+                            <!-- سيتم ملء الجدول بواسطة JavaScript -->
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="loading-container">
+                                        <div class="loading"></div>
+                                        <p>جاري تحميل التقييمات...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- أدوات سريعة -->
+            <section class="quick-actions" data-animate="fade-in">
+                <h2>أدوات سريعة</h2>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card action-card">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">تقييم جديد</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <p>إنشاء تقييم جديد لمهمة BTEC</p>
+                            <a href="/evaluate" class="btn btn-success">
+                                <svg class="svg-icon">
+                                    <use href="#icon-evaluation"></use>
+                                </svg>
+                                تقييم جديد
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card action-card teacher-only" style="display: none;">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">إدارة المعايير</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-rubric"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <p>إدارة معايير التقييم وإنشاء قوالب جديدة</p>
+                            <a href="/rubrics" class="btn btn-primary">
+                                <svg class="svg-icon">
+                                    <use href="#icon-rubric"></use>
+                                </svg>
+                                إدارة المعايير
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card action-card">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">التحقق من التقييمات</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-verify"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <p>التحقق من التقييمات السابقة على البلوكتشين</p>
+                            <a href="/verify" class="btn btn-primary">
+                                <svg class="svg-icon">
+                                    <use href="#icon-verify"></use>
+                                </svg>
+                                التحقق من التقييمات
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card action-card admin-only" style="display: none;">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">إدارة النظام</h3>
+                            <svg class="svg-icon">
+                                <use href="#icon-settings"></use>
+                            </svg>
+                        </div>
+                        <div class="dashboard-card-content">
+                            <p>إدارة المستخدمين وإعدادات النظام</p>
+                            <a href="/admin" class="btn btn-primary">
+                                <svg class="svg-icon">
+                                    <use href="#icon-settings"></use>
+                                </svg>
+                                لوحة الإدارة
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h3 class="footer-title">عن النظام</h3>
+                        <p>نظام تقييم BTEC هو منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">روابط سريعة</h3>
+                        <ul class="footer-links">
+                            <li><a href="/">الرئيسية</a></li>
+                            <li><a href="/dashboard">لوحة التحكم</a></li>
+                            <li><a href="/evaluate">تقييم جديد</a></li>
+                            <li><a href="/about">حول النظام</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">تواصل معنا</h3>
+                        <ul class="footer-links">
+                            <li><a href="mailto:info@btec-eval.com">info@btec-eval.com</a></li>
+                            <li><a href="tel:+9701234567">+970-123-4567</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
+                    <p>تم تطويره بواسطة مصعب العجارمة</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <style>
+        /* أنماط إضافية خاصة بلوحة التحكم */
+        .user-welcome {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1.5rem;
+        }
+        
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            background-color: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+        }
+        
+        .user-avatar .svg-icon {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .user-info h1 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .action-card .dashboard-card-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            gap: 1rem;
+        }
+        
+        .action-card .btn {
+            margin-top: auto;
+        }
+        
+        .dashboard-stats {
+            margin-bottom: 2.5rem;
+        }
+        
+        .recent-evaluations {
+            margin-bottom: 2.5rem;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقييمات | نظام تقييم BTEC</title>
+    <meta name="description" content="عرض التقييمات في نظام تقييم BTEC - نظام مدعوم بالذكاء الاصطناعي وتقنية البلوكتشين">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="icon" href="/static/icons/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <!-- أيقونات SVG -->
+    <div class="svg-sprites">
+        <object data="/static/icons/icons.svg" type="image/svg+xml" style="position: absolute; width: 0; height: 0;"></object>
+    </div>
+
+    <!-- رأس الصفحة -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <a href="/" style="text-decoration: none; color: inherit;">
+                        <span>نظام تقييم BTEC</span>
+                    </a>
+                </div>
+                
+                <button class="nav-toggle" aria-label="تبديل القائمة">
+                    <svg class="svg-icon">
+                        <use href="#icon-menu"></use>
+                    </svg>
+                </button>
+                
+                <ul class="nav-links">
+                    <li>
+                        <a href="/">
+                            <svg class="svg-icon">
+                                <use href="#icon-home"></use>
+                            </svg>
+                            الرئيسية
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/dashboard">
+                            <svg class="svg-icon">
+                                <use href="#icon-dashboard"></use>
+                            </svg>
+                            لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/evaluate">
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                            تقييم جديد
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="/evaluations" class="active">
+                            <svg class="svg-icon">
+                                <use href="#icon-reports"></use>
+                            </svg>
+                            التقييمات
+                        </a>
+                    </li>
+                    <li class="logged-in-only">
+                        <a href="#" id="logout-btn">
+                            <svg class="svg-icon">
+                                <use href="#icon-logout"></use>
+                            </svg>
+                            تسجيل الخروج
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            <h1 data-animate="fade-in">التقييمات</h1>
+            
+            <!-- أدوات البحث والتصفية -->
+            <section class="search-filters" data-animate="fade-in">
+                <div class="card card-featured">
+                    <div class="card-content">
+                        <form id="search-form" class="search-form">
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="search-query">بحث</label>
+                                    <div class="input-with-icon">
+                                        <svg class="svg-icon input-icon">
+                                            <use href="#icon-evaluation"></use>
+                                        </svg>
+                                        <input type="text" id="search-query" name="search-query" placeholder="بحث في التقييمات...">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group col-6">
+                                    <label for="filter-status">حالة التحقق</label>
+                                    <select id="filter-status" name="filter-status">
+                                        <option value="">جميع الحالات</option>
+                                        <option value="verified">تم التحقق</option>
+                                        <option value="unverified">لم يتم التحقق</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="filter-date-from">من تاريخ</label>
+                                    <input type="date" id="filter-date-from" name="filter-date-from">
+                                </div>
+                                
+                                <div class="form-group col-6">
+                                    <label for="filter-date-to">إلى تاريخ</label>
+                                    <input type="date" id="filter-date-to" name="filter-date-to">
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <svg class="svg-icon">
+                                        <use href="#icon-search"></use>
+                                    </svg>
+                                    بحث
+                                </button>
+                                <button type="reset" class="btn btn-outline">
+                                    <svg class="svg-icon">
+                                        <use href="#icon-close"></use>
+                                    </svg>
+                                    إعادة تعيين
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- جدول التقييمات -->
+            <section class="evaluations-list" data-animate="fade-in">
+                <div class="section-header">
+                    <h2>قائمة التقييمات</h2>
+                    <div class="header-actions">
+                        <a href="/evaluate" class="btn btn-sm btn-success">
+                            <svg class="svg-icon">
+                                <use href="#icon-evaluation"></use>
+                            </svg>
+                            تقييم جديد
+                        </a>
+                        <button id="export-evaluations" class="btn btn-sm">
+                            <svg class="svg-icon">
+                                <use href="#icon-export"></use>
+                            </svg>
+                            تصدير البيانات
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="table table-hover table-rounded">
+                        <thead>
+                            <tr>
+                                <th>معرف</th>
+                                <th>المهمة</th>
+                                <th>التقييم</th>
+                                <th>الدرجة</th>
+                                <th>التاريخ</th>
+                                <th>حالة التحقق</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evaluations-table">
+                            <!-- سيتم ملء الجدول بواسطة JavaScript -->
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="loading-container">
+                                        <div class="loading"></div>
+                                        <p>جاري تحميل التقييمات...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- ترقيم الصفحات -->
+                <div class="pagination" id="pagination">
+                    <button class="pagination-button" data-page="prev">
+                        <svg class="svg-icon">
+                            <use href="#icon-chevron-right"></use>
+                        </svg>
+                        السابق
+                    </button>
+                    <div class="pagination-pages" id="pagination-pages">
+                        <!-- سيتم ملء الأرقام بواسطة JavaScript -->
+                    </div>
+                    <button class="pagination-button" data-page="next">
+                        التالي
+                        <svg class="svg-icon">
+                            <use href="#icon-chevron-left"></use>
+                        </svg>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h3 class="footer-title">عن النظام</h3>
+                        <p>نظام تقييم BTEC هو منصة متقدمة لتقييم مهام وأداء الطلاب في شهادات BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين للتحقق.</p>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">روابط سريعة</h3>
+                        <ul class="footer-links">
+                            <li><a href="/">الرئيسية</a></li>
+                            <li><a href="/dashboard">لوحة التحكم</a></li>
+                            <li><a href="/evaluate">تقييم جديد</a></li>
+                            <li><a href="/about">حول النظام</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h3 class="footer-title">تواصل معنا</h3>
+                        <ul class="footer-links">
+                            <li><a href="mailto:info@btec-eval.com">info@btec-eval.com</a></li>
+                            <li><a href="tel:+9701234567">+970-123-4567</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p>© نظام تقييم BTEC 2025 - جميع الحقوق محفوظة</p>
+                    <p>تم تطويره بواسطة مصعب العجارمة</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- نموذج عرض التفاصيل -->
+    <div id="evaluation-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>تفاصيل التقييم</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="evaluation-details-body">
+                <!-- سيتم ملء التفاصيل بواسطة JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline modal-close">إغلاق</button>
+                <button class="btn" id="modal-verify-btn">
+                    <svg class="svg-icon">
+                        <use href="#icon-blockchain"></use>
+                    </svg>
+                    التحقق
+                </button>
+                <button class="btn btn-success" id="modal-export-btn">
+                    <svg class="svg-icon">
+                        <use href="#icon-export"></use>
+                    </svg>
+                    تصدير التقييم
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <style>
+        /* أنماط إضافية لصفحة التقييمات */
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-left: -1rem;
+            margin-right: -1rem;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 2rem;
+            gap: 0.5rem;
+        }
+        
+        .pagination-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: white;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast) ease;
+        }
+        
+        .pagination-button:hover {
+            background-color: var(--off-white);
+        }
+        
+        .pagination-pages {
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .pagination-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast) ease;
+        }
+        
+        .pagination-page:hover {
+            background-color: var(--off-white);
+        }
+        
+        .pagination-page.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .search-filters {
+            margin-bottom: 2rem;
+        }
+        
+        .table-rounded {
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* النافذة المنبثقة */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            max-width: 800px;
+            margin: 2rem auto;
+            overflow: hidden;
+            animation: modal-slide-in 0.3s ease;
+        }
+        
+        @keyframes modal-slide-in {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: var(--off-white);
+        }
+        
+        .modal-header h2 {
+            margin-bottom: 0;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity var(--transition-fast) ease;
+        }
+        
+        .modal-close:hover {
+            opacity: 1;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: var(--off-white);
+        }
+        
+        .task-preview {
+            background-color: var(--off-white);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .modal.show {
+            display: block;
+        }
+    </style>
+</body>
+</html>
