@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from ..database import db
-# استيراد نموذج User من المجلد الرئيسي بشكل صريح
-from ..models.models import User  # تغيير المسار لتجنب الاستيراد الدائري
+# استيراد نموذج User مباشرة من وحدة models
+from ..models import User
 from ..security.token_utils import generate_token
 from . import auth_bp
 from werkzeug.security import generate_password_hash, check_password_hash

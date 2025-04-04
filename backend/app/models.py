@@ -1,4 +1,8 @@
-from .database import db
+"""
+نماذج قاعدة البيانات لنظام تقييم BTEC
+"""
+
+from ..database import db
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 import json
@@ -16,7 +20,6 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     last_login = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    evaluations = db.relationship('Evaluation', backref='submitter', lazy='dynamic', cascade='all, delete-orphan')
     
     def set_password(self, password):
         """تعيين كلمة المرور المشفرة."""
@@ -50,8 +53,7 @@ class User(db.Model):
             'role': self.role,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'last_login': self.last_login.isoformat() if self.last_login else None,
-            'evaluation_count': self.evaluations.count()
+            'last_login': self.last_login.isoformat() if self.last_login else None
         }
 
     def __repr__(self):
@@ -73,6 +75,9 @@ class Evaluation(db.Model):
     submitted_at = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
     evaluated_at = db.Column(db.DateTime)  # وقت التقييم
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # إضافة العلاقة العكسية هنا
+    submitter = db.relationship('User', backref=db.backref('evaluations', lazy='dynamic', cascade='all, delete-orphan'))
     
     @hybrid_property
     def is_verified(self):
@@ -200,3 +205,12 @@ class SystemMetrics(db.Model):
     
     def __repr__(self):
         return f'<SystemMetrics {self.timestamp}>'
+
+# استيراد نموذج الحضور
+from .attendance import Student, Session, Attendance
+
+# تصدير جميع النماذج ليتم استيرادها من الخارج
+__all__ = [
+    'User', 'Evaluation', 'RubricTemplate', 'SystemMetrics',
+    'Student', 'Session', 'Attendance'
+]

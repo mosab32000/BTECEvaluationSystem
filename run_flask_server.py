@@ -1,70 +1,66 @@
 """
-Simplified server launcher for the BTEC Evaluation System.
-This file is used by the Replit workflow to start the server.
+نقطة الدخول الرئيسية لتطبيق نظام تقييم BTEC - نسخة مبسطة
 """
 
 import os
-import secrets
-from dotenv import load_dotenv
-from backend.app import create_app
-from cryptography.fernet import Fernet
+import logging
+from flask import Flask, jsonify, send_from_directory, send_file
+from flask_cors import CORS
 
-def ensure_encryption_key():
-    """Ensure the ENCRYPTION_KEY environment variable exists, generate if not"""
-    env_var = "ENCRYPTION_KEY"
+# إعداد التسجيل
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# إنشاء تطبيق Flask
+app = Flask(__name__, static_folder='static')
+
+# تكوين التطبيق
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default-jwt-key')
+
+# إعداد التصفية المتقاطعة (CORS)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# إضافة نقطة نهاية للتحقق من صحة النظام
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok'})
+
+@app.route('/')
+def index():
+    return send_file('index.html')
+
+@app.route('/login')
+def login():
+    return jsonify({
+        'message': 'صفحة تسجيل الدخول قيد التطوير',
+        'status': 'under_development'
+    })
+
+@app.route('/register')
+def register():
+    return jsonify({
+        'message': 'صفحة التسجيل الجديد قيد التطوير',
+        'status': 'under_development'
+    })
+
+@app.route('/api/info')
+def api_info():
+    return jsonify({
+        'name': 'BTEC Evaluation System API',
+        'status': 'running',
+        'version': '1.0.0'
+    })
+
+@app.route('/static/<path:path>')
+def serve_static(path):
+    return send_from_directory('static', path)
+
+if __name__ == '__main__':
+    # الحصول على المنفذ من البيئة أو استخدام 3000 كقيمة افتراضية
+    port = int(os.environ.get('PORT', 3000))
+    logger.info(f"بدء تشغيل نظام تقييم BTEC على المنفذ {port}...")
     
-    # If the encryption key doesn't exist, generate a new one
-    if not os.environ.get(env_var):
-        # Generate a key for Fernet encryption (URL-safe base64-encoded 32-byte key)
-        key = Fernet.generate_key().decode('utf-8')
-        
-        # Set the environment variable
-        os.environ[env_var] = key
-        
-        # Optionally, save it to the .env file for persistence
-        env_file = '.env'
-        with open(env_file, 'a+') as file:
-            file.seek(0)  # Go to beginning of file
-            content = file.read()
-            if f"{env_var}=" not in content:
-                file.write(f"\n{env_var}={key}")
-                print(f"Generated and saved new {env_var} to .env file")
-            else:
-                print(f"{env_var} already exists in .env file")
-    else:
-        print(f"{env_var} already exists in environment")
-
-def ensure_secret_key(env_var, length=32):
-    """Ensure the environment variable exists, generate a random one if not"""
-    if not os.environ.get(env_var):
-        # Generate a random key
-        key = secrets.token_hex(length)
-        # Set the environment variable
-        os.environ[env_var] = key
-        
-        # Save it to the .env file for persistence
-        env_file = '.env'
-        with open(env_file, 'a+') as file:
-            file.seek(0)  # Go to beginning of file
-            content = file.read()
-            if f"{env_var}=" not in content:
-                file.write(f"\n{env_var}={key}")
-                print(f"Generated and saved new {env_var} to .env file")
-            else:
-                print(f"{env_var} already exists in .env file")
-    else:
-        print(f"{env_var} already exists in environment")
-
-# Load environment variables
-load_dotenv()
-
-# Ensure secret and encryption keys exist
-ensure_secret_key("SECRET_KEY")
-ensure_secret_key("JWT_SECRET_KEY")
-ensure_encryption_key()
-
-# Create and run the application
-app = create_app()
-port = int(os.environ.get("PORT", 5000))
-print(f"Starting BTEC Evaluation System on port {port}...")
-app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)

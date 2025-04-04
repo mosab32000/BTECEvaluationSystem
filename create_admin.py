@@ -2,57 +2,61 @@
 سكريبت لإنشاء مستخدم مسؤول في نظام تقييم BTEC
 """
 
-import os
-import logging
-import datetime
-from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
-
-# إعداد التسجيل
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
+import os
+from flask import Flask
+from werkzeug.security import generate_password_hash
 
 # تحميل متغيرات البيئة
 load_dotenv()
+
+# إنشاء تطبيق Flask
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# استيراد نماذج قاعدة البيانات
+from backend.app.database import db
+from backend.app.models import User
+
+db.init_app(app)
 
 def create_main_admin():
     """
     إنشاء حساب المسؤول الرئيسي (مصعب الحلالة)
     """
-    try:
-        # اختبار لتحقق مما إذا كانت قاعدة البيانات متاحة
-        print("جاري إنشاء حساب المسؤول الرئيسي...")
+    with app.app_context():
+        # التحقق ما إذا كان المستخدم موجودًا
+        admin_email = "admin@btec-eval.com"
         
-        # المعلومات الافتراضية للمسؤول (ستتم إضافتها لقاعدة البيانات لاحقاً)
-        admin_info = {
-            "email": "mosab3200@gmail.com",
-            "password": "Mos0779750516@",
-            "name": "مصعب الحلالة",
-            "role": "admin",
-            "last_login": datetime.datetime.utcnow(),
-            "created_at": datetime.datetime.utcnow()
-        }
+        # البحث عن المستخدم
+        admin = User.query.filter_by(email=admin_email).first()
         
-        # تشفير كلمة المرور
-        admin_info["password_hash"] = generate_password_hash(admin_info["password"])
+        if admin:
+            print(f"المسؤول موجود بالفعل: {admin_email}")
+            return admin
         
-        # حفظ معلومات المسؤول في ملف لاستخدامها لاحقاً
-        with open("admin_info.txt", "w") as f:
-            f.write(f"Email: {admin_info['email']}\n")
-            f.write(f"Password: {admin_info['password']}\n")
-            f.write(f"Name: {admin_info['name']}\n")
-            f.write(f"Role: {admin_info['role']}\n")
-            f.write(f"Created at: {admin_info['created_at'].strftime('%Y-%m-%d %H:%M:%S')}\n")
+        # إنشاء مستخدم مسؤول جديد
+        new_admin = User(
+            email=admin_email,
+            name="مصعب العجارمة",
+            role="admin",
+            is_active=True
+        )
         
-        print("تم إنشاء حساب المسؤول بنجاح وحفظ المعلومات في ملف admin_info.txt")
+        # تعيين كلمة المرور
+        new_admin.set_password("admin123")
         
-        return True
-    except Exception as e:
-        logger.error(f"حدث خطأ أثناء إنشاء حساب المسؤول: {e}")
-        return False
+        # حفظ المستخدم في قاعدة البيانات
+        db.session.add(new_admin)
+        db.session.commit()
+        
+        print(f"تم إنشاء المسؤول بنجاح: {admin_email}")
+        return new_admin
 
 if __name__ == "__main__":
     create_main_admin()
+    print("بيانات الدخول:")
+    print("البريد الإلكتروني: admin@btec-eval.com")
+    print("كلمة المرور: admin123")

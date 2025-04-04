@@ -1,18 +1,47 @@
-# سير العمل الرئيسي لتشغيل تطبيق نظام تقييم BTEC
-[run]
-command = ["./run_btec_server.sh"]
-language = "python3"
-
-# تكوين سير عمل للتطبيق
-[workflows.btec-app]
 run = "python run_flask_server.py"
 language = "python3"
 
 [env]
 PYTHONUNBUFFERED = "1"
-PORT = "5000"
+PORT = "3000"
 FLASK_APP = "run_flask_server.py"
 FLASK_ENV = "development"
 
 [dev]
-port = 5000
+port = 3000
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run = ["sh", "-c", "python run_flask_server.py"]
+deploymentTarget = "cloudrun"
+ignorePorts = false
+
+[unitTest]
+language = "python3"
+
+[general]
+ignoredPaths = [".git"]
+
+[customizations]
+workspace = { defaultBranch = "main", icon = "generated-icon.png" }
+
+[startup]
+startCommand = ["python", "run_flask_server.py"]
+
+[[hints]]
+regex = "Listening on port 3000"
+message = "Your app is running!"
+
+[languages.python.languageServer]
+start = ["pyright-langserver", "--stdio"]
+
+[languages.python]
+pattern = "**/*.py"
+
+[[runners]]
+language = "python3"
+pattern = "run_flask_server.py"
+command = ["python", "run_flask_server.py"]
+name = "BTEC_Server"
