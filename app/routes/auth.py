@@ -1,164 +1,252 @@
 """
-مسارات المصادقة والتحقق
+مسارات المصادقة في نظام تقييم BTEC
 """
+import logging
+from datetime import datetime, timezone, timedelta
 
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, 
     jwt_required, get_jwt_identity
 )
-from app.models import User
+
 from app import db
-import datetime
+from app.models.user import User
+from app.database import log_audit
 
-auth = Blueprint('auth', __name__)
+# إنشاء Blueprint للمصادقة
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-@auth.route('/register', methods=['POST'])
+@auth_bp.route('/register', methods=['POST'])
 def register():
     """
     تسجيل مستخدم جديد
     """
-    # الحصول على بيانات التسجيل من الطلب
-    data = request.get_json()
+    data = request.json
     
-    if not data:
-        return jsonify(error="بيانات غير صالحة", message="لم يتم توفير البيانات المطلوبة"), 400
+    # التحقق من وجود البيانات المطلوبة
+    if not data or not data.get('email') or not data.get('password'):
+        return jsonify({
+            'status': 'error',
+            'message': 'البريد الإلكتروني وكلمة المرور مطلوبان'
+        }), 400
     
-    # تحقق من وجود البيانات المطلوبة
-    if not all(k in data for k in ['email', 'password', 'name']):
-        return jsonify(error="بيانات ناقصة", message="يرجى توفير البريد الإلكتروني وكلمة المرور والاسم"), 400
+    # التحقق مما إذا كان المستخدم موجودًا بالفعل
+    existing_user = User.query.filter_by(email=data['email']).first()
+    if existing_user:
+        return jsonify({
+            'status': 'error',
+            'message': 'البريد الإلكتروني مسجل بالفعل'
+        }), 400
     
-    # تحقق من عدم وجود مستخدم بنفس البريد الإلكتروني
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify(error="البريد الإلكتروني موجود", message="البريد الإلكتروني مستخدم بالفعل"), 400
-    
-    # إنشاء مستخدم جديد
-    new_user = User(
+    # إنشاء المستخدم الجديد
+    user = User(
+        name=data.get('name', ''),
         email=data['email'],
-        name=data['name'],
         password_hash=generate_password_hash(data['password']),
         role='user',
-        is_active=True,
-        created_at=datetime.datetime.utcnow()
+        is_active=True
     )
     
-    # حفظ المستخدم في قاعدة البيانات
-    db.session.add(new_user)
-    db.session.commit()
-    
-    # إنشاء توكن المصادقة
-    access_token = create_access_token(identity=new_user.id)
-    refresh_token = create_refresh_token(identity=new_user.id)
-    
-    return jsonify(
-        message="تم إنشاء المستخدم بنجاح",
-        user={
-            'id': new_user.id,
-            'email': new_user.email,
-            'name': new_user.name,
-            'role': new_user.role
-        },
-        token=access_token,
-        refresh_token=refresh_token
-    ), 201
+    try:
+        # حفظ المستخدم في قاعدة البيانات
+        db.session.add(user)
+        db.session.commit()
+        
+        # إنشاء رموز الوصول والتحديث
+        access_token = create_access_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=user.id)
+        
+        # تسجيل الحدث
+        log_audit('user_register', user.email, {'id': user.id})
+        
+        # إرجاع النجاح
+        return jsonify({
+            'status': 'success',
+            'message': 'تم التسجيل بنجاح',
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'user': user.to_dict()
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"خطأ في تسجيل المستخدم: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'حدث خطأ أثناء التسجيل'
+        }), 500
 
-@auth.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['POST'])
 def login():
     """
-    تسجيل الدخول للمستخدمين
+    تسجيل دخول المستخدم
     """
-    # الحصول على بيانات تسجيل الدخول
-    data = request.get_json()
+    data = request.json
     
-    if not data:
-        return jsonify(error="بيانات غير صالحة", message="لم يتم توفير البيانات المطلوبة"), 400
-    
-    # تحقق من وجود البيانات المطلوبة
-    if not all(k in data for k in ['email', 'password']):
-        return jsonify(error="بيانات ناقصة", message="يرجى توفير البريد الإلكتروني وكلمة المرور"), 400
+    # التحقق من وجود البيانات المطلوبة
+    if not data or not data.get('email') or not data.get('password'):
+        return jsonify({
+            'status': 'error',
+            'message': 'البريد الإلكتروني وكلمة المرور مطلوبان'
+        }), 400
     
     # البحث عن المستخدم
     user = User.query.filter_by(email=data['email']).first()
     
     # التحقق من وجود المستخدم وصحة كلمة المرور
-    if not user or not check_password_hash(user.password_hash, data['password']):
-        return jsonify(error="بيانات غير صحيحة", message="البريد الإلكتروني أو كلمة المرور غير صحيحة"), 401
+    if not user or not user.check_password(data['password']):
+        return jsonify({
+            'status': 'error',
+            'message': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+        }), 401
     
     # التحقق من أن المستخدم نشط
     if not user.is_active:
-        return jsonify(error="حساب غير نشط", message="حسابك غير نشط حالياً، يرجى التواصل مع الإدارة"), 403
+        return jsonify({
+            'status': 'error',
+            'message': 'الحساب غير نشط، يرجى التواصل مع المسؤول'
+        }), 403
     
-    # تحديث وقت آخر تسجيل دخول
-    user.last_login = datetime.datetime.utcnow()
-    db.session.commit()
-    
-    # إنشاء توكن المصادقة
+    # إنشاء رموز الوصول والتحديث
     access_token = create_access_token(identity=user.id)
     refresh_token = create_refresh_token(identity=user.id)
     
-    # حفظ بيانات المستخدم في الجلسة
-    session['user_id'] = user.id
-    session['user_email'] = user.email
-    session['user_name'] = user.name
-    session['user_role'] = user.role
+    # تسجيل الحدث
+    log_audit('user_login', user.email, {'id': user.id})
     
-    return jsonify(
-        message="تم تسجيل الدخول بنجاح",
-        user={
-            'id': user.id,
-            'email': user.email,
-            'name': user.name,
-            'role': user.role
-        },
-        token=access_token,
-        refresh_token=refresh_token
-    ), 200
+    # إرجاع النجاح
+    return jsonify({
+        'status': 'success',
+        'message': 'تم تسجيل الدخول بنجاح',
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'user': user.to_dict()
+    }), 200
 
-@auth.route('/refresh', methods=['POST'])
+@auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
     """
-    تجديد توكن المصادقة
+    تجديد رمز الوصول باستخدام رمز التحديث
     """
     current_user_id = get_jwt_identity()
+    
+    # البحث عن المستخدم
+    user = User.query.get(current_user_id)
+    
+    if not user or not user.is_active:
+        return jsonify({
+            'status': 'error',
+            'message': 'المستخدم غير موجود أو غير نشط'
+        }), 401
+    
+    # إنشاء رمز وصول جديد
     access_token = create_access_token(identity=current_user_id)
     
-    return jsonify(token=access_token), 200
+    # تسجيل الحدث
+    log_audit('token_refresh', user.email, {'id': user.id})
+    
+    # إرجاع النجاح
+    return jsonify({
+        'status': 'success',
+        'message': 'تم تجديد الرمز بنجاح',
+        'access_token': access_token
+    }), 200
 
-@auth.route('/profile', methods=['GET'])
+@auth_bp.route('/user', methods=['GET'])
 @jwt_required()
-def get_profile():
+def get_user():
     """
-    الحصول على الملف الشخصي للمستخدم الحالي
+    الحصول على معلومات المستخدم الحالي
     """
     current_user_id = get_jwt_identity()
+    
+    # البحث عن المستخدم
     user = User.query.get(current_user_id)
     
     if not user:
-        return jsonify(error="مستخدم غير موجود", message="المستخدم غير موجود"), 404
+        return jsonify({
+            'status': 'error',
+            'message': 'المستخدم غير موجود'
+        }), 404
     
-    return jsonify(
-        user={
-            'id': user.id,
-            'email': user.email,
-            'name': user.name,
-            'role': user.role,
-            'is_active': user.is_active,
-            'last_login': user.last_login.isoformat() if user.last_login else None,
-            'created_at': user.created_at.isoformat()
-        }
-    ), 200
+    # إرجاع معلومات المستخدم
+    return jsonify({
+        'status': 'success',
+        'user': user.to_dict()
+    }), 200
 
-@auth.route('/logout', methods=['POST'])
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
 def logout():
     """
-    تسجيل الخروج
+    تسجيل خروج المستخدم
     """
-    # إزالة بيانات المستخدم من الجلسة
-    session.pop('user_id', None)
-    session.pop('user_email', None)
-    session.pop('user_name', None)
-    session.pop('user_role', None)
+    current_user_id = get_jwt_identity()
     
-    return jsonify(message="تم تسجيل الخروج بنجاح"), 200
+    # البحث عن المستخدم
+    user = User.query.get(current_user_id)
+    
+    if user:
+        # تسجيل الحدث
+        log_audit('user_logout', user.email, {'id': user.id})
+    
+    # إرجاع النجاح
+    return jsonify({
+        'status': 'success',
+        'message': 'تم تسجيل الخروج بنجاح'
+    }), 200
+
+@auth_bp.route('/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    """
+    تغيير كلمة مرور المستخدم
+    """
+    current_user_id = get_jwt_identity()
+    data = request.json
+    
+    # التحقق من وجود البيانات المطلوبة
+    if not data or not data.get('current_password') or not data.get('new_password'):
+        return jsonify({
+            'status': 'error',
+            'message': 'كلمة المرور الحالية والجديدة مطلوبة'
+        }), 400
+    
+    # البحث عن المستخدم
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({
+            'status': 'error',
+            'message': 'المستخدم غير موجود'
+        }), 404
+    
+    # التحقق من كلمة المرور الحالية
+    if not user.check_password(data['current_password']):
+        return jsonify({
+            'status': 'error',
+            'message': 'كلمة المرور الحالية غير صحيحة'
+        }), 401
+    
+    try:
+        # تعيين كلمة المرور الجديدة
+        user.set_password(data['new_password'])
+        db.session.commit()
+        
+        # تسجيل الحدث
+        log_audit('password_change', user.email, {'id': user.id})
+        
+        # إرجاع النجاح
+        return jsonify({
+            'status': 'success',
+            'message': 'تم تغيير كلمة المرور بنجاح'
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"خطأ في تغيير كلمة المرور: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'حدث خطأ أثناء تغيير كلمة المرور'
+        }), 500

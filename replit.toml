@@ -1,47 +1,12 @@
-run = "python run_flask_server.py"
-language = "python3"
+run = "python run.py"
 
 [env]
-PYTHONUNBUFFERED = "1"
-PORT = "3000"
-FLASK_APP = "run_flask_server.py"
 FLASK_ENV = "development"
 
-[dev]
-port = 3000
+[[ports]]
+localPort = 5000
+externalPort = 80
 
-[nix]
-channel = "stable-23_11"
-
-[deployment]
-run = ["sh", "-c", "python run_flask_server.py"]
-deploymentTarget = "cloudrun"
-ignorePorts = false
-
-[unitTest]
-language = "python3"
-
-[general]
-ignoredPaths = [".git"]
-
-[customizations]
-workspace = { defaultBranch = "main", icon = "generated-icon.png" }
-
-[startup]
-startCommand = ["python", "run_flask_server.py"]
-
-[[hints]]
-regex = "Listening on port 3000"
-message = "Your app is running!"
-
-[languages.python.languageServer]
-start = ["pyright-langserver", "--stdio"]
-
-[languages.python]
-pattern = "**/*.py"
-
-[[runners]]
-language = "python3"
-pattern = "run_flask_server.py"
-command = ["python", "run_flask_server.py"]
-name = "BTEC_Server"
+[ports.btecserver]
+localPort = 5000
+externalPort = 80

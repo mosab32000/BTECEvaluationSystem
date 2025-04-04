@@ -577,20 +577,6 @@ wheels = [
 ]
 
 [[package]]
-name = "flask-jwt-extended"
-version = "4.7.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-    { name = "pyjwt" },
-    { name = "werkzeug" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/51/16/96b101f18cba17ecce3225ab07bc4c8f23e6befd8552dbbed87482e7c7fb/flask_jwt_extended-4.7.1.tar.gz", hash = "sha256:8085d6757505b6f3291a2638c84d207e8f0ad0de662d1f46aa2f77e658a0c976", size = 34411 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/34/9a91da47b1565811ab4aa5fb134632c8d1757960bfa7d457f486947c4d75/Flask_JWT_Extended-4.7.1-py2.py3-none-any.whl", hash = "sha256:52f35bf0985354d7fb7b876e2eb0e0b141aaff865a22ff6cc33d9a18aa987978", size = 22588 },
-]
-
-[[package]]
 name = "flask-limiter"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -814,17 +800,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/10/db/58f950c996c793472e336ff3655b13fbcf1e3b359dcf52dcf3ed3b52c352/jsonschema_specifications-2024.10.1.tar.gz", hash = "sha256:0f38b83639958ce1152d02a7f062902c41c8fd20d558b0c34344292d417ae272", size = 15561 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/0f/8910b19ac0670a0f80ce1008e5e751c4a57e14d2c4c13a482aa6079fa9d6/jsonschema_specifications-2024.10.1-py3-none-any.whl", hash = "sha256:a09a0680616357d9a0ecf05c12ad234479f549239d0f5b55f3deea67475da9bf", size = 18459 },
-]
-
-[[package]]
-name = "jwt"
-version = "1.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cryptography" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/66/1e792aef36645b96271b4d27c2a8cc9fc7bbbaf06277a849b9e1a6360e6a/jwt-1.3.1-py3-none-any.whl", hash = "sha256:61c9170f92e736b530655e75374681d4fcca9cfa8763ab42be57353b2b203494", size = 18192 },
 ]
 
 [[package]]
@@ -1275,15 +1250,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyjwt"
-version = "2.8.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/30/72/8259b2bccfe4673330cea843ab23f86858a419d8f1493f66d413a76c7e3b/PyJWT-2.8.0.tar.gz", hash = "sha256:57e28d156e3d5c10088e0c68abb90bfac3df82b40a71bd0daa20c65ccd5c23de", size = 78313 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2b/4f/e04a8067c7c96c364cef7ef73906504e2f40d690811c021e1a1901473a19/PyJWT-2.8.0-py3-none-any.whl", hash = "sha256:59127c392cc44c2da5bb3192169a91f429924e17aff6534d70fdc02ab3e04320", size = 22591 },
-]
-
-[[package]]
 name = "python-dotenv"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1394,17 +1360,14 @@ dependencies = [
     { name = "dotenv" },
     { name = "flask" },
     { name = "flask-cors" },
-    { name = "flask-jwt-extended" },
     { name = "flask-limiter" },
     { name = "flask-migrate" },
     { name = "flask-sqlalchemy" },
     { name = "flask-talisman" },
     { name = "gunicorn" },
-    { name = "jwt" },
     { name = "openai" },
     { name = "pillow" },
     { name = "psycopg2-binary" },
-    { name = "pyjwt" },
     { name = "python-dotenv" },
     { name = "requests" },
     { name = "sqlalchemy" },
@@ -1419,17 +1382,14 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "flask", specifier = "==3.0.0" },
     { name = "flask-cors", specifier = "==4.0.0" },
-    { name = "flask-jwt-extended", specifier = ">=4.7.1" },
     { name = "flask-limiter", specifier = "==3.5.0" },
     { name = "flask-migrate", specifier = "==4.0.5" },
     { name = "flask-sqlalchemy", specifier = "==3.1.1" },
     { name = "flask-talisman", specifier = "==1.1.0" },
     { name = "gunicorn", specifier = "==21.2.0" },
-    { name = "jwt", specifier = ">=1.3.1" },
     { name = "openai", specifier = "==0.28.0" },
     { name = "pillow", specifier = ">=11.1.0" },
     { name = "psycopg2-binary", specifier = "==2.9.9" },
-    { name = "pyjwt", specifier = "==2.8.0" },
     { name = "python-dotenv", specifier = "==1.0.0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "sqlalchemy", specifier = ">=2.0.40" },

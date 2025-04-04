@@ -1,109 +1,119 @@
 """
 وحدة الأمان لنظام تقييم BTEC
 """
-
 import os
 import base64
+import re
+import logging
+import html
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from functools import wraps
-from flask import request, jsonify, current_app
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-from app.models import User
-import re
-import html
+from flask import request, current_app
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
 
 class SecureVault:
     """
     صندوق آمن لتشفير وفك تشفير البيانات الحساسة
     """
     def __init__(self):
-        # الحصول على مفتاح التشفير
-        key = os.environ.get('ENCRYPTION_KEY')
-        if not key:
-            current_app.logger.warning("لم يتم تعيين ENCRYPTION_KEY، استخدام قيمة افتراضية")
-            key = current_app.config.get('ENCRYPTION_KEY', 'default-encryption-key')
-        
-        # إنشاء مفتاح مشتق باستخدام PBKDF2
-        salt = b'btec-evaluation-system-salt'  # يجب أن يكون ثابتًا لإعادة إنشاء نفس المفتاح
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-        )
-        derived_key = base64.urlsafe_b64encode(kdf.derive(key.encode()))
-        
-        # إنشاء مثيل Fernet
-        self.cipher = Fernet(derived_key)
+        self.key = self._get_or_create_key()
+        self.cipher_suite = Fernet(self.key)
     
     def encrypt(self, text: str) -> str:
         """
         تشفير نص
         """
         if not text:
-            return ''
+            return ""
         
-        encrypted_data = self.cipher.encrypt(text.encode('utf-8'))
-        return base64.urlsafe_b64encode(encrypted_data).decode('utf-8')
+        # تشفير النص
+        encrypted_text = self.cipher_suite.encrypt(text.encode('utf-8'))
+        
+        # تحويل النص المشفر إلى سلسلة Base64
+        return base64.urlsafe_b64encode(encrypted_text).decode('utf-8')
     
     def decrypt(self, encrypted_text: str) -> str:
         """
         فك تشفير نص مشفر
         """
         if not encrypted_text:
-            return ''
+            return ""
         
         try:
-            encrypted_data = base64.urlsafe_b64decode(encrypted_text)
-            decrypted_data = self.cipher.decrypt(encrypted_data)
-            return decrypted_data.decode('utf-8')
+            # تحويل النص المشفر من Base64
+            decoded_text = base64.urlsafe_b64decode(encrypted_text)
+            
+            # فك تشفير النص
+            decrypted_text = self.cipher_suite.decrypt(decoded_text)
+            
+            return decrypted_text.decode('utf-8')
         except Exception as e:
-            current_app.logger.error(f"خطأ في فك التشفير: {str(e)}")
-            return ''
+            logging.error(f"خطأ في فك تشفير النص: {str(e)}")
+            return ""
+    
+    def _get_or_create_key(self):
+        """
+        الحصول على مفتاح التشفير أو إنشاء واحد جديد
+        """
+        encryption_key = os.environ.get('ENCRYPTION_KEY')
+        
+        if not encryption_key:
+            # إنشاء مفتاح جديد
+            logging.warning("لم يتم العثور على ENCRYPTION_KEY. إنشاء مفتاح جديد...")
+            key = Fernet.generate_key()
+            logging.info(f"تم إنشاء مفتاح تشفير جديد: {key.decode()}")
+            return key
+        
+        # استخدام مفتاح البيئة
+        if len(encryption_key) < 32:
+            # مفتاح قصير جدًا، إنشاء مفتاح أقوى باستخدام PBKDF2
+            salt = b'btec-eval-system-salt'  # يجب أن يكون ثابتًا للحصول على نفس المفتاح
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=salt,
+                iterations=100000
+            )
+            key = base64.urlsafe_b64encode(kdf.derive(encryption_key.encode()))
+            return key
+        
+        # التأكد من أن المفتاح مشفر بشكل صحيح بـ Base64
+        try:
+            padding = '=' * (4 - len(encryption_key) % 4)
+            padded_key = encryption_key + padding
+            decoded_key = base64.urlsafe_b64decode(padded_key)
+            encoded_key = base64.urlsafe_b64encode(decoded_key)
+            return encoded_key
+        except Exception as e:
+            logging.error(f"خطأ في تهيئة مفتاح التشفير: {str(e)}")
+            # استخدام مفتاح افتراضي (غير آمن للإنتاج)
+            return Fernet.generate_key()
 
 def sanitize_input(text: str) -> str:
     """
     تنقية المدخلات النصية من المحتويات الضارة
     """
     if not text:
-        return ''
+        return ""
     
-    # إزالة علامات HTML
-    clean_text = html.escape(text)
+    # تنقية HTML والأكواد الضارة
+    sanitized = html.escape(text)
     
-    # تنظيف حقن JavaScript
-    clean_text = re.sub(r'javascript:', '', clean_text, flags=re.IGNORECASE)
+    # إزالة أكواد JavaScript
+    sanitized = re.sub(r'<script.*?>.*?</script>', '', sanitized, flags=re.DOTALL)
     
-    # تنظيف حقن SQL
-    clean_text = re.sub(r'(--)|(/\*|\*/)|(\b(select|insert|update|delete|drop|alter|create|truncate)\b)', 
-                       lambda match: '', clean_text, flags=re.IGNORECASE)
+    # إزالة أكواد CSS ضارة
+    sanitized = re.sub(r'<style.*?>.*?</style>', '', sanitized, flags=re.DOTALL)
     
-    return clean_text
+    # إزالة تعليقات HTML
+    sanitized = re.sub(r'<!--.*?-->', '', sanitized, flags=re.DOTALL)
+    
+    return sanitized
 
-def validate_jwt(token: str) -> tuple:
-    """
-    التحقق من صحة رمز JWT
-    """
-    try:
-        # التحقق من توكن JWT
-        verify_jwt_in_request(token)
-        current_user_id = get_jwt_identity()
-        
-        # التحقق من وجود المستخدم
-        user = User.query.get(current_user_id)
-        
-        if not user:
-            return (False, None, "المستخدم غير موجود")
-        
-        if not user.is_active:
-            return (False, None, "حساب المستخدم غير نشط")
-        
-        return (True, user, "تم التحقق بنجاح")
-    
-    except Exception as e:
-        return (False, None, str(e))
+from functools import wraps
+from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
 def token_required(allowed_roles: list = None):
     """
@@ -112,29 +122,44 @@ def token_required(allowed_roles: list = None):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            # التحقق من وجود توكن
+            # التحقق من وجود رمز JWT صالح
             try:
                 verify_jwt_in_request()
-                current_user_id = get_jwt_identity()
-                
-                # التحقق من وجود المستخدم
-                user = User.query.get(current_user_id)
-                
-                if not user:
-                    return jsonify(error="مستخدم غير موجود", message="المستخدم غير موجود"), 404
-                
-                if not user.is_active:
-                    return jsonify(error="حساب غير نشط", message="حسابك غير نشط حالياً، يرجى التواصل مع الإدارة"), 403
-                
-                # التحقق من الأدوار إذا تم تحديدها
-                if allowed_roles and user.role not in allowed_roles:
-                    return jsonify(error="صلاحيات غير كافية", message="ليس لديك صلاحية للوصول إلى هذا المورد"), 403
-                
-                # تمرير المستخدم إلى الدالة
-                return f(user, *args, **kwargs)
-            
             except Exception as e:
-                return jsonify(error="خطأ في المصادقة", message=str(e)), 401
-        
+                logging.warning(f"فشل التحقق من الرمز: {str(e)}")
+                return {
+                    'status': 'error',
+                    'message': 'رمز مصادقة غير صالح أو منتهي الصلاحية'
+                }, 401
+            
+            # التحقق من الأدوار إذا تم تحديدها
+            if allowed_roles:
+                claims = get_jwt()
+                user_role = claims.get('role', '')
+                
+                if user_role not in allowed_roles:
+                    logging.warning(f"محاولة وصول غير مصرح بها: {user_role} ليس من الأدوار المسموح بها {allowed_roles}")
+                    return {
+                        'status': 'error',
+                        'message': 'غير مصرح لك بالوصول إلى هذا المورد'
+                    }, 403
+            
+            return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+def configure_security_headers():
+    """
+    تكوين رؤوس الأمان للاستجابة
+    """
+    # قائمة رؤوس الأمان المراد تطبيقها
+    security_headers = {
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' fonts.gstatic.com fonts.googleapis.com cdnjs.cloudflare.com; connect-src 'self' api.openai.com;",
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'X-XSS-Protection': '1; mode=block',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+    }
+    
+    return security_headers

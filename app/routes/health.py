@@ -1,112 +1,161 @@
 """
-مسارات صحة النظام
+مسارات فحص الصحة والحالة
 """
-
-from flask import Blueprint, jsonify, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import User
 import os
+import sys
 import psutil
-import datetime
+import logging
+from datetime import datetime, timedelta
 
-health = Blueprint('health', __name__)
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
 
-@health.route('/check', methods=['GET'])
+from app import db
+from app.models.user import User
+from app.models.evaluation import Evaluation
+from app.models.system_metrics import SystemMetrics
+from app.core.security import token_required
+from app.database import get_latest_metrics
+
+# إنشاء Blueprint لفحص الصحة
+health_bp = Blueprint('health', __name__, url_prefix='/health')
+
+@health_bp.route('', methods=['GET'])
 def health_check():
     """
-    التحقق من الصحة العامة للنظام
+    فحص صحة النظام
     """
-    # التحقق من الاتصال بقاعدة البيانات
+    # فحص الاتصال بقاعدة البيانات
+    db_status = 'ok'
     try:
-        user_count = User.query.count()
-        db_status = "متصل"
+        with db.engine.connect() as connection:
+            connection.execute("SELECT 1")
     except Exception as e:
-        current_app.logger.error(f"خطأ في الاتصال بقاعدة البيانات: {str(e)}")
-        db_status = "غير متصل"
+        db_status = f'error: {str(e)}'
     
-    # جمع معلومات حول النظام
+    # الحصول على معلومات النظام
     system_info = {
-        'memory_usage': psutil.virtual_memory().percent,
-        'cpu_usage': psutil.cpu_percent(interval=0.1),
-        'disk_usage': psutil.disk_usage('/').percent,
-        'time': datetime.datetime.now().isoformat()
+        'cpu_percent': psutil.cpu_percent(),
+        'memory_percent': psutil.virtual_memory().percent,
+        'disk_percent': psutil.disk_usage('/').percent,
     }
     
-    return jsonify(
-        status="ok",
-        message="نظام تقييم BTEC يعمل بشكل جيد",
-        database_status=db_status,
-        system_info=system_info,
-        registered_users=user_count if db_status == "متصل" else "غير متاح"
-    ), 200
+    # إرجاع نتيجة الفحص
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.utcnow().isoformat(),
+        'environment': os.getenv('FLASK_ENV', 'production'),
+        'database': db_status,
+        'system': system_info
+    }), 200
 
-@health.route('/detailed', methods=['GET'])
-@jwt_required()
-def detailed_health():
+@health_bp.route('/stats', methods=['GET'])
+def system_stats():
     """
-    تحقق مفصل من صحة النظام - يتطلب صلاحيات الإدارة
+    إحصائيات النظام العامة
     """
-    # التحقق من صلاحيات المستخدم
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user or not user.is_admin():
-        return jsonify(error="صلاحيات غير كافية", message="هذه العملية تتطلب صلاحيات المسؤول"), 403
-    
-    # التحقق من الاتصال بقاعدة البيانات
     try:
-        user_count = User.query.count()
-        db_status = {
-            'status': "متصل",
-            'user_count': user_count
-        }
+        # إحصائيات المستخدمين والتقييمات
+        with db.engine.connect() as connection:
+            result = connection.execute("SELECT COUNT(*) FROM users").fetchone()
+            if result:
+                user_count = result[0]
+            
+            result = connection.execute("SELECT COUNT(*) FROM evaluations").fetchone()
+            if result:
+                evaluation_count = result[0]
+        
+        # إرجاع الإحصائيات
+        return jsonify({
+            'status': 'success',
+            'stats': {
+                'users': user_count,
+                'evaluations': evaluation_count,
+                'up_time': get_uptime()
+            }
+        }), 200
     except Exception as e:
-        current_app.logger.error(f"خطأ في الاتصال بقاعدة البيانات: {str(e)}")
-        db_status = {
-            'status': "غير متصل",
-            'error': str(e)
+        logging.error(f"خطأ في الحصول على إحصائيات النظام: {str(e)}")
+        
+        return jsonify({
+            'status': 'error',
+            'message': 'حدث خطأ أثناء الحصول على إحصائيات النظام'
+        }), 500
+
+@health_bp.route('/metrics', methods=['GET'])
+@jwt_required()
+@token_required(allowed_roles=['admin'])
+def detailed_metrics():
+    """
+    مقاييس النظام المفصلة
+    """
+    try:
+        # الحصول على آخر مقاييس للنظام
+        latest_metrics = get_latest_metrics()
+        
+        # الحصول على مقاييس النظام للأسبوع الماضي
+        date_limit = datetime.utcnow() - timedelta(days=7)
+        weekly_metrics = SystemMetrics.query.filter(SystemMetrics.created_at >= date_limit) \
+            .order_by(SystemMetrics.created_at) \
+            .all()
+        
+        # إحصائيات المستخدمين والتقييمات
+        user_stats = {
+            'total': User.query.count(),
+            'active': User.query.filter_by(is_active=True).count(),
+            'new_last_week': User.query.filter(User.created_at >= date_limit).count()
         }
-    
-    # التحقق من وجود المفاتيح اللازمة للخدمات الخارجية
-    external_services = {
-        'openai_api': bool(current_app.config.get('OPENAI_API_KEY')),
-        'infura_url': bool(current_app.config.get('INFURA_URL')),
-        'contract_address': bool(current_app.config.get('CONTRACT_ADDRESS')),
-        'signer_private_key': bool(current_app.config.get('SIGNER_PRIVATE_KEY'))
-    }
-    
-    # جمع معلومات مفصلة حول النظام
-    system_info = {
-        'memory': {
-            'total': round(psutil.virtual_memory().total / (1024**3), 2),  # GB
-            'available': round(psutil.virtual_memory().available / (1024**3), 2),  # GB
-            'percent': psutil.virtual_memory().percent
-        },
-        'cpu': {
-            'percent': psutil.cpu_percent(interval=0.5),
-            'cores': psutil.cpu_count()
-        },
-        'disk': {
-            'total': round(psutil.disk_usage('/').total / (1024**3), 2),  # GB
-            'free': round(psutil.disk_usage('/').free / (1024**3), 2),  # GB
-            'percent': psutil.disk_usage('/').percent
-        },
-        'process': {
-            'pid': os.getpid(),
-            'memory_percent': psutil.Process(os.getpid()).memory_percent(),
-            'cpu_percent': psutil.Process(os.getpid()).cpu_percent(interval=0.5)
-        },
-        'uptime': datetime.datetime.now().isoformat()
-    }
-    
-    return jsonify(
-        status="ok",
-        message="تفاصيل صحة النظام",
-        database=db_status,
-        external_services=external_services,
-        system=system_info,
-        application={
-            'debug': current_app.debug,
-            'environment': current_app.config.get('FLASK_ENV', 'غير محدد')
+        
+        evaluation_stats = {
+            'total': Evaluation.query.count(),
+            'verified': Evaluation.query.filter_by(is_verified=True).count(),
+            'new_last_week': Evaluation.query.filter(Evaluation.created_at >= date_limit).count()
         }
-    ), 200
+        
+        # معلومات النظام الحالية
+        current_system_info = {
+            'cpu_percent': psutil.cpu_percent(),
+            'memory_percent': psutil.virtual_memory().percent,
+            'disk_percent': psutil.disk_usage('/').percent,
+            'up_time': get_uptime()
+        }
+        
+        # إرجاع المقاييس المفصلة
+        return jsonify({
+            'status': 'success',
+            'current': {
+                'system': current_system_info,
+                'metrics': latest_metrics,
+                'users': user_stats,
+                'evaluations': evaluation_stats
+            },
+            'history': {
+                'weekly_metrics': [metric.to_dict() for metric in weekly_metrics]
+            }
+        }), 200
+    except Exception as e:
+        logging.error(f"خطأ في الحصول على مقاييس النظام المفصلة: {str(e)}")
+        
+        return jsonify({
+            'status': 'error',
+            'message': 'حدث خطأ أثناء الحصول على مقاييس النظام المفصلة'
+        }), 500
+
+def get_uptime():
+    """
+    الحصول على مدة تشغيل النظام
+    """
+    try:
+        # الحصول على وقت بدء تشغيل النظام
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        uptime = datetime.now() - boot_time
+        
+        # تنسيق مدة التشغيل
+        days = uptime.days
+        hours, remainder = divmod(uptime.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        
+        return f"{days}d {hours}h {minutes}m {seconds}s"
+    except Exception as e:
+        logging.error(f"خطأ في الحصول على مدة تشغيل النظام: {str(e)}")
+        return "غير معروف"

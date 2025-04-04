@@ -2,23 +2,19 @@
 نقطة الدخول الرئيسية لتطبيق نظام تقييم BTEC
 يقوم بتشغيل التطبيق على المنفذ 3000
 """
-
 import os
-from dotenv import load_dotenv
 import logging
+from dotenv import load_dotenv
+
 from app import create_app
 
-# تهيئة السجل
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# تحميل المتغيرات البيئية
+# تحميل متغيرات البيئة من ملف .env
 load_dotenv()
 
-# إنشاء وتهيئة التطبيق
-app = create_app()
+# إنشاء تطبيق Flask
+app = create_app(os.getenv('FLASK_ENV', 'development'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
-    logger.info(f"Starting BTEC Evaluation System on port {port}...")
+    # تشغيل التطبيق
+    port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
