@@ -1,8 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="6" fill="#1E3A8A"/>
-  <path d="M24 10V8H8V10H24Z" fill="#F59E0B"/>
-  <path d="M24 14V12H8V14H24Z" fill="#F59E0B"/>
-  <path d="M24 18V16H8V18H24Z" fill="#F59E0B"/>
-  <path d="M24 22V20H8V22H16L20 26V22H24Z" fill="#F59E0B"/>
-  <circle cx="19" cy="8" r="6" fill="#10B981" fillOpacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <circle cx="16" cy="16" r="15" fill="#3498db" />
+  <circle cx="16" cy="16" r="12" fill="#2c3e50" />
+  <circle cx="16" cy="16" r="9" fill="#3498db" />
+  <g fill="#fff">
+    <text x="9" y="14" font-family="Arial, sans-serif" font-size="5" font-weight="bold">B</text>
+    <text x="17" y="14" font-family="Arial, sans-serif" font-size="5" font-weight="bold">T</text>
+    <text x="10" y="20" font-family="Arial, sans-serif" font-size="5" font-weight="bold">ت</text>
+    <path d="M10 22 L22 22 L20 20 L12 20 Z" />
+  </g>
 </svg>
