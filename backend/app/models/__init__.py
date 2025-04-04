@@ -2,8 +2,7 @@
 نماذج قاعدة البيانات لنظام تقييم BTEC
 """
 
-# استيراد نماذج الحضور
-from .attendance import Student, Session, Attendance
+# استيراد مباشر للنماذج
+from .models import User, Evaluation, RubricTemplate, SystemMetrics 
 
-# تصدير النماذج للوحدات الأخرى
-__all__ = ['Student', 'Session', 'Attendance']
+__all__ = ['User', 'Evaluation', 'RubricTemplate', 'SystemMetrics']
