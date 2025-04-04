@@ -1,542 +1,797 @@
 """
-مسارات عمليات التقييم
+مسارات التقييم في نظام تقييم BTEC
 """
-import datetime
 import json
 import logging
-from functools import wraps
+from datetime import datetime
 
-from flask import Blueprint, current_app, g, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from app import db, cache, limiter
-from app.core.ai_evaluator import AIEvaluator
-from app.core.blockchain_verifier import BlockchainVerifier
-from app.core.security import sanitize_input, token_required
-from app.database import log_audit, update_metrics
-from app.models.evaluation import Evaluation
+from app import db
+from app.models.evaluation import Evaluation, Course, Task
 from app.models.rubric import RubricTemplate
 from app.models.user import User
+from app.core.ai_evaluator import AIEvaluator, AIEvaluatorArabic
+from app.core.blockchain_verifier import BlockchainVerifier, blockchain_required
+from app.routes.auth import admin_required, instructor_required
 
-# إعداد المسارات
-evaluation_bp = Blueprint('evaluation', __name__)
 logger = logging.getLogger(__name__)
 
-# إنشاء مثيلات من الفئات المستخدمة
-ai_evaluator = AIEvaluator()
-blockchain_verifier = BlockchainVerifier()
+# إنشاء blueprint للتقييم
+evaluation_bp = Blueprint('evaluation', __name__)
 
-# إعداد محدد الطلبات
-evaluation_limiter = limiter.shared_limit(
-    "5 per minute, 20 per hour", 
-    scope="evaluation"
-)
-
-@evaluation_bp.route('/submit', methods=['POST'])
+# مسارات التقييم
+@evaluation_bp.route('/', methods=['POST'])
 @jwt_required()
-@evaluation_limiter
-def submit_task():
+def create_evaluation():
     """
-    تقديم مهمة للتقييم
-    
-    طريقة الطلب: POST
-    المسار: /api/evaluations/submit
-    الرأس المطلوب:
-        - Authorization: Bearer <access_token>
-    الحقول المطلوبة:
-        - task_text: نص المهمة
-        - submission_id: معرف التقديم
-    الحقول الاختيارية:
-        - rubric_id: معرف قالب معايير التقييم
+    إنشاء تقييم جديد
     """
     try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify(
+                status='error',
+                message='المستخدم غير موجود'
+            ), 404
+        
+        # التحقق من أن المستخدم مدرس أو مسؤول
+        if not (user.is_instructor() or user.is_admin()):
+            return jsonify(
+                status='error',
+                message='يجب أن تكون مدرسًا أو مسؤولاً لإنشاء تقييم'
+            ), 403
+        
         data = request.get_json()
         
-        # التحقق من وجود البيانات المطلوبة
-        if not data or not data.get('task_text') or not data.get('submission_id'):
-            return jsonify({
-                'status': 'error',
-                'message': 'نص المهمة ومعرف التقديم مطلوبان'
-            }), 400
+        # التحقق من البيانات
+        required_fields = ['title', 'task_description', 'submission_text', 'student_id']
+        for field in required_fields:
+            if field not in data:
+                return jsonify(
+                    status='error',
+                    message=f'الحقل {field} مطلوب'
+                ), 400
         
-        # تنظيف المدخلات
-        task_text = sanitize_input(data.get('task_text'))
-        submission_id = sanitize_input(data.get('submission_id'))
-        rubric_id = data.get('rubric_id')
+        # التحقق من وجود الطالب
+        student_id = data.get('student_id')
+        student = User.query.get(student_id)
         
-        # التحقق من طول نص المهمة
-        if len(task_text) < 10:
-            return jsonify({
-                'status': 'error',
-                'message': 'نص المهمة قصير جدًا'
-            }), 400
+        if not student:
+            return jsonify(
+                status='error',
+                message='الطالب غير موجود'
+            ), 404
         
-        # الحصول على معرف المستخدم الحالي
-        user_id = get_jwt_identity()
+        # إنشاء التقييم
+        evaluation = Evaluation()
+        evaluation.title = data.get('title')
+        evaluation.description = data.get('description')
+        evaluation.task_description = data.get('task_description')
+        evaluation.submission_text = data.get('submission_text')
+        evaluation.evaluator_id = user_id
+        evaluation.student_id = student_id
         
-        # الحصول على قالب معايير التقييم
-        rubric = None
-        if rubric_id:
-            rubric = RubricTemplate.get_by_id(rubric_id)
+        # إذا تم توفير معيار تقييم
+        if 'rubric_id' in data and data.get('rubric_id'):
+            rubric_id = data.get('rubric_id')
+            rubric = RubricTemplate.query.get(rubric_id)
+            
             if not rubric:
-                # استخدام القالب الافتراضي إذا لم يتم العثور على القالب المطلوب
-                rubric = RubricTemplate.get_default_template()
-        else:
-            # استخدام القالب الافتراضي
-            rubric = RubricTemplate.get_default_template()
+                return jsonify(
+                    status='error',
+                    message='معيار التقييم غير موجود'
+                ), 404
+            
+            evaluation.rubric_id = rubric_id
         
-        # تحويل Rubric إلى قاموس
-        rubric_dict = None
-        if rubric:
-            rubric_dict = rubric.to_dict()
+        # إذا تم توفير المساق
+        if 'course_id' in data and data.get('course_id'):
+            course_id = data.get('course_id')
+            course = Course.query.get(course_id)
+            
+            if not course:
+                return jsonify(
+                    status='error',
+                    message='المساق غير موجود'
+                ), 404
+            
+            evaluation.course_id = course_id
         
-        # تقييم المهمة باستخدام AI
-        eval_start_time = datetime.datetime.now()
-        evaluation_result = ai_evaluator.evaluate_task(task_text, rubric_dict)
-        eval_end_time = datetime.datetime.now()
-        eval_duration = (eval_end_time - eval_start_time).total_seconds()
+        # إذا تم توفير وسائط متعددة
+        if 'media_files' in data and data.get('media_files'):
+            evaluation.media_files = data.get('media_files')
         
-        # إنشاء كائن تقييم جديد
-        new_evaluation = Evaluation()
-        new_evaluation.user_id = user_id
-        new_evaluation.submission_id = submission_id
-        new_evaluation.task_text = task_text
-        new_evaluation.grade = evaluation_result.get('grade')
-        new_evaluation.grade_numeric = evaluation_result.get('grade_numeric')
-        new_evaluation.feedback = evaluation_result.get('feedback')
+        # إذا تم طلب التقييم التلقائي
+        if data.get('auto_evaluate', False):
+            # استخدام الذكاء الاصطناعي للتقييم
+            ai_evaluator = AIEvaluatorArabic()  # استخدام مقيّم اللغة العربية
+            
+            rubric = None
+            if evaluation.rubric_id:
+                rubric_template = RubricTemplate.query.get(evaluation.rubric_id)
+                if rubric_template:
+                    rubric = rubric_template.get_criteria()
+            
+            # إجراء التقييم
+            evaluation_result = ai_evaluator.evaluate_task(
+                evaluation.task_description,
+                evaluation.submission_text,
+                rubric=rubric,
+                output_format='json'
+            )
+            
+            if evaluation_result.get('success', False):
+                evaluation.grade = evaluation_result.get('grade')
+                evaluation.feedback = evaluation_result.get('feedback')
+                
+                # إذا تم توفير درجات لكل معيار
+                if 'criteria_grades' in evaluation_result:
+                    evaluation.criteria = {
+                        'criteria_grades': evaluation_result.get('criteria_grades'),
+                        'raw_response': evaluation_result.get('raw_response')
+                    }
+                
+                evaluation.status = 'completed'
+                evaluation.completed_at = datetime.utcnow()
+            else:
+                logger.error(f"خطأ في التقييم التلقائي: {evaluation_result.get('error')}")
         
-        # تعيين قوائم ودرجات معايير التقييم
-        new_evaluation.set_strengths(evaluation_result.get('strengths', []))
-        new_evaluation.set_areas_for_improvement(evaluation_result.get('areas_for_improvement', []))
-        new_evaluation.set_criteria_scores(evaluation_result.get('criteria_scores', {}))
-        
-        # حفظ التقييم في قاعدة البيانات
-        db.session.add(new_evaluation)
+        # حفظ التقييم
+        db.session.add(evaluation)
         db.session.commit()
         
-        # تسجيل الحدث
-        log_audit(
-            event_type="task_evaluation",
-            user=str(user_id),
-            details={
-                "evaluation_id": new_evaluation.id,
-                "submission_id": submission_id,
-                "duration": eval_duration,
-                "grade": new_evaluation.grade
-            }
-        )
-        
-        # تحديث المقاييس
-        update_metrics(
-            evaluation=True,
-            response_time=eval_duration
-        )
-        
-        # إرجاع النتيجة
-        evaluation_dict = new_evaluation.to_dict()
-        evaluation_dict['processing_time'] = evaluation_result.get('processing_time')
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'تم تقييم المهمة بنجاح',
-            'evaluation': evaluation_dict
-        }), 201
-        
+        return jsonify(
+            status='success',
+            message='تم إنشاء التقييم بنجاح',
+            evaluation=evaluation.to_dict()
+        ), 201
+    
     except Exception as e:
-        logger.error(f"Error in submit_task: {str(e)}")
+        logger.error(f"خطأ في إنشاء التقييم: {str(e)}")
         db.session.rollback()
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء إنشاء التقييم',
+            error=str(e)
+        ), 500
+
+@evaluation_bp.route('/', methods=['GET'])
+@jwt_required()
+def get_evaluations():
+    """
+    الحصول على قائمة التقييمات
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
         
-        # تسجيل الخطأ
-        log_audit(
-            event_type="task_evaluation_error",
-            user=str(get_jwt_identity()),
-            details=str(e)
-        )
+        if not user:
+            return jsonify(
+                status='error',
+                message='المستخدم غير موجود'
+            ), 404
         
-        # تحديث المقاييس
-        update_metrics(
-            evaluation=True,
-            error=True
-        )
+        # معلمات التصفح
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
         
-        return jsonify({
-            'status': 'error',
-            'message': 'حدث خطأ أثناء تقييم المهمة'
-        }), 500
+        # معلمات التصفية
+        filter_type = request.args.get('filter', 'all')  # all, evaluator, student
+        status = request.args.get('status')
+        course_id = request.args.get('course_id', type=int)
+        
+        # إعداد الاستعلام
+        query = Evaluation.query
+        
+        # تطبيق التصفية
+        if filter_type == 'evaluator':
+            query = query.filter_by(evaluator_id=user_id)
+        elif filter_type == 'student':
+            query = query.filter_by(student_id=user_id)
+        elif not (user.is_admin() or user.is_instructor()):
+            # إذا لم يكن المستخدم مسؤولاً أو مدرساً، فلا يمكنه الوصول إلا إلى تقييماته
+            query = query.filter((Evaluation.evaluator_id == user_id) | (Evaluation.student_id == user_id))
+        
+        # تصفية حسب الحالة
+        if status:
+            query = query.filter_by(status=status)
+        
+        # تصفية حسب المساق
+        if course_id:
+            query = query.filter_by(course_id=course_id)
+        
+        # ترتيب النتائج
+        query = query.order_by(Evaluation.created_at.desc())
+        
+        # تنفيذ الاستعلام مع التصفح
+        evaluations = query.paginate(page=page, per_page=per_page)
+        
+        return jsonify(
+            status='success',
+            evaluations=[evaluation.to_dict() for evaluation in evaluations.items],
+            total=evaluations.total,
+            pages=evaluations.pages,
+            page=page,
+            per_page=per_page
+        ), 200
+    
+    except Exception as e:
+        logger.error(f"خطأ في الحصول على قائمة التقييمات: {str(e)}")
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء الحصول على قائمة التقييمات',
+            error=str(e)
+        ), 500
 
 @evaluation_bp.route('/<int:evaluation_id>', methods=['GET'])
 @jwt_required()
 def get_evaluation(evaluation_id):
     """
-    الحصول على تفاصيل تقييم محدد
+    الحصول على تفاصيل تقييم
     
-    طريقة الطلب: GET
-    المسار: /api/evaluations/<evaluation_id>
-    الرأس المطلوب:
-        - Authorization: Bearer <access_token>
+    Args:
+        evaluation_id: معرف التقييم
     """
     try:
-        # الحصول على المستخدم الحالي
         user_id = get_jwt_identity()
-        user = User.get_by_id(user_id)
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify(
+                status='error',
+                message='المستخدم غير موجود'
+            ), 404
         
         # الحصول على التقييم
-        evaluation = Evaluation.get_by_id(evaluation_id)
+        evaluation = Evaluation.query.get(evaluation_id)
         
         if not evaluation:
-            return jsonify({
-                'status': 'error',
-                'message': 'التقييم غير موجود'
-            }), 404
+            return jsonify(
+                status='error',
+                message='التقييم غير موجود'
+            ), 404
         
-        # التحقق من الصلاحيات: المسؤولون يمكنهم رؤية جميع التقييمات،
-        # بينما يمكن للمستخدمين العاديين رؤية تقييماتهم فقط
-        if evaluation.user_id != user_id and not user.is_admin():
-            return jsonify({
-                'status': 'error',
-                'message': 'غير مصرح لك بالوصول إلى هذا التقييم'
-            }), 403
+        # التحقق من الصلاحيات
+        if not (user.is_admin() or user.is_instructor() or evaluation.evaluator_id == user_id or evaluation.student_id == user_id):
+            return jsonify(
+                status='error',
+                message='ليس لديك صلاحية للوصول إلى هذا التقييم'
+            ), 403
         
-        # إرجاع التقييم
-        return jsonify({
-            'status': 'success',
-            'evaluation': evaluation.to_dict()
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Error in get_evaluation: {str(e)}")
-        
-        return jsonify({
-            'status': 'error',
-            'message': 'حدث خطأ أثناء الحصول على التقييم'
-        }), 500
-
-@evaluation_bp.route('', methods=['GET'])
-@jwt_required()
-def get_user_evaluations():
-    """
-    الحصول على قائمة تقييمات المستخدم الحالي
+        return jsonify(
+            status='success',
+            evaluation=evaluation.to_dict()
+        ), 200
     
-    طريقة الطلب: GET
-    المسار: /api/evaluations
-    الرأس المطلوب:
-        - Authorization: Bearer <access_token>
-    معلمات الاستعلام الاختيارية:
-        - page: رقم الصفحة (الافتراضي: 1)
-        - per_page: عدد العناصر في الصفحة (الافتراضي: 10)
+    except Exception as e:
+        logger.error(f"خطأ في الحصول على تفاصيل التقييم: {str(e)}")
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء الحصول على تفاصيل التقييم',
+            error=str(e)
+        ), 500
+
+@evaluation_bp.route('/<int:evaluation_id>', methods=['PUT'])
+@jwt_required()
+def update_evaluation(evaluation_id):
+    """
+    تحديث تقييم
+    
+    Args:
+        evaluation_id: معرف التقييم
     """
     try:
-        # الحصول على المستخدم الحالي
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
         
-        # الحصول على معلمات الاستعلام
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
-        
-        # التحقق من صحة معلمات الاستعلام
-        if page < 1 or per_page < 1 or per_page > 100:
-            return jsonify({
-                'status': 'error',
-                'message': 'معلمات الاستعلام غير صالحة'
-            }), 400
-        
-        # الحصول على تقييمات المستخدم
-        evaluations, total = Evaluation.get_user_evaluations(user_id, page, per_page)
-        
-        # تحويل التقييمات إلى قواميس
-        evaluation_dicts = [evaluation.to_dict() for evaluation in evaluations]
-        
-        # إرجاع القائمة
-        return jsonify({
-            'status': 'success',
-            'evaluations': evaluation_dicts,
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': total,
-                'pages': (total + per_page - 1) // per_page
-            }
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Error in get_user_evaluations: {str(e)}")
-        
-        return jsonify({
-            'status': 'error',
-            'message': 'حدث خطأ أثناء الحصول على قائمة التقييمات'
-        }), 500
-
-@evaluation_bp.route('/<int:evaluation_id>/verify', methods=['POST'])
-@jwt_required()
-def verify_evaluation(evaluation_id):
-    """
-    التحقق من صحة تقييم
-    
-    طريقة الطلب: POST
-    المسار: /api/evaluations/<evaluation_id>/verify
-    الرأس المطلوب:
-        - Authorization: Bearer <access_token>
-    """
-    try:
-        # الحصول على المستخدم الحالي
-        user_id = get_jwt_identity()
-        user = User.get_by_id(user_id)
+        if not user:
+            return jsonify(
+                status='error',
+                message='المستخدم غير موجود'
+            ), 404
         
         # الحصول على التقييم
-        evaluation = Evaluation.get_by_id(evaluation_id)
+        evaluation = Evaluation.query.get(evaluation_id)
         
         if not evaluation:
-            return jsonify({
-                'status': 'error',
-                'message': 'التقييم غير موجود'
-            }), 404
+            return jsonify(
+                status='error',
+                message='التقييم غير موجود'
+            ), 404
         
-        # التحقق من الصلاحيات: المسؤولون والمعلمون يمكنهم التحقق من أي تقييم،
-        # بينما يمكن للمستخدمين العاديين التحقق من تقييماتهم فقط
-        if evaluation.user_id != user_id and not (user.is_admin() or user.is_teacher()):
-            return jsonify({
-                'status': 'error',
-                'message': 'غير مصرح لك بالتحقق من هذا التقييم'
-            }), 403
+        # التحقق من الصلاحيات (يجب أن يكون المقيّم أو مسؤول)
+        if not (user.is_admin() or evaluation.evaluator_id == user_id):
+            return jsonify(
+                status='error',
+                message='ليس لديك صلاحية لتحديث هذا التقييم'
+            ), 403
         
-        # التحقق من أن التقييم لم يتم التحقق منه بالفعل
-        if evaluation.verified:
-            return jsonify({
-                'status': 'error',
-                'message': 'تم التحقق من هذا التقييم بالفعل'
-            }), 400
+        data = request.get_json()
         
-        # التحقق من صحة التقييم باستخدام البلوكتشين
-        verification_result = blockchain_verifier.verify_evaluation(evaluation.to_dict())
+        # تحديث البيانات
+        if 'title' in data:
+            evaluation.title = data['title']
         
-        # تحديث التقييم
-        evaluation.verified = verification_result.get('verified', False)
-        evaluation.set_verification_data(verification_result)
+        if 'description' in data:
+            evaluation.description = data['description']
+        
+        if 'task_description' in data:
+            evaluation.task_description = data['task_description']
+        
+        if 'submission_text' in data:
+            evaluation.submission_text = data['submission_text']
+        
+        if 'grade' in data:
+            evaluation.grade = data['grade']
+        
+        if 'status' in data:
+            evaluation.status = data['status']
+            
+            # إذا تم تغيير الحالة إلى "مكتمل"، قم بتحديث وقت الإكمال
+            if evaluation.status == 'completed' and not evaluation.completed_at:
+                evaluation.completed_at = datetime.utcnow()
+        
+        if 'feedback' in data:
+            evaluation.feedback = data['feedback']
+        
+        if 'criteria' in data:
+            evaluation.criteria = data['criteria']
+        
+        if 'rubric_id' in data:
+            evaluation.rubric_id = data['rubric_id']
+        
+        if 'course_id' in data:
+            evaluation.course_id = data['course_id']
+        
+        if 'media_files' in data:
+            evaluation.media_files = data['media_files']
+        
+        # إذا تم طلب التقييم التلقائي
+        if data.get('auto_evaluate', False):
+            # استخدام الذكاء الاصطناعي للتقييم
+            ai_evaluator = AIEvaluatorArabic()  # استخدام مقيّم اللغة العربية
+            
+            rubric = None
+            if evaluation.rubric_id:
+                rubric_template = RubricTemplate.query.get(evaluation.rubric_id)
+                if rubric_template:
+                    rubric = rubric_template.get_criteria()
+            
+            # إجراء التقييم
+            evaluation_result = ai_evaluator.evaluate_task(
+                evaluation.task_description,
+                evaluation.submission_text,
+                rubric=rubric,
+                output_format='json'
+            )
+            
+            if evaluation_result.get('success', False):
+                evaluation.grade = evaluation_result.get('grade')
+                evaluation.feedback = evaluation_result.get('feedback')
+                
+                # إذا تم توفير درجات لكل معيار
+                if 'criteria_grades' in evaluation_result:
+                    evaluation.criteria = {
+                        'criteria_grades': evaluation_result.get('criteria_grades'),
+                        'raw_response': evaluation_result.get('raw_response')
+                    }
+                
+                evaluation.status = 'completed'
+                evaluation.completed_at = datetime.utcnow()
+            else:
+                logger.error(f"خطأ في التقييم التلقائي: {evaluation_result.get('error')}")
         
         # حفظ التغييرات
         db.session.commit()
         
-        # تسجيل الحدث
-        log_audit(
-            event_type="evaluation_verification",
-            user=str(user_id),
-            details={
-                "evaluation_id": evaluation.id,
-                "submission_id": evaluation.submission_id,
-                "verified": evaluation.verified,
-                "verification_data": verification_result
-            }
-        )
-        
-        # تحديث المقاييس
-        update_metrics(blockchain=True)
-        
-        # إرجاع النتيجة
-        return jsonify({
-            'status': 'success',
-            'message': 'تم التحقق من التقييم بنجاح',
-            'verification': verification_result
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Error in verify_evaluation: {str(e)}")
-        db.session.rollback()
-        
-        # تسجيل الخطأ
-        log_audit(
-            event_type="evaluation_verification_error",
-            user=str(get_jwt_identity()),
-            details=str(e)
-        )
-        
-        # تحديث المقاييس
-        update_metrics(blockchain=True, error=True)
-        
-        return jsonify({
-            'status': 'error',
-            'message': 'حدث خطأ أثناء التحقق من التقييم'
-        }), 500
-
-@evaluation_bp.route('/rubrics', methods=['GET'])
-@jwt_required()
-def get_rubric_templates():
-    """
-    الحصول على قائمة قوالب معايير التقييم
+        return jsonify(
+            status='success',
+            message='تم تحديث التقييم بنجاح',
+            evaluation=evaluation.to_dict()
+        ), 200
     
-    طريقة الطلب: GET
-    المسار: /api/evaluations/rubrics
-    الرأس المطلوب:
-        - Authorization: Bearer <access_token>
-    معلمات الاستعلام الاختيارية:
-        - page: رقم الصفحة (الافتراضي: 1)
-        - per_page: عدد العناصر في الصفحة (الافتراضي: 10)
+    except Exception as e:
+        logger.error(f"خطأ في تحديث التقييم: {str(e)}")
+        db.session.rollback()
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء تحديث التقييم',
+            error=str(e)
+        ), 500
+
+@evaluation_bp.route('/<int:evaluation_id>', methods=['DELETE'])
+@jwt_required()
+def delete_evaluation(evaluation_id):
+    """
+    حذف تقييم
+    
+    Args:
+        evaluation_id: معرف التقييم
     """
     try:
-        # الحصول على معلمات الاستعلام
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify(
+                status='error',
+                message='المستخدم غير موجود'
+            ), 404
+        
+        # الحصول على التقييم
+        evaluation = Evaluation.query.get(evaluation_id)
+        
+        if not evaluation:
+            return jsonify(
+                status='error',
+                message='التقييم غير موجود'
+            ), 404
+        
+        # التحقق من الصلاحيات (يجب أن يكون المقيّم أو مسؤول)
+        if not (user.is_admin() or evaluation.evaluator_id == user_id):
+            return jsonify(
+                status='error',
+                message='ليس لديك صلاحية لحذف هذا التقييم'
+            ), 403
+        
+        # حذف التقييم
+        db.session.delete(evaluation)
+        db.session.commit()
+        
+        return jsonify(
+            status='success',
+            message='تم حذف التقييم بنجاح'
+        ), 200
+    
+    except Exception as e:
+        logger.error(f"خطأ في حذف التقييم: {str(e)}")
+        db.session.rollback()
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء حذف التقييم',
+            error=str(e)
+        ), 500
+
+@evaluation_bp.route('/<int:evaluation_id>/verify', methods=['POST'])
+@jwt_required()
+@blockchain_required
+def verify_evaluation(evaluation_id):
+    """
+    التحقق من صحة تقييم باستخدام البلوكتشين
+    
+    Args:
+        evaluation_id: معرف التقييم
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify(
+                status='error',
+                message='المستخدم غير موجود'
+            ), 404
+        
+        # الحصول على التقييم
+        evaluation = Evaluation.query.get(evaluation_id)
+        
+        if not evaluation:
+            return jsonify(
+                status='error',
+                message='التقييم غير موجود'
+            ), 404
+        
+        # التحقق من اكتمال التقييم
+        if evaluation.status != 'completed':
+            return jsonify(
+                status='error',
+                message='يجب أن يكون التقييم مكتملاً للتحقق منه'
+            ), 400
+        
+        # التحقق من الصلاحيات (يجب أن يكون المقيّم أو مسؤول)
+        if not (user.is_admin() or user.is_instructor() or evaluation.evaluator_id == user_id):
+            return jsonify(
+                status='error',
+                message='ليس لديك صلاحية للتحقق من هذا التقييم'
+            ), 403
+        
+        # إنشاء متحقق البلوكتشين
+        verifier = BlockchainVerifier()
+        
+        # التحقق من صحة التقييم
+        result = verifier.verify_evaluation(evaluation.to_dict())
+        
+        if result.get('verified', False):
+            # تحديث بيانات التحقق
+            evaluation.set_verification_data(result)
+            
+            return jsonify(
+                status='success',
+                message='تم التحقق من صحة التقييم بنجاح',
+                verification=result
+            ), 200
+        else:
+            # إذا لم يتم التحقق، قم بتخزين التقييم في البلوكتشين
+            store_result = verifier.store_evaluation(evaluation.to_dict())
+            
+            if store_result.get('success', False):
+                # تحديث بيانات التحقق
+                evaluation.set_verification_data(store_result)
+                
+                return jsonify(
+                    status='success',
+                    message='تم تخزين التقييم في البلوكتشين بنجاح',
+                    verification=store_result
+                ), 200
+            else:
+                return jsonify(
+                    status='error',
+                    message='فشل تخزين التقييم في البلوكتشين',
+                    error=store_result.get('error')
+                ), 500
+    
+    except Exception as e:
+        logger.error(f"خطأ في التحقق من صحة التقييم: {str(e)}")
+        db.session.rollback()
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء التحقق من صحة التقييم',
+            error=str(e)
+        ), 500
+
+@evaluation_bp.route('/ai-evaluate', methods=['POST'])
+@jwt_required()
+def ai_evaluate():
+    """
+    تقييم نص باستخدام الذكاء الاصطناعي
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify(
+                status='error',
+                message='المستخدم غير موجود'
+            ), 404
+        
+        # التحقق من أن المستخدم مدرس أو مسؤول
+        if not (user.is_instructor() or user.is_admin()):
+            return jsonify(
+                status='error',
+                message='يجب أن تكون مدرسًا أو مسؤولاً لاستخدام هذه الميزة'
+            ), 403
+        
+        data = request.get_json()
+        
+        # التحقق من البيانات
+        if not data or not data.get('task_description') or not data.get('submission_text'):
+            return jsonify(
+                status='error',
+                message='وصف المهمة ونص التقديم مطلوبان'
+            ), 400
+        
+        task_description = data.get('task_description')
+        submission_text = data.get('submission_text')
+        output_format = data.get('output_format', 'json')
+        
+        # إعداد الروبريك إذا تم توفيره
+        rubric = None
+        if 'rubric_id' in data and data.get('rubric_id'):
+            rubric_id = data.get('rubric_id')
+            rubric_template = RubricTemplate.query.get(rubric_id)
+            
+            if rubric_template:
+                rubric = rubric_template.get_criteria()
+        elif 'rubric' in data and data.get('rubric'):
+            rubric = data.get('rubric')
+        
+        # استخدام مقيّم الذكاء الاصطناعي
+        ai_evaluator = AIEvaluatorArabic()  # استخدام مقيّم اللغة العربية
+        
+        # إجراء التقييم
+        evaluation_result = ai_evaluator.evaluate_task(
+            task_description,
+            submission_text,
+            rubric=rubric,
+            output_format=output_format
+        )
+        
+        if evaluation_result.get('success', False):
+            return jsonify(
+                status='success',
+                evaluation=evaluation_result
+            ), 200
+        else:
+            return jsonify(
+                status='error',
+                message='فشل التقييم التلقائي',
+                error=evaluation_result.get('error')
+            ), 500
+    
+    except Exception as e:
+        logger.error(f"خطأ في التقييم التلقائي: {str(e)}")
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء التقييم التلقائي',
+            error=str(e)
+        ), 500
+
+# مسارات المساقات
+@evaluation_bp.route('/courses', methods=['GET'])
+@jwt_required()
+def get_courses():
+    """
+    الحصول على قائمة المساقات
+    """
+    try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
-        # التحقق من صحة معلمات الاستعلام
-        if page < 1 or per_page < 1 or per_page > 100:
-            return jsonify({
-                'status': 'error',
-                'message': 'معلمات الاستعلام غير صالحة'
-            }), 400
+        # إعداد الاستعلام
+        query = Course.query
         
-        # الحصول على قوالب معايير التقييم
-        templates, total = RubricTemplate.get_all_templates(page, per_page)
+        # تنفيذ الاستعلام مع التصفح
+        courses = query.paginate(page=page, per_page=per_page)
         
-        # تحويل القوالب إلى قواميس
-        template_dicts = [template.to_dict() for template in templates]
-        
-        # إرجاع القائمة
-        return jsonify({
-            'status': 'success',
-            'rubrics': template_dicts,
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': total,
-                'pages': (total + per_page - 1) // per_page
-            }
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Error in get_rubric_templates: {str(e)}")
-        
-        return jsonify({
-            'status': 'error',
-            'message': 'حدث خطأ أثناء الحصول على قائمة قوالب معايير التقييم'
-        }), 500
-
-@evaluation_bp.route('/rubrics/<int:rubric_id>', methods=['GET'])
-@jwt_required()
-def get_rubric_template(rubric_id):
-    """
-    الحصول على تفاصيل قالب معايير تقييم محدد
+        return jsonify(
+            status='success',
+            courses=[course.to_dict() for course in courses.items],
+            total=courses.total,
+            pages=courses.pages,
+            page=page,
+            per_page=per_page
+        ), 200
     
-    طريقة الطلب: GET
-    المسار: /api/evaluations/rubrics/<rubric_id>
-    الرأس المطلوب:
-        - Authorization: Bearer <access_token>
+    except Exception as e:
+        logger.error(f"خطأ في الحصول على قائمة المساقات: {str(e)}")
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء الحصول على قائمة المساقات',
+            error=str(e)
+        ), 500
+
+@evaluation_bp.route('/courses', methods=['POST'])
+@jwt_required()
+@instructor_required
+def create_course():
+    """
+    إنشاء مساق جديد
     """
     try:
-        # الحصول على قالب معايير التقييم
-        template = RubricTemplate.get_by_id(rubric_id)
+        user_id = get_jwt_identity()
         
-        if not template:
-            return jsonify({
-                'status': 'error',
-                'message': 'قالب معايير التقييم غير موجود'
-            }), 404
+        data = request.get_json()
         
-        # إرجاع القالب
-        return jsonify({
-            'status': 'success',
-            'rubric': template.to_dict()
-        }), 200
+        # التحقق من البيانات
+        required_fields = ['code', 'name']
+        for field in required_fields:
+            if field not in data:
+                return jsonify(
+                    status='error',
+                    message=f'الحقل {field} مطلوب'
+                ), 400
         
+        # التحقق من أن رمز المساق غير مستخدم
+        if Course.query.filter_by(code=data.get('code')).first():
+            return jsonify(
+                status='error',
+                message='رمز المساق مستخدم بالفعل'
+            ), 400
+        
+        # إنشاء المساق
+        course = Course()
+        course.code = data.get('code')
+        course.name = data.get('name')
+        course.description = data.get('description')
+        course.institution = data.get('institution')
+        course.level = data.get('level')
+        course.credits = data.get('credits')
+        course.instructor_id = user_id
+        
+        # حفظ المساق
+        db.session.add(course)
+        db.session.commit()
+        
+        return jsonify(
+            status='success',
+            message='تم إنشاء المساق بنجاح',
+            course=course.to_dict()
+        ), 201
+    
     except Exception as e:
-        logger.error(f"Error in get_rubric_template: {str(e)}")
+        logger.error(f"خطأ في إنشاء المساق: {str(e)}")
+        db.session.rollback()
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء إنشاء المساق',
+            error=str(e)
+        ), 500
+
+# مسارات معايير التقييم
+@evaluation_bp.route('/rubrics', methods=['GET'])
+@jwt_required()
+def get_rubrics():
+    """
+    الحصول على قائمة معايير التقييم
+    """
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
         
-        return jsonify({
-            'status': 'error',
-            'message': 'حدث خطأ أثناء الحصول على قالب معايير التقييم'
-        }), 500
+        # إعداد الاستعلام
+        query = RubricTemplate.query
+        
+        # تنفيذ الاستعلام مع التصفح
+        rubrics = query.paginate(page=page, per_page=per_page)
+        
+        return jsonify(
+            status='success',
+            rubrics=[rubric.to_dict() for rubric in rubrics.items],
+            total=rubrics.total,
+            pages=rubrics.pages,
+            page=page,
+            per_page=per_page
+        ), 200
+    
+    except Exception as e:
+        logger.error(f"خطأ في الحصول على قائمة معايير التقييم: {str(e)}")
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء الحصول على قائمة معايير التقييم',
+            error=str(e)
+        ), 500
 
 @evaluation_bp.route('/rubrics', methods=['POST'])
 @jwt_required()
-@token_required(allowed_roles=['admin', 'teacher'])
-def create_rubric_template():
+@instructor_required
+def create_rubric():
     """
-    إنشاء قالب معايير تقييم جديد
-    مسار محمي - يمكن للمسؤولين والمعلمين فقط إنشاء قوالب معايير تقييم
-    
-    طريقة الطلب: POST
-    المسار: /api/evaluations/rubrics
-    الرأس المطلوب:
-        - Authorization: Bearer <access_token>
-    الحقول المطلوبة:
-        - name: اسم القالب
-        - criteria: معايير التقييم (مصفوفة)
-    الحقول الاختيارية:
-        - description: وصف القالب
-        - is_default: ما إذا كان القالب افتراضيًا
+    إنشاء معيار تقييم جديد
     """
     try:
-        data = request.get_json()
-        
-        # التحقق من وجود البيانات المطلوبة
-        if not data or not data.get('name') or not data.get('criteria'):
-            return jsonify({
-                'status': 'error',
-                'message': 'اسم القالب ومعايير التقييم مطلوبة'
-            }), 400
-        
-        # تنظيف المدخلات
-        name = sanitize_input(data.get('name'))
-        description = sanitize_input(data.get('description', ''))
-        criteria = data.get('criteria')
-        is_default = data.get('is_default', False)
-        
-        # التحقق من أن معايير التقييم هي مصفوفة
-        if not isinstance(criteria, list):
-            return jsonify({
-                'status': 'error',
-                'message': 'معايير التقييم يجب أن تكون مصفوفة'
-            }), 400
-        
-        # الحصول على المستخدم الحالي
         user_id = get_jwt_identity()
         
-        # إنشاء قالب معايير تقييم جديد
-        new_template = RubricTemplate()
-        new_template.name = name
-        new_template.description = description
-        new_template.set_criteria(criteria)
-        new_template.created_by = user_id
-        new_template.is_default = is_default
+        data = request.get_json()
         
-        # إذا كان القالب افتراضيًا، جعل جميع القوالب الأخرى غير افتراضية
-        if is_default:
-            default_templates = RubricTemplate.query.filter_by(is_default=True).all()
-            for template in default_templates:
-                template.is_default = False
+        # التحقق من البيانات
+        required_fields = ['name', 'criteria']
+        for field in required_fields:
+            if field not in data:
+                return jsonify(
+                    status='error',
+                    message=f'الحقل {field} مطلوب'
+                ), 400
         
-        # حفظ القالب في قاعدة البيانات
-        db.session.add(new_template)
+        # إنشاء معيار التقييم
+        rubric = RubricTemplate()
+        rubric.name = data.get('name')
+        rubric.description = data.get('description')
+        rubric.user_id = user_id
+        
+        # إعداد معايير التقييم
+        criteria = data.get('criteria')
+        rubric.set_criteria(criteria)
+        
+        # حفظ معيار التقييم
+        db.session.add(rubric)
         db.session.commit()
         
-        # تسجيل الحدث
-        log_audit(
-            event_type="rubric_template_created",
-            user=str(user_id),
-            details={
-                "template_id": new_template.id,
-                "name": name,
-                "is_default": is_default
-            }
-        )
-        
-        # إرجاع القالب
-        return jsonify({
-            'status': 'success',
-            'message': 'تم إنشاء قالب معايير التقييم بنجاح',
-            'rubric': new_template.to_dict()
-        }), 201
-        
+        return jsonify(
+            status='success',
+            message='تم إنشاء معيار التقييم بنجاح',
+            rubric=rubric.to_dict()
+        ), 201
+    
     except Exception as e:
-        logger.error(f"Error in create_rubric_template: {str(e)}")
+        logger.error(f"خطأ في إنشاء معيار التقييم: {str(e)}")
         db.session.rollback()
-        
-        # تسجيل الخطأ
-        log_audit(
-            event_type="rubric_template_create_error",
-            user=str(get_jwt_identity()),
-            details=str(e)
-        )
-        
-        return jsonify({
-            'status': 'error',
-            'message': 'حدث خطأ أثناء إنشاء قالب معايير التقييم'
-        }), 500
+        return jsonify(
+            status='error',
+            message='حدث خطأ أثناء إنشاء معيار التقييم',
+            error=str(e)
+        ), 500

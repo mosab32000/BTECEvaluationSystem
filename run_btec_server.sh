@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# نص ملف تشغيل نظام تقييم BTEC
-echo "بدء تشغيل نظام تقييم BTEC..."
-
 # إعداد متغيرات البيئة
 export FLASK_APP=app.py
-export FLASK_ENV=development
-export FLASK_DEBUG=True
+export FLASK_ENV=production
 
-# تشغيل التطبيق
-echo "تشغيل الخادم على http://0.0.0.0:5000"
-python run.py
+# إنشاء قاعدة البيانات والجداول إذا لم تكن موجودة
+echo "تهيئة قاعدة البيانات..."
+python init_db.py
+
+# تشغيل الخادم باستخدام Gunicorn للحصول على أداء أفضل وتشغيل مستمر
+echo "تشغيل خادم التطبيق باستخدام Gunicorn..."
+gunicorn -c gunicorn_config.py "app:create_app()"

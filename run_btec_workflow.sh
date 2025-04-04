@@ -1,15 +1,13 @@
 #!/bin/bash
+# سكريبت لتشغيل نظام تقييم BTEC بواسطة workflow
 
-# نص ملف تشغيل workflow لنظام تقييم BTEC
-echo "بدء تشغيل workflow لنظام تقييم BTEC..."
-
-# إعداد متغيرات البيئة
+# تعيين المتغيرات
 export FLASK_APP=app.py
-export FLASK_ENV=development
-export FLASK_DEBUG=True
-export HOST=0.0.0.0
-export PORT=5000
+export FLASK_ENV=production
+export FLASK_DEBUG=0
 
-# تشغيل التطبيق
-echo "تشغيل الخادم على http://0.0.0.0:5000"
+echo "تهيئة قاعدة البيانات..."
+python init_db.py
+
+echo "تشغيل خادم التطبيق..."
 python run.py
