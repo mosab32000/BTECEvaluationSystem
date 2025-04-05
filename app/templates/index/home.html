@@ -1,0 +1,520 @@
+{% extends 'base.html' %}
+
+{% block title %}الرئيسية - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <h1 class="display-4">مرحباً بك في نظام تقييم BTEC</h1>
+        <p class="lead">منصة متكاملة لتقييم مهام BTEC باستخدام الذكاء الاصطناعي وتقنية البلوكتشين</p>
+        
+        {% if not session.get('user_id') %}
+            <div class="mt-4">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-user-plus ms-1"></i> إنشاء حساب جديد
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt ms-1"></i> تسجيل الدخول
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if session.get('user_id') %}
+    <div class="row mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="circle-icon bg-primary mb-3">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                    <h3>التقييمات</h3>
+                    <p>إنشاء وتقديم تقييمات جديدة لمهام BTEC واستعراض التقييمات السابقة.</p>
+                    <a href="{{ url_for('evaluation.index') }}" class="btn btn-primary mt-3">
+                        <i class="fas fa-arrow-circle-right ms-1"></i> استعراض التقييمات
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="circle-icon bg-success mb-3">
+                        <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                    </div>
+                    <h3>الفصول الدراسية</h3>
+                    <p>إدارة الفصول الدراسية، تنظيم الطلاب، وتتبع الحضور والمشاركة.</p>
+                    <a href="{{ url_for('main.list_classrooms') }}" class="btn btn-success mt-3">
+                        <i class="fas fa-arrow-circle-right ms-1"></i> استعراض الفصول
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="circle-icon bg-info mb-3">
+                        <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                    <h3>الحصص التفاعلية</h3>
+                    <p>إنشاء وإدارة الحصص التفاعلية، متابعة المشاركة واستعراض التسجيلات.</p>
+                    <a href="{{ url_for('main.list_sessions') }}" class="btn btn-info mt-3">
+                        <i class="fas fa-arrow-circle-right ms-1"></i> استعراض الحصص
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar ms-2"></i> الحصص القادمة
+                    </h5>
+                    <a href="{{ url_for('main.list_sessions') }}" class="btn btn-sm btn-outline-primary">
+                        عرض الكل
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_sessions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>عنوان الحصة</th>
+                                        <th>الفصل</th>
+                                        <th>التاريخ</th>
+                                        <th>الوقت</th>
+                                        <th>المدة</th>
+                                        <th>خيارات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for session in upcoming_sessions %}
+                                    <tr>
+                                        <td>{{ session.title }}</td>
+                                        <td>{{ session.classroom_name }}</td>
+                                        <td>{{ session.start_time|date_format }}</td>
+                                        <td>{{ session.start_time|time_format }}</td>
+                                        <td>{{ session.duration }} دقيقة</td>
+                                        <td>
+                                            <a href="{{ url_for('main.view_session', session_id=session.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">لا توجد حصص تفاعلية قادمة حالياً.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line ms-2"></i> التقييمات الأخيرة
+                    </h5>
+                    <a href="{{ url_for('evaluation.index') }}" class="btn btn-sm btn-outline-primary">
+                        عرض الكل
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_evaluations %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المهمة</th>
+                                        <th>المعيار</th>
+                                        <th>التاريخ</th>
+                                        <th>الدرجة</th>
+                                        <th>خيارات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for eval in recent_evaluations %}
+                                    <tr>
+                                        <td>{{ eval.assignment_id }}</td>
+                                        <td>{{ eval.rubric_name }}</td>
+                                        <td>{{ eval.created_at|date_format }}</td>
+                                        <td>
+                                            {% if eval.score %}
+                                                <span class="badge bg-primary">{{ eval.score }}/{{ eval.max_score }}</span>
+                                            {% elif eval.ai_score %}
+                                                <span class="badge bg-info">{{ eval.ai_score }}/{{ eval.max_score }} (AI)</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">قيد التقييم</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('evaluation.view_evaluation', evaluation_id=eval.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">لا توجد تقييمات حتى الآن.</p>
+                            <a href="{{ url_for('evaluation.new_evaluation') }}" class="btn btn-primary mt-3">
+                                <i class="fas fa-plus ms-1"></i> إنشاء تقييم جديد
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user ms-2"></i> ملخص الحساب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="avatar-circle mb-3">
+                            <span class="initials">{{ user_initials }}</span>
+                        </div>
+                        <h5>{{ session.get('user_name', 'المستخدم') }}</h5>
+                        <p class="text-muted mb-0">{{ user_role_display }}</p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="stat-circle bg-primary mx-auto mb-2">
+                                {{ stats.evaluation_count }}
+                            </div>
+                            <p class="small">التقييمات</p>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-circle bg-success mx-auto mb-2">
+                                {{ stats.classroom_count }}
+                            </div>
+                            <p class="small">الفصول</p>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-circle bg-info mx-auto mb-2">
+                                {{ stats.session_count }}
+                            </div>
+                            <p class="small">الحصص</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="#" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user-cog ms-1"></i> إدارة الحساب
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bell ms-2"></i> الإشعارات
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if notifications %}
+                        <ul class="list-group list-group-flush">
+                            {% for notification in notifications %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        {% if notification.type == 'evaluation' %}
+                                            <i class="fas fa-clipboard-check text-primary me-2"></i>
+                                        {% elif notification.type == 'session' %}
+                                            <i class="fas fa-calendar-alt text-success me-2"></i>
+                                        {% elif notification.type == 'classroom' %}
+                                            <i class="fas fa-users text-info me-2"></i>
+                                        {% else %}
+                                            <i class="fas fa-bell text-secondary me-2"></i>
+                                        {% endif %}
+                                        {{ notification.message }}
+                                        <small class="d-block text-muted">{{ notification.time }}</small>
+                                    </div>
+                                    {% if not notification.read %}
+                                        <span class="badge bg-danger rounded-pill">جديد</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-bell-slash fa-2x text-muted mb-3"></i>
+                            <p class="mb-0">لا توجد إشعارات جديدة.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if notifications %}
+                    <div class="card-footer text-center">
+                        <a href="#" class="btn btn-outline-secondary btn-sm">
+                            عرض كل الإشعارات
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-question-circle ms-2"></i> مساعدة سريعة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-book ms-2"></i> دليل استخدام النظام
+                            </a>
+                        </li>
+                        <li class="list-group-item">
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-robot ms-2"></i> كيفية استخدام تقييم الذكاء الاصطناعي
+                            </a>
+                        </li>
+                        <li class="list-group-item">
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-chalkboard ms-2"></i> إنشاء وإدارة الفصول الدراسية
+                            </a>
+                        </li>
+                        <li class="list-group-item">
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-comment-dots ms-2"></i> التواصل مع فريق الدعم
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="row mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="circle-icon bg-primary mb-3">
+                        <i class="fas fa-robot fa-2x"></i>
+                    </div>
+                    <h3>تقييم ذكي</h3>
+                    <p>استخدام تقنيات الذكاء الاصطناعي المتقدمة لتقييم مهام BTEC بدقة وموضوعية.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="circle-icon bg-success mb-3">
+                        <i class="fas fa-link fa-2x"></i>
+                    </div>
+                    <h3>توثيق آمن</h3>
+                    <p>توثيق نتائج التقييم باستخدام تقنية البلوكتشين لضمان الموثوقية والشفافية.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="circle-icon bg-info mb-3">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                    <h3>تحليل متقدم</h3>
+                    <p>تحليل أداء الطلاب وتتبع التقدم باستخدام تقارير تفصيلية ورسوم بيانية متقدمة.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3>ميزات إدارة الفصول الدراسية الجديدة!</h3>
+                            <p class="mb-md-0">الآن يمكنك إنشاء وإدارة الفصول الدراسية، تنظيم الحصص التفاعلية، وتتبع حضور ومشاركة الطلاب.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
+                                <i class="fas fa-user-plus ms-1"></i> ابدأ الآن
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h2 class="mb-4">كيف يعمل النظام؟</h2>
+        </div>
+        <div class="col-md-3 mb-4 mb-md-0">
+            <div class="step-circle mb-3 mx-auto">1</div>
+            <h5 class="text-center">إنشاء حساب</h5>
+            <p class="text-center">سجل في النظام واختر دورك كمدرس أو طالب.</p>
+        </div>
+        <div class="col-md-3 mb-4 mb-md-0">
+            <div class="step-circle mb-3 mx-auto">2</div>
+            <h5 class="text-center">انضم للفصول</h5>
+            <p class="text-center">انضم للفصول الدراسية أو أنشئ فصولك الخاصة.</p>
+        </div>
+        <div class="col-md-3 mb-4 mb-md-0">
+            <div class="step-circle mb-3 mx-auto">3</div>
+            <h5 class="text-center">إدارة الحصص</h5>
+            <p class="text-center">شارك في الحصص التفاعلية وأرسل تقييماتك.</p>
+        </div>
+        <div class="col-md-3">
+            <div class="step-circle mb-3 mx-auto">4</div>
+            <h5 class="text-center">تحليل النتائج</h5>
+            <p class="text-center">استعرض التقييمات والتقارير التفصيلية.</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">أسئلة شائعة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faqHeading1">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse1" aria-expanded="false" aria-controls="faqCollapse1">
+                                    ما هو نظام تقييم BTEC؟
+                                </button>
+                            </h2>
+                            <div id="faqCollapse1" class="accordion-collapse collapse" aria-labelledby="faqHeading1" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    نظام تقييم BTEC هو منصة متكاملة تستخدم تقنيات الذكاء الاصطناعي والبلوكتشين لتقييم مهام BTEC بطريقة دقيقة وموضوعية، مع توفير أدوات لإدارة الفصول الدراسية وتنظيم الحصص التفاعلية.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faqHeading2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse2" aria-expanded="false" aria-controls="faqCollapse2">
+                                    كيف يتم تقييم المهام باستخدام الذكاء الاصطناعي؟
+                                </button>
+                            </h2>
+                            <div id="faqCollapse2" class="accordion-collapse collapse" aria-labelledby="faqHeading2" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    يستخدم النظام خوارزميات ذكاء اصطناعي متقدمة تم تدريبها على آلاف التقييمات السابقة لمهام BTEC. يقوم النظام بتحليل المحتوى، فهم المفاهيم، وتقييم مدى تلبية المهمة لمعايير التقييم المحددة، مع مراعاة متطلبات كل مستوى من مستويات BTEC.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faqHeading3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse3" aria-expanded="false" aria-controls="faqCollapse3">
+                                    ما هي ميزات إدارة الفصول الدراسية؟
+                                </button>
+                            </h2>
+                            <div id="faqCollapse3" class="accordion-collapse collapse" aria-labelledby="faqHeading3" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    يتيح النظام للمدرسين إنشاء وإدارة الفصول الدراسية، إضافة طلاب، تنظيم حصص تفاعلية (مباشرة أو مسجلة)، تتبع حضور الطلاب، تقييم المشاركة، وإنشاء تقارير تفصيلية عن أداء الطلاب.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faqHeading4">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse4" aria-expanded="false" aria-controls="faqCollapse4">
+                                    كيف يتم توثيق التقييمات باستخدام البلوكتشين؟
+                                </button>
+                            </h2>
+                            <div id="faqCollapse4" class="accordion-collapse collapse" aria-labelledby="faqHeading4" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    بعد اكتمال عملية التقييم، يقوم النظام بإنشاء بصمة رقمية (hash) فريدة للتقييم وتسجيلها على شبكة البلوكتشين. هذا يضمن عدم إمكانية التلاعب بالتقييم بعد إصداره ويوفر طريقة للتحقق من صحة التقييم في أي وقت.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* أيقونات دائرية */
+    .circle-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        color: white;
+    }
+    
+    /* خطوات العمل */
+    .step-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    /* دائرة الصورة الرمزية */
+    .avatar-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    
+    .initials {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    
+    /* دوائر الإحصائيات */
+    .stat-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

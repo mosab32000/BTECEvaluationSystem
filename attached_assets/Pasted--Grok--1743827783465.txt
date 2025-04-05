@@ -1,0 +1,439 @@
+مرحبًا أيها البطل العظيم! أنا متحمس جدًا لأنك أعجبتك الرؤية الأسطورية لـ "قلعة Grok الأسطورية"! بناءً على طلبك، سأوسع هذا العالم الخيالي بإضافة ثلاث ميزات تعليمية حيوية تجعل القلعة ليست فقط ساحرة بل منصة تعليمية متكاملة وعملية: **الحصص التفاعلية**، **سجلات الحضور والغياب**، و**مكتبة الكتب المدرسية الرقمية**. هذه الإضافات ستحول القلعة إلى مورد لا غنى عنه لـ "فرسان المعرفة" (الطلاب والمعلمين). هيا بنا ننطلق لتوسيع هذا العالم الساحر!
+
+---
+
+## **توسيع قلعة Grok الأسطورية: إضافة الأركان التعليمية**
+
+سأقدم تحديثات شاملة للواجهة الأمامية (Frontend) والخلفية (Backend) لدعم هذه الميزات الجديدة، مع الحفاظ على الطابع الخيالي البطولي.
+
+---
+
+### **1. تحديث هيكلية الموقع (Frontend)**
+
+#### **index.html**
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قلعة Grok الأسطورية - حصن المعرفة</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- مكتبات إضافية -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script> <!-- لعرض PDF -->
+</head>
+<body>
+    <header class="castle-gate">
+        <h1>أهلاً بكم في قلعة Grok الأسطورية</h1>
+        <p>أنا Grok 3، الحكيم الساحر، أدعوكم لمغامرة معرفية لا تُنسى!</p>
+        <nav class="main-nav">
+            <a href="#task-hall">قاعة المهام</a> |
+            <a href="#wisdom-tower">برج الحكمة</a> |
+            <a href="#aether-hall">قاعة الأثير</a> |
+            <a href="#hero-chronicle">سجل الأبطال</a> |
+            <a href="#scroll-library">مكتبة المخطوطات</a> |
+            <a href="#prophecy-room">غرفة التنبؤ</a> |
+            <a href="#magic-gallery">معرض السحر</a>
+        </nav>
+    </header>
+
+    <section id="task-hall" class="task-hall">
+        <h2>قاعة المهام البطولية</h2>
+        <div id="tasks-container"></div>
+        <form id="task-form" onsubmit="submitTask(event)">
+            <input type="text" id="task-title" placeholder="عنوان المهمة" required>
+            <textarea id="task-content" placeholder="اكتب مهمتك..." required></textarea>
+            <input type="file" id="task-file" accept=".txt,.png,.jpg,.wav">
+            <button type="submit">قدّم المهمة للتحليل</button>
+        </form>
+    </section>
+
+    <section id="wisdom-tower" class="wisdom-tower">
+        <h2>برج الحكمة</h2>
+        <div id="chat-container"></div>
+        <form id="chat-form" onsubmit="sendMessage(event)">
+            <input type="text" id="chat-input" placeholder="تحدث إلى Grok..." required>
+            <button type="button" id="voice-btn" onclick="toggleVoice()">تفعيل الصوت</button>
+            <button type="submit">إرسال</button>
+        </form>
+    </section>
+
+    <section id="aether-hall" class="aether-hall">
+        <h2>قاعة الأثير التفاعلية</h2>
+        <div id="live-session-status">جاري البحث عن حصص...</div>
+        <div id="video-container">
+            <video id="local-video" autoplay muted style="width:200px;"></video>
+            <video id="remote-video" autoplay style="width:400px;"></video>
+        </div>
+        <button onclick="joinLiveSession()">انضم إلى الحصة السحرية</button>
+    </section>
+
+    <section id="hero-chronicle" class="hero-chronicle">
+        <h2>سجل الأبطال</h2>
+        <select id="class-select" onchange="loadAttendance()">
+            <option value="">اختر الفصل</option>
+        </select>
+        <div id="attendance-log"></div>
+        <button onclick="markAttendance()">سجل حضورك</button>
+    </section>
+
+    <section id="scroll-library" class="scroll-library">
+        <h2>مكتبة المخطوطات القديمة</h2>
+        <div id="books-list"></div>
+        <canvas id="pdf-viewer" style="display:none; width:100%; height:500px;"></canvas>
+    </section>
+
+    <section id="prophecy-room" class="prophecy-room">
+        <h2>غرفة التنبؤ السحري</h2>
+        <button onclick="predictPerformance()">اكتشف أداءك</button>
+        <p id="prediction-result"></p>
+    </section>
+
+    <section id="magic-gallery" class="magic-gallery">
+        <h2>معرض السحر</h2>
+        <input type="file" id="ar-file" accept=".glb" onchange="loadARModel(event)">
+        <div id="ar-viewer"></div>
+    </section>
+
+    <footer>
+        <p>© 2025 قلعة Grok الأسطورية - بوابة المعرفة السحرية من xAI</p>
+    </footer>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
+```
+
+---
+
+#### **styles.css**
+```css
+body {
+    font-family: 'Arial', sans-serif;
+    background: url('https://via.placeholder.com/1920x1080.png?text=Epic+Castle') no-repeat center center fixed;
+    background-size: cover;
+    color: #fff;
+    margin: 0;
+}
+
+.castle-gate { background: rgba(0, 0, 0, 0.7); padding: 40px; text-align: center; }
+.castle-gate h1 { font-size: 2.5em; text-shadow: 2px 2px 5px #000; }
+.main-nav a { color: gold; margin: 0 10px; text-decoration: none; }
+.main-nav a:hover { text-decoration: underline; }
+
+.task-hall, .wisdom-tower, .aether-hall, .hero-chronicle, .scroll-library, .prophecy-room, .magic-gallery {
+    margin: 20px auto;
+    max-width: 900px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+h2 { color: gold; text-align: center; font-size: 2em; }
+form { display: flex; flex-direction: column; gap: 10px; }
+input, textarea, select { padding: 10px; border: 2px solid gold; border-radius: 5px; background: rgba(255, 255, 255, 0.9); color: #000; }
+button { padding: 10px; background: #ff4444; color: white; border: none; border-radius: 5px; cursor: pointer; }
+button:hover { background: #cc0000; }
+#voice-btn.active { background: #44ff44; }
+
+#tasks-container, #chat-container, #attendance-log, #books-list { max-height: 300px; overflow-y: auto; padding: 10px; background: rgba(255, 255, 255, 0.1); }
+#video-container { display: flex; justify-content: space-around; }
+#live-session-status { text-align: center; color: #ccc; }
+.present { color: lightgreen; }
+.absent { color: lightcoral; }
+```
+
+---
+
+#### **scripts.js**
+```javascript
+const axiosInstance = axios.create({
+    baseURL: 'http://localhost:8000',
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || 'mock-token'}` }
+});
+
+// قاعة المهام
+async function submitTask(event) {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.append('title', document.getElementById('task-title').value);
+    formData.append('description', document.getElementById('task-content').value);
+    const file = document.getElementById('task-file').files[0];
+    if (file) formData.append('file', file);
+
+    try {
+        const response = await axiosInstance.post('/api/tasks/1/evaluate/', formData);
+        const taskDiv = document.createElement('div');
+        taskDiv.innerHTML = `<h3>${response.data.task_data.title}</h3><pre>${response.data.task_data.evaluation_result}</pre>`;
+        document.getElementById('tasks-container').prepend(taskDiv);
+    } catch (err) {
+        alert('فشل التحليل: ' + (err.response?.data?.error || err.message));
+    }
+}
+
+// برج الحكمة
+async function sendMessage(event) {
+    event.preventDefault();
+    const message = document.getElementById('chat-input').value;
+    try {
+        const response = await axiosInstance.post('/api/chat/', { message });
+        const chatDiv = document.createElement('div');
+        chatDiv.innerHTML = `<p><strong>أنت:</strong> ${message}</p><p><strong>Grok:</strong> ${response.data.reply}</p>`;
+        document.getElementById('chat-container').prepend(chatDiv);
+        document.getElementById('chat-input').value = '';
+    } catch (err) {
+        alert('فشل الرد: ' + (err.response?.data?.error || err.message));
+    }
+}
+
+function toggleVoice() {
+    const btn = document.getElementById('voice-btn');
+    btn.classList.toggle('active');
+    alert('وضع الصوت ' + (btn.classList.contains('active') ? 'مفعل' : 'معطل') + ' (قيد التطوير)');
+}
+
+// قاعة الأثير التفاعلية
+async function joinLiveSession() {
+    document.getElementById('live-session-status').textContent = 'جاري الانضمام...';
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('local-video').srcObject = stream;
+        document.getElementById('live-session-status').textContent = 'أنت متصل (محاكاة)!';
+        // يحتاج WebRTC للاتصال الحقيقي
+    } catch (err) {
+        document.getElementById('live-session-status').textContent = 'فشل الاتصال: ' + err.message;
+    }
+}
+
+// سجل الأبطال
+async function loadAttendance() {
+    const classId = document.getElementById('class-select').value;
+    const log = document.getElementById('attendance-log');
+    if (!classId) return;
+
+    try {
+        const response = await axiosInstance.get(`/api/attendance/${classId}`);
+        log.innerHTML = response.data.attendance.map(r => 
+            `<p>${r.date} - ${r.student}: <span class="${r.status}">${r.status === 'present' ? 'حاضر' : 'غائب'}</span></p>`
+        ).join('');
+    } catch (err) {
+        log.innerHTML = '<p>فشل تحميل السجل</p>';
+    }
+}
+
+async function markAttendance() {
+    const classId = document.getElementById('class-select').value;
+    if (!classId) return alert('اختر فصلًا أولاً!');
+    try {
+        await axiosInstance.post(`/api/attendance/mark/${classId}`);
+        alert('تم تسجيل حضورك!');
+        loadAttendance();
+    } catch (err) {
+        alert('فشل التسجيل: ' + (err.response?.data?.error || err.message));
+    }
+}
+
+// مكتبة المخطوطات
+async function loadBooks() {
+    const list = document.getElementById('books-list');
+    try {
+        const response = await axiosInstance.get('/api/books/');
+        list.innerHTML = response.data.books.map(b => 
+            `<p>${b.title} <button onclick="openPdf('${b.url}')">افتح</button></p>`
+        ).join('');
+    } catch (err) {
+        list.innerHTML = '<p>فشل تحميل الكتب</p>';
+    }
+}
+
+function openPdf(url) {
+    const canvas = document.getElementById('pdf-viewer');
+    canvas.style.display = 'block';
+    pdfjsLib.getDocument(url).promise.then(pdf => {
+        pdf.getPage(1).then(page => {
+            const viewport = page.getViewport({ scale: 1.5 });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise.then(() => {
+                console.log('PDF rendered');
+            });
+        });
+    });
+}
+
+// غرفة التنبؤ
+async function predictPerformance() {
+    try {
+        const response = await axiosInstance.post('/api/predict/', { student_id: 1 });
+        document.getElementById('prediction-result').textContent = response.data.prediction;
+    } catch (err) {
+        alert('فشل التنبؤ: ' + (err.response?.data?.error || err.message));
+    }
+}
+
+// معرض السحر
+function loadARModel(event) {
+    const file = event.target.files[0];
+    document.getElementById('ar-viewer').innerHTML = `<p>تم تحميل ${file.name} (عرض قيد التطوير)</p>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadBooks();
+    // تحميل الفصول لاحقًا عبر API
+    const select = document.getElementById('class-select');
+    select.innerHTML += '<option value="1">الفصل الأول</option><option value="2">الفصل الثاني</option>';
+});
+```
+
+---
+
+### **2. تحديث الواجهة الخلفية (Backend)**
+
+#### **backend/tasks/models.py**
+```python
+from django.db import models
+
+class Class(models.Model):
+    name = models.CharField(max_length=100)
+    teacher = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='classes_taught')
+
+    def __str__(self):
+        return self.name
+
+class Task(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    file = models.FileField(upload_to='uploads/', null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    evaluation_result_encrypted = models.TextField(null=True, blank=True)
+    student = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    class_group = models.ForeignKey(Class, on_delete=models.CASCADE)
+
+    @property
+    def evaluation_result(self):
+        # منطق فك التشفير كما في الرد السابق
+        return self.evaluation_result_encrypted
+
+    @evaluation_result.setter
+    def evaluation_result(self, value):
+        self.evaluation_result_encrypted = value  # يحتاج تشفير فعلي
+
+class AttendanceLog(models.Model):
+    student = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    class_group = models.ForeignKey(Class, on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=[('present', 'حاضر'), ('absent', 'غائب')], default='present')
+
+class Book(models.Model):
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='books/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+```
+
+#### **backend/tasks/views.py**
+```python
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .models import Task, Class, AttendanceLog, Book
+from .serializers import TaskSerializer, AttendanceLogSerializer, BookSerializer
+from .ai_evaluator import grok_evaluate, grok_predict_performance
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def evaluate_task_api(request, task_id):
+    # كما في الرد السابق
+    pass
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chat_with_grok(request):
+    # كما في الرد السابق
+    pass
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def predict_performance(request):
+    # كما في الرد السابق
+    pass
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_attendance(request, class_id):
+    logs = AttendanceLog.objects.filter(class_group_id=class_id)
+    serializer = AttendanceLogSerializer(logs, many=True)
+    return Response({'attendance': serializer.data})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_attendance(request, class_id):
+    log = AttendanceLog(student=request.user, class_group_id=class_id)
+    log.save()
+    return Response({'message': 'تم تسجيل الحضور'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_books(request):
+    books = Book.objects.all()
+    serializer = BookSerializer(books, many=True)
+    return Response({'books': serializer.data})
+```
+
+#### **backend/tasks/serializers.py**
+```python
+from rest_framework import serializers
+from .models import Task, AttendanceLog, Book
+
+class TaskSerializer(serializers.ModelSerializer):
+    evaluation_result = serializers.CharField(read_only=True)
+    class Meta:
+        model = Task
+        fields = ['id', 'title', 'description', 'file', 'uploaded_at', 'evaluation_result']
+
+class AttendanceLogSerializer(serializers.ModelSerializer):
+    student = serializers.CharField(source='student.username')
+    date = serializers.DateField(format='%Y-%m-%d')
+    class Meta:
+        model = AttendanceLog
+        fields = ['student', 'date', 'status']
+
+class BookSerializer(serializers.ModelSerializer):
+    url = serializers.FileField(source='file')
+    class Meta:
+        model = Book
+        fields = ['id', 'title', 'url', 'uploaded_at']
+```
+
+#### **backend/tasks/urls.py**
+```python
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('api/tasks/<int:task_id>/evaluate/', views.evaluate_task_api),
+    path('api/chat/', views.chat_with_grok),
+    path('api/predict/', views.predict_performance),
+    path('api/attendance/<int:class_id>/', views.get_attendance),
+    path('api/attendance/mark/<int:class_id>/', views.mark_attendance),
+    path('api/books/', views.get_books),
+]
+```
+
+#### **المتطلبات الإضافية**
+- تثبيت `django-rest-framework` إذا لم يكن موجودًا.
+- للحصص التفاعلية: ستحتاج إلى WebRTC (مثل `django-channels` لـ WebSockets كخادم إشارة).
+
+---
+
+### **النتيجة: قلعة متكاملة للمعرفة**
+- **الحصص التفاعلية**: قاعة الأثير تدعم الاتصال المباشر (محاكاة حاليًا، تحتاج WebRTC للتنفيذ الكامل).
+- **سجلات الحضور**: سجل الأبطال يتيح التسجيل وعرض الحضور بأسلوب خيالي.
+- **مكتبة الكتب**: مكتبة المخطوطات تعرض الكتب مع عارض PDF بسيط.
+
+---
+
+### **ما رأيك أيها البطل؟**
+هل تريد تفصيلًا إضافيًا لأي ميزة (مثل WebRTC للحصص)؟ أم نبدأ النشر لهذا العالم الساحر؟ أنا جاهز للخطوة التالية!

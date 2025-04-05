@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ classroom.name }} - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>{{ classroom.name }}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.list_classrooms') }}">الفصول الدراسية</a></li>
+                <li class="breadcrumb-item active">{{ classroom.name }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if classroom.is_teacher %}
+            <a href="{{ url_for('main.edit_classroom', classroom_id=classroom.id) }}" class="btn btn-secondary me-2">
+                <i class="fas fa-edit ms-1"></i> تعديل
+            </a>
+            <a href="{{ url_for('main.create_session', classroom_id=classroom.id) }}" class="btn btn-success">
+                <i class="fas fa-plus ms-1"></i> حصة جديدة
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle ms-2"></i> معلومات الفصل
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-tag ms-2"></i> رمز الفصل:</strong>
+                        <span class="badge bg-secondary">{{ classroom.code }}</span>
+                        {% if classroom.is_teacher %}
+                        <button class="btn btn-sm btn-outline-primary float-start" 
+                                onclick="copyToClipboard('{{ classroom.code }}')" 
+                                data-bs-toggle="tooltip" title="نسخ الرمز">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-user-tie ms-2"></i> المدرس:</strong>
+                        <span>{{ classroom.teacher_name }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-layer-group ms-2"></i> المستوى:</strong>
+                        <span>{{ classroom.level or 'غير محدد' }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-graduation-cap ms-2"></i> المقرر:</strong>
+                        <span>{{ classroom.subject or 'غير محدد' }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-users ms-2"></i> عدد الطلاب:</strong>
+                        <span>{{ classroom.student_count }} طالب</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-calendar-alt ms-2"></i> تاريخ الإنشاء:</strong>
+                        <span>{{ classroom.created_at|default('غير متوفر', true) }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-clock ms-2"></i> الحالة:</strong>
+                        {% if classroom.is_active %}
+                            <span class="badge bg-success">نشط</span>
+                        {% else %}
+                            <span class="badge bg-secondary">غير نشط</span>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bullseye ms-2"></i> أهداف الفصل
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if classroom.objectives %}
+                    <ul class="mb-0">
+                        {% for objective in classroom.objectives.split('\n') %}
+                            {% if objective.strip() %}
+                                <li class="mb-2">{{ objective }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">لا توجد أهداف محددة للفصل.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-check ms-2"></i> الحصص القادمة
+                </h5>
+                <a href="{{ url_for('main.list_sessions', classroom_id=classroom.id) }}" class="btn btn-sm btn-outline-primary">
+                    عرض الكل
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>عنوان الحصة</th>
+                                <th>التاريخ</th>
+                                <th>الوقت</th>
+                                <th>النوع</th>
+                                <th>الحالة</th>
+                                <th>خيارات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upcoming-sessions">
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">جاري التحميل...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users ms-2"></i> الطلاب المسجلين
+                </h5>
+                {% if classroom.is_teacher %}
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                    <i class="fas fa-user-plus ms-1"></i> إضافة طالب
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if classroom.students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>اسم الطالب</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>تاريخ الانضمام</th>
+                                    <th>الحضور</th>
+                                    {% if classroom.is_teacher %}
+                                    <th>خيارات</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in classroom.students %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>{{ student.join_date }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ student.attendance_rate }}%;" 
+                                                 aria-valuenow="{{ student.attendance_rate }}" aria-valuemin="0" aria-valuemax="100">
+                                                {{ student.attendance_rate }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% if classroom.is_teacher %}
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#removeStudentModal" 
+                                                data-student-id="{{ student.id }}" data-student-name="{{ student.name }}">
+                                            <i class="fas fa-user-minus"></i>
+                                        </button>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center mb-0">لا يوجد طلاب مسجلين في هذا الفصل حتى الآن.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar ms-2"></i> إحصائيات الحضور
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-primary mb-0">{{ classroom.attendance_stats.average_rate }}%</h3>
+                                <p class="mb-0">متوسط نسبة الحضور</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="text-success mb-0">{{ classroom.attendance_stats.perfect_count }}</h3>
+                                <p class="mb-0">طلاب بحضور كامل</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h6 class="card-subtitle mb-2">توزيع نسب الحضور</h6>
+                    <div class="progress mb-2" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ classroom.attendance_stats.perfect }}%;" 
+                             aria-valuenow="{{ classroom.attendance_stats.perfect }}" aria-valuemin="0" aria-valuemax="100" 
+                             data-bs-toggle="tooltip" title="ممتاز (100%)">
+                            {{ classroom.attendance_stats.perfect }}%
+                        </div>
+                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ classroom.attendance_stats.good }}%;" 
+                             aria-valuenow="{{ classroom.attendance_stats.good }}" aria-valuemin="0" aria-valuemax="100"
+                             data-bs-toggle="tooltip" title="جيد (75-99%)">
+                            {{ classroom.attendance_stats.good }}%
+                        </div>
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ classroom.attendance_stats.average }}%;" 
+                             aria-valuenow="{{ classroom.attendance_stats.average }}" aria-valuemin="0" aria-valuemax="100"
+                             data-bs-toggle="tooltip" title="متوسط (50-74%)">
+                            {{ classroom.attendance_stats.average }}%
+                        </div>
+                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ classroom.attendance_stats.poor }}%;" 
+                             aria-valuenow="{{ classroom.attendance_stats.poor }}" aria-valuemin="0" aria-valuemax="100"
+                             data-bs-toggle="tooltip" title="ضعيف (أقل من 50%)">
+                            {{ classroom.attendance_stats.poor }}%
+                        </div>
+                    </div>
+                    <div class="row text-center mt-2">
+                        <div class="col-3">
+                            <small><span class="badge bg-success">ممتاز</span> 100%</small>
+                        </div>
+                        <div class="col-3">
+                            <small><span class="badge bg-info">جيد</span> 75-99%</small>
+                        </div>
+                        <div class="col-3">
+                            <small><span class="badge bg-warning">متوسط</span> 50-74%</small>
+                        </div>
+                        <div class="col-3">
+                            <small><span class="badge bg-danger">ضعيف</span> &lt;50%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: إضافة طالب -->
+{% if classroom.is_teacher %}
+<div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addStudentModalLabel">إضافة طالب للفصل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <form method="post" action="{{ url_for('main.add_student_to_classroom', classroom_id=classroom.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="studentEmail" class="form-label">البريد الإلكتروني للطالب</label>
+                        <input type="email" class="form-control" id="studentEmail" name="student_email" required>
+                        <div class="form-text">أدخل البريد الإلكتروني للطالب المسجل في النظام.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: حذف طالب -->
+<div class="modal fade" id="removeStudentModal" tabindex="-1" aria-labelledby="removeStudentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removeStudentModalLabel">حذف طالب من الفصل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <form method="post" action="{{ url_for('main.remove_student_from_classroom', classroom_id=classroom.id) }}">
+                <div class="modal-body">
+                    <input type="hidden" id="removeStudentId" name="student_id">
+                    <p>هل أنت متأكد من رغبتك في حذف الطالب <strong id="removeStudentName"></strong> من هذا الفصل؟</p>
+                    <p class="text-danger">هذا الإجراء لا يمكن التراجع عنه، وسيتم حذف جميع سجلات الحضور المرتبطة بهذا الطالب في هذا الفصل.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تحميل الحصص القادمة
+        loadUpcomingSessions('{{ classroom.id }}');
+        
+        // نسخ رمز الفصل إلى الحافظة
+        window.copyToClipboard = function(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                const tooltip = bootstrap.Tooltip.getInstance(document.querySelector('[data-bs-toggle="tooltip"]'));
+                tooltip.hide();
+                const button = document.querySelector('[data-bs-toggle="tooltip"]');
+                button.setAttribute('title', 'تم النسخ!');
+                tooltip.show();
+                setTimeout(function() {
+                    button.setAttribute('title', 'نسخ الرمز');
+                    tooltip.hide();
+                }, 2000);
+            });
+        };
+        
+        {% if classroom.is_teacher %}
+        // تهيئة نافذة حذف الطالب
+        document.getElementById('removeStudentModal').addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const studentId = button.getAttribute('data-student-id');
+            const studentName = button.getAttribute('data-student-name');
+            
+            document.getElementById('removeStudentId').value = studentId;
+            document.getElementById('removeStudentName').textContent = studentName;
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}

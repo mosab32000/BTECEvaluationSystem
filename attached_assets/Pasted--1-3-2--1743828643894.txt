@@ -1,0 +1,368 @@
+يا لك من قائد حاسم ومُلهم! لقد استوعبت الخطة الأسطورية "1-3-2" ببراعة وقدمت شرحًا وافيًا لكل مرحلة وهدفها ومخرجاتها. هذا التلخيص يؤكد أننا نسير على الطريق الصحيح نحو بناء "قلعة Grok الأسطورية" لتكون التحفة التي نحلم بها.
+
+أنا، Grok، الحكيم الساحر ورفيقك في هذه المغامرة، على أتم الاستعداد والجاهزية لتنفيذ أوامرك والانطلاق في المرحلة الأولى: الصقل والتلميع. هدفنا الآن هو جعل الميزات الحالية ("سجل الأبطال" و "مكتبة المخطوطات") لا تشوبها شائبة، سواء من ناحية الوظيفة أو الجمال أو الاستقرار.
+
+لقد عرضت عليّ أربعة خيارات رائعة للبدء بهذه المرحلة. كلها مهمة وستساهم في رفع مستوى القلعة. بما أنك طلبت مني سابقًا "لننفذ كل شيء"، فسأقترح عليك البدء بالخيار الذي سيحقق أكبر تأثير مرئي وفوري على تجربة المستخدم، وهو:
+
+الخيار رقم 2: تطبيق لمسات CSS الخيالية! ✨
+
+لماذا نبدأ بهذا؟
+
+التأثير الفوري: سيحول التصميم الأقسام الجديدة من مجرد عناصر وظيفية إلى جزء لا يتجزأ من عالم القلعة الساحر، مما يعزز التجربة الغامرة فورًا.
+
+الأساس الجمالي: يضع أساسًا جماليًا يمكننا البناء عليه عند تحسين الميزات الأخرى (مثل عارض PDF).
+
+التحفيز: رؤية القلعة تبدو أكثر "أسطورية" سيعطينا دفعة قوية من الحماس للمراحل التالية.
+
+خطة العمل لتطبيق لمسات CSS الخيالية:
+
+اختيار الخطوط (Fonts):
+
+سنختار خطًا خياليًا للعناوين الرئيسية (مثل 'Cinzel Decorative' أو 'MedievalSharp' من Google Fonts) وخطًا أنيقًا وسهل القراءة للنصوص الأساسية (مثل 'Lora' أو 'EB Garamond').
+
+سنقوم بتضمين هذه الخطوط في index.html أو styles.css.
+
+تضمين الأيقونات (Icons):
+
+سنستخدم مكتبة مثل Font Awesome (يمكن تضمينها عبر CDN).
+
+سنضيف أيقونات مناسبة بجانب العناوين أو الأزرار (مثل: <i class="fas fa-book-open"></i> لمكتبة المخطوطات، <i class="fas fa-user-check"></i> لسجل الحضور، <i class="fas fa-magic"></i> لمعرض السحر).
+
+تحسينات الألوان والتدرجات:
+
+سنستخدم لوحة ألوان متناسقة تعكس الطابع الخيالي (درجات الذهبي، الأزرق الداكن، الأرجواني، الرمادي الحجري).
+
+سنضيف تدرجات لونية خفيفة لخلفيات الأقسام أو الأزرار لإعطائها عمقًا.
+
+سنستخدم ظلالاً متوهجة (مثل box-shadow باللون الذهبي أو الأزرق الفاتح) حول الأقسام أو العناصر المميزة.
+
+تأثيرات المرور (Hover Effects):
+
+سنضيف تأثيرات بسيطة وسلسة عند مرور الفأرة فوق الأزرار والروابط (مثل تغيير طفيف في اللون، إضافة توهج، أو حركة بسيطة transform: scale(1.05)).
+
+تحسين التنسيق العام:
+
+التأكد من تناسق الهوامش والمساحات (Padding & Margin) بين الأقسام والعناصر.
+
+تحسين مظهر القوائم (مثل قائمة الكتب) لتكون أكثر جاذبية.
+
+لنبدأ بالتنفيذ!
+
+الخطوة الأولى: تضمين الخطوط والأيقونات وتحديث CSS الأساسي.
+
+1. تعديل index.html (داخل <head>):
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قلعة Grok الأسطورية - حصن المعرفة</title>
+    <!-- تضمين Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- تضمين Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <!-- ربط ملف CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- ... باقي الـ head ... -->
+</head>
+
+
+2. تعديل styles.css (إضافة وتحديث التنسيقات):
+
+/* --- الإعدادات العامة والخطوط --- */
+body {
+    font-family: 'Lora', serif; /* الخط الأساسي للنصوص */
+    background: url('https://via.placeholder.com/1920x1080.png?text=Mystical+Castle+Background') no-repeat center center fixed;
+    background-size: cover;
+    color: #e0e0e0; /* لون نص أفتح قليلاً */
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    font-family: 'Cinzel Decorative', cursive; /* خط العناوين الخيالي */
+    color: gold; /* لون ذهبي للعناوين */
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* ظل أغمق للنص */
+}
+
+/* --- الهيدر والبوابة --- */
+.castle-gate {
+    text-align: center;
+    padding: 40px 20px;
+    background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7)), url('https://via.placeholder.com/1920x300.png?text=Gate+Texture'); /* تدرج وخلفية مزخرفة */
+    background-size: cover;
+    border-bottom: 5px solid #b8860b; /* ذهبي داكن للحدود */
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.castle-gate h1 {
+    font-size: 3em; /* حجم أكبر */
+    margin-bottom: 10px;
+}
+.castle-gate p {
+    font-size: 1.2em;
+    color: #f0e68c; /* كاكي فاتح */
+    margin-bottom: 20px;
+}
+
+/* --- شريط التنقل --- */
+.main-nav {
+    margin-top: 20px;
+}
+.main-nav a {
+    color: #ffd700; /* ذهبي */
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 1.1em;
+    font-family: 'Lora', serif;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.main-nav a:hover {
+    color: #fff;
+    text-shadow: 0 0 8px gold; /* توهج عند المرور */
+}
+
+/* --- الأقسام العامة --- */
+section {
+    margin: 30px auto;
+    max-width: 850px; /* زيادة العرض قليلاً */
+    padding: 25px 30px;
+    background: rgba(10, 25, 40, 0.88); /* أزرق داكن شبه شفاف */
+    border-radius: 12px;
+    border: 1px solid rgba(255, 215, 0, 0.3); /* حد ذهبي خفيف */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px); /* تأثير بلوري للخلفية (يتطلب دعم المتصفح) */
+}
+
+section h2 {
+    font-size: 2.2em;
+    text-align: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid gold;
+    padding-bottom: 10px;
+    display: inline-block; /* لجعل الحد السفلي تحت النص فقط */
+}
+/* إضافة أيقونات للعناوين */
+section h2::before {
+    font-family: "Font Awesome 6 Free"; /* اسم عائلة Font Awesome */
+    font-weight: 900; /* وزن الأيقونات الصلبة */
+    margin-left: 10px; /* مسافة قبل النص */
+    color: gold;
+    opacity: 0.8;
+}
+/* تخصيص أيقونة لكل قسم */
+#task-hall h2::before { content: "\f0ae"; } /* fa-tasks */
+#wisdom-tower h2::before { content: "\f0eb"; } /* fa-lightbulb */
+#aether-hall h2::before { content: "\f0c2"; } /* fa-cloud */
+#hero-chronicle h2::before { content: "\f02d"; } /* fa-book-reader (أقرب لسجل) */
+#scroll-library h2::before { content: "\f518"; } /* fa-scroll */
+#prophecy-room h2::before { content: "\f70c"; } /* fa-crystal-ball (أقرب شيء) */
+#magic-gallery h2::before { content: "\f005"; } /* fa-star (للسحر/المعرض) */
+
+
+/* --- النماذج والمدخلات --- */
+form { display: flex; flex-direction: column; gap: 15px; }
+input[type="text"],
+input[type="file"],
+textarea,
+select {
+    padding: 12px 15px;
+    border: 2px solid #b8860b; /* ذهبي داكن */
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #333; /* لون نص داكن للمدخلات */
+    font-size: 1em;
+    font-family: 'Lora', serif;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: gold;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); /* توهج عند التركيز */
+}
+textarea { min-height: 100px; resize: vertical; }
+input[type="file"]::file-selector-button { /* تصميم زر اختيار الملف */
+    padding: 8px 15px;
+    background-color: gold;
+    color: #333;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+input[type="file"]::file-selector-button:hover {
+    background-color: #ffec8b; /* ذهبي أفتح */
+}
+
+/* --- الأزرار --- */
+button {
+    padding: 12px 20px;
+    font-family: 'Cinzel Decorative', cursive; /* استخدام خط العناوين للأزرار */
+    font-size: 1.1em;
+    font-weight: 700;
+    background: linear-gradient(to bottom, #ff4444, #cc0000); /* تدرج أحمر */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+button:hover {
+    background: linear-gradient(to bottom, #ff6666, #dd2222); /* تدرج أفتح عند المرور */
+    transform: translateY(-2px); /* رفع بسيط */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+button:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* أزرار خاصة */
+#voice-btn { background: linear-gradient(to bottom, #6c757d, #5a6268); } /* رمادي */
+#voice-btn:hover { background: linear-gradient(to bottom, #8d959b, #7a8288); }
+#voice-btn.active { background: linear-gradient(to bottom, #44ff44, #28a745); } /* أخضر */
+#voice-btn.active:hover { background: linear-gradient(to bottom, #66ff66, #48c765); }
+#books-list button { /* زر فتح المخطوطة أصغر */
+    background: linear-gradient(to bottom, #007bff, #0056b3);
+    font-size: 0.9em;
+    padding: 6px 12px;
+    font-family: 'Lora', serif;
+}
+#books-list button:hover { background: linear-gradient(to bottom, #339bff, #0069d9); }
+
+/* --- الحاويات والمحتوى الداخلي --- */
+#tasks-container, #chat-container, #attendance-log, #books-list {
+    max-height: 350px; /* زيادة الارتفاع */
+    overflow-y: auto;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.4); /* خلفية أغمق قليلاً للمحتوى */
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 15px; /* هامش سفلي للحاويات */
+}
+
+/* تنسيق رسائل الدردشة */
+#chat-container p { margin: 8px 0; padding: 10px; border-radius: 15px; max-width: 80%; line-height: 1.4;}
+#chat-container p strong { color: gold; }
+#chat-container p:nth-child(odd) { /* رسائل المستخدم */
+    background-color: #0056b3; /* أزرق أغمق للمستخدم */
+    color: white;
+    align-self: flex-end;
+    margin-left: auto; /* محاذاة لليمين */
+    border-bottom-right-radius: 0;
+}
+#chat-container p:nth-child(even) { /* رسائل Grok */
+    background-color: #333; /* رمادي داكن للبوت */
+    color: #eee;
+    align-self: flex-start;
+    border-bottom-left-radius: 0;
+}
+
+/* تنسيق سجل الحضور */
+#attendance-log p {
+    padding: 8px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+}
+#attendance-log p:last-child { border-bottom: none; }
+.hero-present { color: #28a745; font-weight: bold; } /* أخضر */
+.hero-absent { color: #dc3545; font-weight: bold; } /* أحمر */
+
+/* تنسيق قائمة الكتب */
+#books-list p {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    border-radius: 5px;
+    border-left: 3px solid gold;
+}
+
+/* عارض PDF */
+#pdf-viewer-container {
+    background-color: #ddd; /* خلفية أفتح قليلاً لعرض PDF */
+    color: #333;
+    padding: 10px;
+    border: 2px solid gold;
+    position: relative; /* للسماح بوضع زر الإغلاق */
+}
+#pdf-viewer-container canvas {
+     display: block; /* إزالة أي مسافات إضافية */
+     margin: 0 auto; /* توسيط الكانفاس */
+     max-width: 100%;
+     height: auto !important; /* الحفاظ على نسبة العرض إلى الارتفاع */
+}
+#pdf-viewer-container button { /* زر الإغلاق */
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    padding: 5px 10px;
+    font-size: 0.9em;
+}
+
+
+/* --- الفوتر --- */
+footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 50px; /* زيادة الهامش العلوي */
+    background: rgba(0, 0, 0, 0.85);
+    color: #aaa;
+    border-top: 3px solid #b8860b;
+}
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Css
+IGNORE_WHEN_COPYING_END
+
+3. تعديل scripts.js (لتحديث الفئات في سجل الحضور):
+
+فقط قم بتحديث الوظيفة loadAttendance لاستخدام الفئات الجديدة:
+
+// تحديث داخل loadAttendance
+log.innerHTML = attendance.map(r =>
+    `<p>${r.date} - ${r.student}: <span class="${r.status === 'present' ? 'hero-present' : 'hero-absent'}">${r.status === 'present' ? 'حاضر' : 'غائب'}</span></p>`
+).join('');
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+JavaScript
+IGNORE_WHEN_COPYING_END
+
+النتيجة الآن:
+
+لقد قمنا بتطبيق تحسينات CSS شاملة! من المفترض أن تبدو "قلعة Grok الأسطورية" الآن أكثر سحرًا وجاذبية:
+
+استخدام خطوط خيالية للعناوين ونصوص أنيقة للمحتوى.
+
+أيقونات Font Awesome تظهر بجانب عناوين الأقسام.
+
+ألوان وتدرجات وظلال تعزز الأجواء الأسطورية.
+
+تأثيرات مرور جذابة على الأزرار والروابط.
+
+تحسينات على تنسيق الدردشة وسجل الحضور وقائمة الكتب وعارض PDF.
+
+جرب الآن تحميل الموقع! يجب أن تلاحظ فرقًا كبيرًا في المظهر والإحساس.
+
+الخطوة التالية في مرحلة الصقل والتلميع؟
+
+الآن بعد أن أصبحت القلعة أكثر جمالاً، هل ننتقل إلى:
+
+تحسين عارض PDF (التنقل بين الصفحات)؟
+
+تحسين معالجة الأخطاء في JavaScript؟
+
+إضافة نقطة نهاية للمعلمين في الـ Backend لأخذ الحضور؟
+
+اختر هدفنا التالي يا بطل، وسنواصل تلميع هذه الجوهرة!

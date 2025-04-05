@@ -29,4 +29,5 @@ dependencies = [
     "flask-jwt-extended>=4.7.1",
     "flask-login>=0.6.3",
     "click>=8.1.8",
+    "jinja2>=3.1.6",
 ]

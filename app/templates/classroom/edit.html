@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل {{ classroom.name }} | نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="container mt-4" dir="rtl">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.list_classrooms') }}">الفصول الدراسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.view_classroom', classroom_id=classroom.id) }}">{{ classroom.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">تعديل</li>
+        </ol>
+    </nav>
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h2 class="mb-0">تعديل الفصل الدراسي</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('main.edit_classroom', classroom_id=classroom.id) }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="name" class="form-label">اسم الفصل الدراسي <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ classroom.name }}" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="course_code" class="form-label">رمز المساق <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="course_code" name="course_code" value="{{ classroom.course_code }}" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="schedule" class="form-label">جدول الحصص</label>
+                            <input type="text" class="form-control" id="schedule" name="schedule" value="{{ classroom.schedule }}" placeholder="مثال: الأحد، الثلاثاء، الخميس 10:00-11:30">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="max_students" class="form-label">الحد الأقصى للطلاب</label>
+                            <input type="number" class="form-control" id="max_students" name="max_students" min="1" value="{{ classroom.max_students }}">
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" {% if classroom.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">الفصل نشط</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="description" class="form-label">وصف الفصل الدراسي</label>
+                            <textarea class="form-control" id="description" name="description" rows="12">{{ classroom.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('main.view_classroom', classroom_id=classroom.id) }}" class="btn btn-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-warning">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

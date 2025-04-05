@@ -1,33 +1,34 @@
+"""
+ملف تكوين Gunicorn لنظام تقييم BTEC
+"""
+
+import multiprocessing
 import os
 
-# تكوين خادم Gunicorn لبيئة الإنتاج
+# تعيين عدد العمليات (workers)
+workers = int(os.getenv('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
 
-# عدد عمليات العمال
-workers = int(os.environ.get('GUNICORN_WORKERS', 4))
+# تعيين عدد المواصفات (threads) لكل عملية
+threads = int(os.getenv('GUNICORN_THREADS', 2))
 
-# المنفذ المراد الاستماع عليه
-bind = '0.0.0.0:5000'
+# تعيين المنفذ
+bind = '0.0.0.0:' + os.getenv('PORT', '5000')
 
-# نوع العمال
-worker_class = 'sync'
-
-# وقت التوقف عن الاستجابة (بالثواني)
+# وقت انتهاء المهلة (بالثواني)
 timeout = 120
 
-# وقت معالجة الطلب (بالثواني)
-graceful_timeout = 120
-
-# تكرار العمال عند استهلاك الذاكرة
-max_requests = 1000
-max_requests_jitter = 50
-
-# تسجيل الأحداث
-loglevel = 'info'
+# السجلات
 accesslog = '-'
 errorlog = '-'
+loglevel = os.getenv('GUNICORN_LOG_LEVEL', 'info')
 
-# وضع المصادقة
-preload_app = True
+# تمكين إعادة التحميل في بيئة التطوير
+reload = os.getenv('FLASK_ENV', 'production') == 'development'
 
-# السماح بإعادة استخدام الأدلة المحلية
-reuse_port = True
+# خيارات أخرى
+worker_class = 'sync'
+proc_name = 'btec_server'
+keepalive = 5
+max_requests = 1000
+max_requests_jitter = 50
+graceful_timeout = 60

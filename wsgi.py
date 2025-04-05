@@ -3,39 +3,29 @@
 """
 
 import os
-import sys
-import logging
-from dotenv import load_dotenv
-
-# إضافة المجلد الحالي إلى مسار Python
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import secrets
 
 # تحميل متغيرات البيئة من ملف .env
-dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
-if os.path.exists(dotenv_path):
-    load_dotenv(dotenv_path)
+from dotenv import load_dotenv
+load_dotenv()
 
-# إعداد السجلات
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('server.log')
-    ]
-)
+# ضمان وجود المفاتيح السرية
+def ensure_secret_key(env_var, length=32):
+    """التأكد من وجود المفتاح السري، وإنشاء واحد جديد إذا لم يكن موجوداً"""
+    if env_var not in os.environ:
+        os.environ[env_var] = secrets.token_hex(length)
 
-logger = logging.getLogger(__name__)
-logger.info("بدء تشغيل نظام تقييم BTEC (WSGI)")
+# ضمان وجود المفاتيح السرية الأساسية
+ensure_secret_key("SECRET_KEY")
+ensure_secret_key("JWT_SECRET_KEY")
+ensure_secret_key("WTF_CSRF_SECRET_KEY")
 
-# استيراد تطبيق Flask
+# إنشاء كائن التطبيق
 from app import create_app
+app = create_app()
 
-# إنشاء تطبيق Flask
-application = create_app()
-app = application
-
-# إذا تم تشغيل هذا الملف مباشرة
-if __name__ == '__main__':
+if __name__ == "__main__":
+    # تعيين المنفذ من متغيرات البيئة أو استخدام القيمة الافتراضية
+    port = int(os.environ.get("PORT", 5000))
     # تشغيل التطبيق
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host="0.0.0.0", port=port)

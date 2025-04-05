@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}إنشاء حصة تفاعلية جديدة | نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="container mt-4" dir="rtl">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.list_sessions') }}">الحصص التفاعلية</a></li>
+            <li class="breadcrumb-item active" aria-current="page">إنشاء حصة جديدة</li>
+        </ol>
+    </nav>
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">إنشاء حصة تفاعلية جديدة</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('main.create_session') }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="title" class="form-label">عنوان الحصة <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="classroom_id" class="form-label">الفصل الدراسي <span class="text-danger">*</span></label>
+                            <select class="form-select" id="classroom_id" name="classroom_id" required>
+                                <option value="" selected disabled>اختر الفصل الدراسي</option>
+                                {% for classroom in classrooms %}
+                                <option value="{{ classroom.id }}">{{ classroom.name }} ({{ classroom.course_code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="start_time" class="form-label">وقت البدء <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" class="form-control" id="start_time" name="start_time" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="end_time" class="form-label">وقت الانتهاء <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="session_type" class="form-label">نوع الحصة <span class="text-danger">*</span></label>
+                            <select class="form-select" id="session_type" name="session_type" required>
+                                <option value="live">مباشرة</option>
+                                <option value="recorded">مسجلة</option>
+                                <option value="hybrid">مختلطة (مباشرة ومسجلة)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="session_url" class="form-label">رابط الحصة</label>
+                            <input type="url" class="form-control" id="session_url" name="session_url" placeholder="https://example.com/meeting/123">
+                            <div class="form-text text-muted">رابط البث المباشر أو منصة الاجتماعات (Zoom، Google Meet، إلخ)</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="meeting_id" class="form-label">معرف الاجتماع</label>
+                                    <input type="text" class="form-control" id="meeting_id" name="meeting_id">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="password" class="form-label">كلمة المرور</label>
+                                    <input type="text" class="form-control" id="password" name="password">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="description" class="form-label">وصف الحصة</label>
+                            <textarea class="form-control" id="description" name="description" rows="15"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('main.list_sessions') }}" class="btn btn-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-primary">إنشاء الحصة التفاعلية</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تلقائيًا حدد وقت البدء والانتهاء لساعة في المستقبل
+        const now = new Date();
+        const startTime = new Date(now.getTime() + 60 * 60 * 1000); // بعد ساعة
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // بعد ساعتين من الآن
+        
+        // تنسيق التاريخ والوقت بتنسيق ISO المطلوب لحقل datetime-local
+        document.getElementById('start_time').value = formatDateTime(startTime);
+        document.getElementById('end_time').value = formatDateTime(endTime);
+        
+        // دالة مساعدة لتنسيق التاريخ والوقت
+        function formatDateTime(date) {
+            return date.getFullYear() + '-' + 
+                   padZero(date.getMonth() + 1) + '-' + 
+                   padZero(date.getDate()) + 'T' + 
+                   padZero(date.getHours()) + ':' + 
+                   padZero(date.getMinutes());
+        }
+        
+        function padZero(num) {
+            return num < 10 ? '0' + num : num;
+        }
+        
+        // التحقق من أن وقت البدء قبل وقت الانتهاء
+        document.querySelector('form').addEventListener('submit', function(event) {
+            const startTime = document.getElementById('start_time').value;
+            const endTime = document.getElementById('end_time').value;
+            
+            if (startTime >= endTime) {
+                event.preventDefault();
+                alert('يجب أن يكون وقت البدء قبل وقت الانتهاء');
+            }
+        });
+    });
+</script>
+{% endblock %}

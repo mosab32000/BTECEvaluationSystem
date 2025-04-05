@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}الفصول الدراسية | نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="container mt-4" dir="rtl">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-3">الفصول الدراسية</h1>
+        </div>
+        <div class="col-md-4 text-md-end">
+            {% if user.role in ['admin', 'teacher'] %}
+            <a href="{{ url_for('main.create_classroom') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> إنشاء فصل جديد
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if classrooms %}
+    <div class="row">
+        {% for classroom in classrooms %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card classroom-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">{{ classroom.name }}</h5>
+                    {% if classroom.is_active %}
+                    <span class="badge bg-success">نشط</span>
+                    {% else %}
+                    <span class="badge bg-secondary">غير نشط</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <p class="card-text text-muted">
+                        <strong>رمز المساق:</strong> {{ classroom.course_code }}
+                    </p>
+                    {% if classroom.description %}
+                    <p class="card-text">{{ classroom.description }}</p>
+                    {% else %}
+                    <p class="card-text text-muted">لا يوجد وصف</p>
+                    {% endif %}
+                    {% if classroom.schedule %}
+                    <p class="card-text">
+                        <i class="far fa-calendar-alt"></i> {{ classroom.schedule }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent border-top-0">
+                    <a href="{{ url_for('main.view_classroom', classroom_id=classroom.id) }}" class="btn btn-sm btn-outline-primary">
+                        عرض التفاصيل
+                    </a>
+                    {% if user.role in ['admin', 'teacher'] and (user.role == 'admin' or classroom.teacher_id == user.id) %}
+                    <a href="{{ url_for('main.edit_classroom', classroom_id=classroom.id) }}" class="btn btn-sm btn-outline-secondary">
+                        تعديل
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center py-5">
+        <h4 class="alert-heading">لا توجد فصول دراسية بعد!</h4>
+        {% if user.role in ['admin', 'teacher'] %}
+        <p>يمكنك البدء بإنشاء فصل دراسي جديد.</p>
+        <a href="{{ url_for('main.create_classroom') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> إنشاء فصل جديد
+        </a>
+        {% else %}
+        <p>لا توجد فصول دراسية متاحة حاليًا. يرجى التحقق لاحقًا.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .classroom-card {
+        transition: transform 0.3s ease;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .classroom-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .card-header {
+        background-color: rgba(0, 123, 255, 0.1);
+        border-bottom: 0;
+        border-radius: 10px 10px 0 0 !important;
+    }
+    
+    .card-footer {
+        background-color: transparent;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+    }
+</style>
+{% endblock %}

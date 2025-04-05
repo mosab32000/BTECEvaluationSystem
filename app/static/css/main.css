@@ -1,169 +1,130 @@
-/* نظام تقييم BTEC - الأنماط الرئيسية */
+/**
+ * نظام تقييم BTEC - الأنماط الرئيسية
+ */
 
-/* متغيرات CSS */
+/* الألوان الأساسية */
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --accent-color: #e74c3c;
-    --success-color: #2ecc71;
-    --warning-color: #f39c12;
-    --danger-color: #e74c3c;
-    --light-color: #ecf0f1;
-    --dark-color: #2c3e50;
-    --border-radius: 4px;
-    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --primary-color: #3a4e7a;
+    --secondary-color: #2c3c60;
+    --accent-color: #f0c14b;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
 }
 
-/* أنماط عامة */
+/* إعدادات عامة */
 body {
-    font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
-    color: #333;
-    background-color: #f8f9fa;
-    text-align: right;
+    background-color: #eceff4;
+    font-family: 'Tajawal', sans-serif;
+    direction: rtl;
 }
 
-a {
-    color: var(--secondary-color);
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-a:hover {
-    color: #1a5276;
-    text-decoration: none;
-}
-
-/* أنماط الهيدر */
-header {
-    margin-bottom: 20px;
-    box-shadow: var(--box-shadow);
+/* الشريط العلوي */
+.navbar {
+    background-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .navbar-brand {
     font-weight: bold;
-    font-size: 1.5rem;
 }
 
-/* أنماط حاويات المصادقة */
-.auth-container {
-    max-width: 500px;
-    margin: 40px auto;
-    padding: 30px;
-    background: #fff;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-}
-
-/* أنماط النماذج */
-.form-control {
-    border-radius: var(--border-radius);
-    border-color: #ddd;
-    padding: 10px 12px;
-}
-
-.form-control:focus {
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-}
-
-.btn-primary {
+/* التذييل */
+.footer {
     background-color: var(--secondary-color);
-    border-color: var(--secondary-color);
-    border-radius: var(--border-radius);
-    padding: 10px 20px;
-    font-weight: 500;
+    color: var(--light-color);
+    margin-top: 2rem;
+}
+
+.footer h4, .footer h5 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+.footer a {
+    color: var(--light-color);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+/* البطاقات */
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    border: none;
+}
+
+.card-header {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    font-weight: bold;
+}
+
+/* النماذج */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(58, 78, 122, 0.25);
+}
+
+/* الأزرار */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
 }
 
 .btn-primary:hover {
-    background-color: #2980b9;
-    border-color: #2980b9;
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
 }
 
-/* أنماط البطاقات */
-.card {
-    border-radius: var(--border-radius);
-    border: none;
-    box-shadow: var(--box-shadow);
-    margin-bottom: 20px;
-}
-
-.card-title {
-    font-weight: 600;
+/* العناوين الرئيسية */
+h1, h2, h3, h4, h5, h6 {
     color: var(--primary-color);
+    margin-bottom: 1rem;
 }
 
-/* أنماط الجدول */
+/* روابط التنقل */
+.breadcrumb {
+    background-color: #fff;
+    border-radius: 0.25rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* الجداول */
 .table {
-    border-radius: var(--border-radius);
+    background-color: #fff;
+    border-radius: 0.25rem;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .table thead th {
     background-color: var(--primary-color);
-    color: white;
-    border-bottom: none;
+    color: var(--light-color);
 }
 
-/* أنماط رسائل الخطأ والنجاح */
+/* التنبيهات */
 .alert {
-    border-radius: var(--border-radius);
     border: none;
-    margin-bottom: 20px;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.alert-error, .alert-danger {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-/* أنماط الذيل */
-footer {
-    color: #6c757d;
-    font-size: 0.9rem;
-}
-
-/* أنماط التقييم */
-.evaluation-status {
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 12px;
-    display: inline-block;
-    font-size: 0.85rem;
-}
-
-.status-pending {
-    background-color: #fef9c3;
-    color: #854d0e;
-}
-
-.status-in-progress {
-    background-color: #e0f2fe;
-    color: #075985;
-}
-
-.status-completed {
-    background-color: #dcfce7;
-    color: #166534;
-}
-
-.status-rejected {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-
-/* أنماط الشاشات الصغيرة */
+/* وسائط استجابية */
 @media (max-width: 768px) {
-    .auth-container {
-        padding: 20px;
-        margin: 20px 10px;
+    .card {
+        margin-bottom: 1rem;
     }
-
+    
     .navbar-brand {
         font-size: 1.2rem;
     }

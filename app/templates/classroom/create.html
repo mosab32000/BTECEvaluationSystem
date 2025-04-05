@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}إنشاء فصل دراسي جديد | نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="container mt-4" dir="rtl">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.list_classrooms') }}">الفصول الدراسية</a></li>
+            <li class="breadcrumb-item active" aria-current="page">إنشاء فصل جديد</li>
+        </ol>
+    </nav>
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">إنشاء فصل دراسي جديد</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('main.create_classroom') }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="name" class="form-label">اسم الفصل الدراسي <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="course_code" class="form-label">رمز المساق <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="course_code" name="course_code" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="schedule" class="form-label">جدول الحصص</label>
+                            <input type="text" class="form-control" id="schedule" name="schedule" placeholder="مثال: الأحد، الثلاثاء، الخميس 10:00-11:30">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="max_students" class="form-label">الحد الأقصى للطلاب</label>
+                            <input type="number" class="form-control" id="max_students" name="max_students" min="1" value="30">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="description" class="form-label">وصف الفصل الدراسي</label>
+                            <textarea class="form-control" id="description" name="description" rows="10"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('main.list_classrooms') }}" class="btn btn-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-primary">إنشاء الفصل الدراسي</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

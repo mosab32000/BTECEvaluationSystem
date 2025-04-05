@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block title %}الحصص التفاعلية | نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="container mt-4" dir="rtl">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-3">الحصص التفاعلية</h1>
+        </div>
+        <div class="col-md-4 text-md-end">
+            {% if user.role in ['admin', 'teacher'] %}
+            <a href="{{ url_for('main.create_session') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> إنشاء حصة جديدة
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- تبويبات للحصص التفاعلية -->
+    <ul class="nav nav-tabs mb-4" id="sessionTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="true">
+                <i class="far fa-calendar-alt"></i> الحصص القادمة
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab" aria-controls="active" aria-selected="false">
+                <i class="fas fa-satellite-dish"></i> الحصص النشطة
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab" aria-controls="past" aria-selected="false">
+                <i class="fas fa-history"></i> الحصص السابقة
+            </button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="sessionTabsContent">
+        <!-- تبويب الحصص القادمة -->
+        <div class="tab-pane fade show active" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+            {% set upcoming_sessions = [] %}
+            {% for session in sessions if session.status == 'scheduled' %}
+                {% do upcoming_sessions.append(session) %}
+            {% endfor %}
+            
+            {% if upcoming_sessions %}
+            <div class="row">
+                {% for session in upcoming_sessions %}
+                <div class="col-md-6 mb-4">
+                    <div class="card session-card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">{{ session.title }}</h5>
+                            <span class="badge bg-info">قادمة</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-1">
+                                <i class="far fa-calendar-alt"></i> {{ session.start_time.strftime('%Y-%m-%d') }}
+                            </p>
+                            <p class="text-muted mb-3">
+                                <i class="far fa-clock"></i> {{ session.start_time.strftime('%H:%M') }} - {{ session.end_time.strftime('%H:%M') }}
+                            </p>
+                            
+                            {% if session.description %}
+                            <p>{{ session.description }}</p>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between mt-3">
+                                <div>
+                                    <span class="badge bg-light text-dark">
+                                        {% if session.session_type == 'live' %}
+                                        <i class="fas fa-video"></i> مباشرة
+                                        {% elif session.session_type == 'recorded' %}
+                                        <i class="fas fa-film"></i> مسجلة
+                                        {% else %}
+                                        <i class="fas fa-random"></i> مختلطة
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('main.view_session', session_id=session.id) }}" class="btn btn-sm btn-outline-primary">عرض التفاصيل</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center py-4">
+                <h4>لا توجد حصص تفاعلية قادمة</h4>
+                <p>سيتم عرض الحصص القادمة هنا بمجرد جدولتها.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- تبويب الحصص النشطة -->
+        <div class="tab-pane fade" id="active" role="tabpanel" aria-labelledby="active-tab">
+            {% set active_sessions = [] %}
+            {% for session in sessions if session.status == 'active' %}
+                {% do active_sessions.append(session) %}
+            {% endfor %}
+            
+            {% if active_sessions %}
+            <div class="row">
+                {% for session in active_sessions %}
+                <div class="col-md-6 mb-4">
+                    <div class="card session-card h-100 border-success">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">{{ session.title }}</h5>
+                            <span class="badge bg-light text-success">نشطة الآن</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-1">
+                                <i class="far fa-calendar-alt"></i> {{ session.start_time.strftime('%Y-%m-%d') }}
+                            </p>
+                            <p class="text-muted mb-3">
+                                <i class="far fa-clock"></i> {{ session.start_time.strftime('%H:%M') }} - {{ session.end_time.strftime('%H:%M') }}
+                            </p>
+                            
+                            {% if session.description %}
+                            <p>{{ session.description }}</p>
+                            {% endif %}
+                            
+                            <div class="mt-3">
+                                <a href="{{ url_for('main.view_session', session_id=session.id) }}" class="btn btn-success w-100">
+                                    <i class="fas fa-sign-in-alt"></i> الانضمام الآن
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center py-4">
+                <h4>لا توجد حصص تفاعلية نشطة حاليًا</h4>
+                <p>ستظهر الحصص النشطة هنا أثناء وقت البث المباشر.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- تبويب الحصص السابقة -->
+        <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
+            {% set past_sessions = [] %}
+            {% for session in sessions if session.status == 'completed' %}
+                {% do past_sessions.append(session) %}
+            {% endfor %}
+            
+            {% if past_sessions %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>العنوان</th>
+                            <th>التاريخ</th>
+                            <th>الوقت</th>
+                            <th>النوع</th>
+                            <th>التسجيل</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in past_sessions %}
+                        <tr>
+                            <td>{{ session.title }}</td>
+                            <td>{{ session.start_time.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ session.start_time.strftime('%H:%M') }} - {{ session.end_time.strftime('%H:%M') }}</td>
+                            <td>
+                                {% if session.session_type == 'live' %}
+                                <span class="badge bg-info">مباشرة</span>
+                                {% elif session.session_type == 'recorded' %}
+                                <span class="badge bg-secondary">مسجلة</span>
+                                {% else %}
+                                <span class="badge bg-primary">مختلطة</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if session.recording_url %}
+                                <a href="{{ session.recording_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-play-circle"></i> مشاهدة
+                                </a>
+                                {% else %}
+                                <span class="text-muted">غير متاح</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.view_session', session_id=session.id) }}" class="btn btn-sm btn-outline-secondary">التفاصيل</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center py-4">
+                <h4>لا توجد حصص تفاعلية سابقة</h4>
+                <p>ستظهر الحصص المكتملة هنا بعد انتهائها.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .session-card {
+        transition: transform 0.3s ease;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .session-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .nav-tabs .nav-link {
+        border-radius: 10px 10px 0 0;
+        font-weight: 500;
+    }
+    
+    .nav-tabs .nav-link.active {
+        border-bottom-color: transparent;
+        background-color: #f8f9fa;
+    }
+    
+    .tab-content {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-top: 0;
+        border-radius: 0 0 10px 10px;
+        padding: 20px;
+    }
+</style>
+{% endblock %}

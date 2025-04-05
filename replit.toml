@@ -1,20 +1,44 @@
-[run]
-language = "python"
+# تكوين نظام تقييم BTEC على منصة Replit
+run = ["bash", "run_scripts/run_btec_server.sh"]
 entrypoint = "app.py"
-encoding = "utf8"
-exec = "python3 app.py"
+language = "python3"
+hidden = ["venv", ".config", "**/__pycache__", "**/.mypy_cache", "**/*.pyc", "**/.pytest_cache", ".upm"]
 
-[environment]
-FLASK_APP = "app.py"
+[nix]
+channel = "stable-23_11"
+
+[env]
 FLASK_ENV = "development"
-FLASK_DEBUG = "True"
-HOST = "0.0.0.0"
+PYTHON_VERSION = "3.11"
 PORT = "5000"
 
-[workflow.btec_app]
-defaultBranch = "main"
-run = "./run_btec_server.sh"
-id = "btec_app"
-language = "Python"
-type = "browser"
-onBoot = true
+[packager]
+language = "python3"
+ignoredPackages = ["unit_tests"]
+
+[packager.features]
+enabledForHosting = true
+packageSearch = true
+guessImports = true
+
+[deployment]
+run = ["sh", "-c", "cd {REPL_HOME} && python3 run_btec_server.py"]
+deploymentTarget = "cloudrun"
+
+[unitTest]
+language = "python3"
+
+[languages]
+
+[languages.python3]
+pattern = "**/*.py"
+
+[languages.python3.languageServer]
+start = "pylsp"
+
+[auth]
+pageEnabled = true
+buttonEnabled = false
+
+[debugger]
+support = true

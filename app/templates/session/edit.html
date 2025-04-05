@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل {{ session.title }} | نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="container mt-4" dir="rtl">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.list_sessions') }}">الحصص التفاعلية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.view_session', session_id=session.id) }}">{{ session.title }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">تعديل</li>
+        </ol>
+    </nav>
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h2 class="mb-0">تعديل الحصة التفاعلية</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('main.edit_session', session_id=session.id) }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="title" class="form-label">عنوان الحصة <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ session.title }}" required>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="classroom_id" class="form-label">الفصل الدراسي <span class="text-danger">*</span></label>
+                            <select class="form-select" id="classroom_id" name="classroom_id" required>
+                                {% for classroom in classrooms %}
+                                <option value="{{ classroom.id }}" {% if classroom.id == session.classroom_id %}selected{% endif %}>
+                                    {{ classroom.name }} ({{ classroom.course_code }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="start_time" class="form-label">وقت البدء <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" class="form-control" id="start_time" name="start_time" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="end_time" class="form-label">وقت الانتهاء <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="session_type" class="form-label">نوع الحصة <span class="text-danger">*</span></label>
+                            <select class="form-select" id="session_type" name="session_type" required>
+                                <option value="live" {% if session.session_type == 'live' %}selected{% endif %}>مباشرة</option>
+                                <option value="recorded" {% if session.session_type == 'recorded' %}selected{% endif %}>مسجلة</option>
+                                <option value="hybrid" {% if session.session_type == 'hybrid' %}selected{% endif %}>مختلطة (مباشرة ومسجلة)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="status" class="form-label">حالة الحصة <span class="text-danger">*</span></label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="scheduled" {% if session.status == 'scheduled' %}selected{% endif %}>مجدولة</option>
+                                <option value="active" {% if session.status == 'active' %}selected{% endif %}>نشطة</option>
+                                <option value="completed" {% if session.status == 'completed' %}selected{% endif %}>مكتملة</option>
+                                <option value="cancelled" {% if session.status == 'cancelled' %}selected{% endif %}>ملغاة</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="session_url" class="form-label">رابط الحصة</label>
+                            <input type="url" class="form-control" id="session_url" name="session_url" value="{{ session.session_url }}">
+                            <div class="form-text text-muted">رابط البث المباشر أو منصة الاجتماعات (Zoom، Google Meet، إلخ)</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="meeting_id" class="form-label">معرف الاجتماع</label>
+                                    <input type="text" class="form-control" id="meeting_id" name="meeting_id" value="{{ session.meeting_id }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="password" class="form-label">كلمة المرور</label>
+                                    <input type="text" class="form-control" id="password" name="password" placeholder="اترك فارغًا للإبقاء على كلمة المرور الحالية">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if session.status == 'completed' %}
+                        <div class="form-group mb-3">
+                            <label for="recording_url" class="form-label">رابط التسجيل</label>
+                            <input type="url" class="form-control" id="recording_url" name="recording_url" value="{{ session.recording_url }}">
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="description" class="form-label">وصف الحصة</label>
+                            <textarea class="form-control" id="description" name="description" rows="15">{{ session.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('main.view_session', session_id=session.id) }}" class="btn btn-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-warning">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تعيين قيم وقت البدء والانتهاء
+        const startTime = new Date('{{ session.start_time.isoformat() }}');
+        const endTime = new Date('{{ session.end_time.isoformat() }}');
+        
+        document.getElementById('start_time').value = formatDateTime(startTime);
+        document.getElementById('end_time').value = formatDateTime(endTime);
+        
+        // دالة مساعدة لتنسيق التاريخ والوقت
+        function formatDateTime(date) {
+            return date.getFullYear() + '-' + 
+                   padZero(date.getMonth() + 1) + '-' + 
+                   padZero(date.getDate()) + 'T' + 
+                   padZero(date.getHours()) + ':' + 
+                   padZero(date.getMinutes());
+        }
+        
+        function padZero(num) {
+            return num < 10 ? '0' + num : num;
+        }
+        
+        // التحقق من أن وقت البدء قبل وقت الانتهاء
+        document.querySelector('form').addEventListener('submit', function(event) {
+            const startTime = document.getElementById('start_time').value;
+            const endTime = document.getElementById('end_time').value;
+            
+            if (startTime >= endTime) {
+                event.preventDefault();
+                alert('يجب أن يكون وقت البدء قبل وقت الانتهاء');
+            }
+        });
+    });
+</script>
+{% endblock %}
