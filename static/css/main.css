@@ -1,0 +1,247 @@
+/* نظام تقييم BTEC - الأنماط الرئيسية */
+
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34a5a5;
+    --accent-color: #e74c3c;
+    --light-bg: #f5f5f5;
+    --dark-text: #333;
+    --light-text: #fff;
+    --danger-color: #dc3545;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+}
+
+/* تنسيقات عامة */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--dark-text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.rtl {
+    direction: rtl;
+    text-align: right;
+}
+
+.ltr {
+    direction: ltr;
+    text-align: left;
+}
+
+/* أنماط الشريط العلوي */
+.navbar {
+    background-color: var(--primary-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: var(--light-text) !important;
+}
+
+.navbar-nav .nav-link {
+    color: var(--light-text) !important;
+    margin: 0 10px;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 5px;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    border-bottom: 2px solid var(--secondary-color);
+    color: var(--light-text) !important;
+}
+
+/* أنماط الأزرار */
+.btn-primary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.btn-outline-primary {
+    color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--secondary-color);
+    color: var(--light-text);
+    transform: scale(1.05);
+}
+
+/* أنماط البطاقات */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-header {
+    background-color: var(--primary-color);
+    color: var(--light-text);
+    font-weight: bold;
+}
+
+/* أنماط النماذج */
+.form-control {
+    border-radius: 5px;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 165, 165, 0.25);
+}
+
+.form-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* أنماط الهيرو */
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--light-text);
+    padding: 5rem 0;
+    text-align: center;
+}
+
+.hero-title {
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+}
+
+.hero-subtitle {
+    font-weight: 300;
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+/* أنماط التذييل */
+.footer {
+    background-color: var(--primary-color);
+    color: var(--light-text);
+    padding: 2rem 0;
+    margin-top: auto;
+}
+
+.footer a {
+    color: var(--light-text);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer a:hover {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+/* أنماط لصفحات محددة */
+
+/* صفحة التقييمات */
+.evaluation-card {
+    transition: transform 0.3s ease;
+}
+
+.evaluation-card:hover {
+    transform: translateY(-5px);
+}
+
+.evaluation-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-pending {
+    background-color: var(--warning-color);
+    color: #333;
+}
+
+.status-in-progress {
+    background-color: var(--info-color);
+    color: var(--light-text);
+}
+
+.status-completed {
+    background-color: var(--success-color);
+    color: var(--light-text);
+}
+
+.status-verified {
+    background-color: var(--primary-color);
+    color: var(--light-text);
+}
+
+/* صفحة عرض التقييم */
+.evaluation-details {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.grade-display {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.criteria-table th {
+    background-color: var(--secondary-color);
+    color: var(--light-text);
+}
+
+/* أنماط التقييم */
+.strengths-list li, .weaknesses-list li {
+    margin-bottom: 10px;
+    padding-left: 20px;
+    position: relative;
+}
+
+.strengths-list li:before {
+    content: '✓';
+    color: var(--success-color);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+.weaknesses-list li:before {
+    content: '✗';
+    color: var(--danger-color);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+/* الاستجابة */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 3rem 0;
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+    }
+}

@@ -2,75 +2,91 @@
 ملف تشغيل خادم نظام تقييم BTEC
 """
 import os
+import sys
 import logging
-import secrets
+import subprocess
+import time
+import signal
+import atexit
 from pathlib import Path
-
-from flask import Flask, jsonify, render_template
+from dotenv import load_dotenv
 
 # إعداد التسجيل
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('server.log')
+    ]
+)
+
 logger = logging.getLogger(__name__)
+
+# تحميل متغيرات البيئة
+if os.path.exists('.env'):
+    load_dotenv()
+    logger.info("تم تحميل ملف .env")
 
 def ensure_environment():
     """ضمان وجود متغيرات البيئة الضرورية"""
-    # ضمان وجود مفتاح سري
-    if 'SECRET_KEY' not in os.environ:
-        os.environ['SECRET_KEY'] = secrets.token_hex(32)
-        logger.info("تم إنشاء SECRET_KEY")
+    # التأكد من متغيرات البيئة الأساسية
+    required_vars = ['DATABASE_URL', 'SECRET_KEY', 'JWT_SECRET_KEY']
+    missing_vars = [var for var in required_vars if not os.environ.get(var)]
     
-    # ضمان وجود مفتاح JWT
-    if 'JWT_SECRET_KEY' not in os.environ:
-        os.environ['JWT_SECRET_KEY'] = secrets.token_hex(32)
-        logger.info("تم إنشاء JWT_SECRET_KEY")
+    if missing_vars:
+        logger.error(f"متغيرات البيئة المفقودة: {', '.join(missing_vars)}")
+        logger.error("يرجى إنشاء ملف .env مع المتغيرات المطلوبة")
+        sys.exit(1)
     
-    # ضمان وجود مفتاح تشفير
-    if 'ENCRYPTION_KEY' not in os.environ:
-        os.environ['ENCRYPTION_KEY'] = secrets.token_urlsafe(32)
-        logger.info("تم إنشاء ENCRYPTION_KEY")
-
-    # إعداد وضع التصحيح
-    if 'FLASK_DEBUG' not in os.environ:
-        os.environ['FLASK_DEBUG'] = 'True'
-    
-    # إعداد مجلد التحميلات
-    upload_dir = Path('uploads')
-    if not upload_dir.exists():
-        upload_dir.mkdir(parents=True)
-        logger.info("تم إنشاء مجلد uploads")
-    
-    # إعداد مجلد السجلات
-    logs_dir = Path('logs')
-    if not logs_dir.exists():
-        logs_dir.mkdir(parents=True)
-        logger.info("تم إنشاء مجلد logs")
+    # التأكد من وجود المجلدات الضرورية
+    for folder in ['logs', 'static', 'templates']:
+        os.makedirs(folder, exist_ok=True)
 
 def run_server():
     """تشغيل خادم Flask"""
-    # ضمان وجود متغيرات البيئة
-    ensure_environment()
-    
     try:
-        # استيراد التطبيق
-        from app import create_app
-        
-        # إنشاء تطبيق Flask
-        app = create_app()
-        
-        # تعيين متغيرات التشغيل
-        host = os.environ.get('HOST', '0.0.0.0')
-        port = int(os.environ.get('PORT', 5000))
-        debug = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
+        # تهيئة قاعدة البيانات إذا كانت غير موجودة
+        if not Path('instance').exists() or not any(Path('instance').iterdir()):
+            logger.info("إعداد قاعدة البيانات...")
+            subprocess.run([sys.executable, 'init_db.py'], check=True)
         
         # تشغيل التطبيق
-        logger.info(f"بدء تشغيل خادم نظام تقييم BTEC على {host}:{port} (وضع التصحيح: {debug})")
-        app.run(host=host, port=port, debug=debug)
+        logger.info("بدء تشغيل خادم Flask...")
         
+        # حفظ PID لإغلاق التطبيق لاحقاً
+        with open('server.pid', 'w') as f:
+            f.write(str(os.getpid()))
+        
+        # تسجيل دالة التنظيف
+        def cleanup():
+            if os.path.exists('server.pid'):
+                os.remove('server.pid')
+            logger.info("تم إغلاق الخادم")
+        
+        atexit.register(cleanup)
+        
+        # معالج إشارات النظام
+        def signal_handler(sig, frame):
+            logger.info(f"تم استلام الإشارة {sig}، جاري إغلاق الخادم...")
+            sys.exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
+        # تنفيذ أمر التشغيل
+        port = int(os.environ.get('PORT', 5000))
+        subprocess.run([
+            sys.executable, 'run.py'
+        ], check=True)
+        
+    except subprocess.CalledProcessError as e:
+        logger.error(f"فشل تشغيل الخادم: {e}")
+        sys.exit(1)
     except Exception as e:
-        logger.error(f"خطأ أثناء تشغيل الخادم: {str(e)}")
-        raise
+        logger.error(f"حدث خطأ أثناء تنفيذ الخادم: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
+    ensure_environment()
     run_server()

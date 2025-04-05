@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}تقييماتي - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-list-check me-2"></i>تقييماتي</h2>
+        <a href="{{ url_for('evaluation.new_evaluation') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>تقييم جديد
+        </a>
+    </div>
+    
+    <!-- شريط البحث والتصفية -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" placeholder="بحث...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select">
+                        <option selected>جميع الحالات</option>
+                        <option value="pending">قيد الانتظار</option>
+                        <option value="in_progress">قيد التقدم</option>
+                        <option value="completed">مكتمل</option>
+                        <option value="verified">متحقق منه</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select">
+                        <option selected>ترتيب حسب</option>
+                        <option value="newest">الأحدث</option>
+                        <option value="oldest">الأقدم</option>
+                        <option value="highest_grade">أعلى درجة</option>
+                        <option value="lowest_grade">أدنى درجة</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">تطبيق</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- قائمة التقييمات -->
+    {% if evaluations %}
+        <div class="row">
+            {% for evaluation in evaluations %}
+                <div class="col-lg-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100 evaluation-card">
+                        <div class="card-header d-flex justify-content-between align-items-center py-3">
+                            <h5 class="mb-0">
+                                {{ evaluation.title or 'تقييم رقم ' + evaluation.id|string }}
+                            </h5>
+                            <span class="evaluation-status status-{{ evaluation.status }}">
+                                {% if evaluation.status == 'pending' %}
+                                    قيد الانتظار
+                                {% elif evaluation.status == 'in_progress' %}
+                                    قيد التقدم
+                                {% elif evaluation.status == 'completed' %}
+                                    مكتمل
+                                {% elif evaluation.status == 'verified' %}
+                                    متحقق منه
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>وصف المهمة:</strong>
+                                <p class="text-truncate">{{ evaluation.task_description }}</p>
+                            </div>
+                            
+                            {% if evaluation.grade is not none %}
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="display-6 me-2">{{ "%.1f"|format(evaluation.grade) }}</div>
+                                    <div class="text-secondary">/ 100</div>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    {{ evaluation.created_at.strftime('%Y-%m-%d %H:%M') if evaluation.created_at else '' }}
+                                </small>
+                                <div>
+                                    {% if evaluation.is_ai_evaluated %}
+                                        <span class="badge bg-info me-1" title="تم التقييم بالذكاء الاصطناعي">
+                                            <i class="fas fa-robot"></i>
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if evaluation.verified %}
+                                        <span class="badge bg-primary" title="تم التحقق بالبلوكتشين">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('evaluation.view', id=evaluation.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>عرض
+                                </a>
+                                
+                                {% if evaluation.status == 'pending' or evaluation.status == 'in_progress' %}
+                                    <div>
+                                        <a href="{{ url_for('evaluation.edit', id=evaluation.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit me-1"></i>تعديل
+                                        </a>
+                                        
+                                        <form method="post" action="{{ url_for('evaluation.delete', id=evaluation.id) }}" class="d-inline" 
+                                              onsubmit="return confirmDelete('هل أنت متأكد من رغبتك في حذف هذا التقييم؟');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash-alt me-1"></i>حذف
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% elif evaluation.status == 'completed' and not evaluation.verified %}
+                                    <a href="{{ url_for('evaluation.verify', id=evaluation.id) }}" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-shield-alt me-1"></i>تحقق
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="fas fa-clipboard-list fa-5x text-muted"></i>
+            </div>
+            <h3>لا توجد تقييمات بعد</h3>
+            <p class="text-muted">قم بإنشاء تقييم جديد للبدء في استخدام النظام</p>
+            <a href="{{ url_for('evaluation.new_evaluation') }}" class="btn btn-primary mt-3">
+                <i class="fas fa-plus-circle me-2"></i>تقييم جديد
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
