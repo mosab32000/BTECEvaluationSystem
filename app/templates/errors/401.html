@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}غير مصادق - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-1 fw-bold text-warning">401</h1>
+    <h2 class="mb-4">غير مصادق</h2>
+    <p class="lead mb-5">عذرًا، يجب تسجيل الدخول للوصول إلى هذه الصفحة.</p>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4 me-2">تسجيل الدخول</a>
+    <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary btn-lg px-4">العودة إلى الصفحة الرئيسية</a>
+</div>
+{% endblock %}

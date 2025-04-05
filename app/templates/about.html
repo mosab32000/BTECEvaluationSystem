@@ -1,126 +1,189 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>حول النظام - نظام تقييم BTEC</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-rtl.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<body>
-    <header class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">نظام تقييم BTEC</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.index') }}">الرئيسية</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('main.about') }}">حول النظام</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    {% if 'user_id' in session %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.profile') }}">{{ session.user_name }}</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.logout') }}">تسجيل الخروج</a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">تسجيل الدخول</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.register') }}">تسجيل حساب جديد</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </header>
+{% extends "base.html" %}
 
-    <main class="container mt-4">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h2 class="card-title">نظام تقييم BTEC</h2>
-                <p class="card-text">
-                    نظام تقييم BTEC هو منصة متطورة تستخدم الذكاء الاصطناعي لتقييم مهام ومشاريع طلاب BTEC بشكل آلي ودقيق.
-                    يهدف النظام إلى توفير تقييم موضوعي وفعال للمهام التعليمية، مما يساعد المدرسين في إدارة الأعباء التعليمية
-                    ويمنح الطلاب تغذية راجعة فورية وقيمة حول أدائهم.
-                </p>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">تقييم ذكي</h5>
-                        <p class="card-text">
-                            يستخدم النظام تقنيات الذكاء الاصطناعي المتقدمة لتقييم المهام والمشاريع بناءً على معايير محددة مسبقًا،
-                            مما يضمن تقييمًا موضوعيًا وتغذية راجعة مفصلة.
-                        </p>
+{% block title %}حول النظام - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-12 text-center">
+        <h1 class="display-4 fw-bold mb-4">حول نظام تقييم BTEC</h1>
+        <p class="lead">منصة متطورة للتقييم الأكاديمي تعتمد على الذكاء الاصطناعي لتعزيز تجربة التعلم</p>
+    </div>
+</div>
+
+<div class="row align-items-center mb-5">
+    <div class="col-lg-6">
+        <h2 class="fw-bold mb-3">رؤيتنا</h2>
+        <p class="lead">إحداث ثورة في عملية التقييم الأكاديمي من خلال توظيف التكنولوجيا المتقدمة وجعلها أكثر كفاءة وعدالة وملاءمة لاحتياجات الطلاب.</p>
+        <p>نهدف إلى بناء بيئة تعليمية تحفز الإبداع والتفكير النقدي، وتسهل على المعلمين متابعة تقدم طلابهم بشكل مستمر وفعال، مما يضمن تحقيق أعلى مستويات الجودة في التعليم.</p>
+    </div>
+    <div class="col-lg-6">
+        <img src="{{ url_for('static', filename='img/vision.svg') }}" alt="رؤيتنا" class="img-fluid">
+    </div>
+</div>
+
+<div class="row align-items-center mb-5 flex-lg-row-reverse">
+    <div class="col-lg-6">
+        <h2 class="fw-bold mb-3">مهمتنا</h2>
+        <p class="lead">توفير منصة تقييم شاملة تمكن المؤسسات التعليمية من تنفيذ تقييمات دقيقة وعادلة، وتمنح الطلاب تغذية راجعة قيمة لتحسين أدائهم.</p>
+        <p>نسعى جاهدين لتطوير حلول مبتكرة تدمج بين خبرة المعلمين وقوة الذكاء الاصطناعي، مما يوفر بيئة تعليمية متكاملة تلبي احتياجات جميع الأطراف المعنية بالعملية التعليمية.</p>
+    </div>
+    <div class="col-lg-6">
+        <img src="{{ url_for('static', filename='img/mission.svg') }}" alt="مهمتنا" class="img-fluid">
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-5">
+                <h2 class="fw-bold mb-4 text-center">قيمنا الأساسية</h2>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4 mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-lightbulb text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h4>الابتكار</h4>
+                                <p>نسعى دائمًا للتطوير والابتكار في حلولنا التعليمية.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-balance-scale text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h4>العدالة</h4>
+                                <p>نؤمن بتوفير نظام تقييم عادل ومنصف لجميع المتعلمين.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-users text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h4>التعاون</h4>
+                                <p>نؤمن بقوة العمل الجماعي والتعاون بين جميع أطراف العملية التعليمية.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-lock text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h4>الأمان</h4>
+                                <p>نضع أمن وخصوصية بيانات المستخدمين على رأس أولوياتنا.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-chart-line text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h4>التطور المستمر</h4>
+                                <p>نلتزم بالتحسين المستمر لنظامنا استنادًا إلى التغذية الراجعة والتطورات التكنولوجية.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-universal-access text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h4>الشمولية</h4>
+                                <p>نصمم حلولنا لتكون متاحة ومفيدة لجميع المتعلمين بمختلف قدراتهم واحتياجاتهم.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">تقارير مفصلة</h5>
-                        <p class="card-text">
-                            يوفر النظام تقارير مفصلة حول أداء الطلاب، مما يساعد المدرسين على تتبع تقدم الطلاب
-                            وتحديد نقاط القوة والضعف لديهم.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">التحقق من البلوكتشين</h5>
-                        <p class="card-text">
-                            يستخدم النظام تقنية البلوكتشين لضمان صحة ومصداقية التقييمات،
-                            مما يمنع التلاعب ويعزز الثقة في نتائج التقييم.
-                        </p>
-                    </div>
-                </div>
-            </div>
         </div>
-        
-        <div class="card mb-4">
-            <div class="card-body">
-                <h3 class="card-title">فريق التطوير</h3>
-                <p class="card-text">
-                    تم تطوير هذا النظام بواسطة فريق من المتخصصين في مجالات الذكاء الاصطناعي وتقنيات الويب وعلوم التعليم.
-                    يعمل الفريق باستمرار على تحسين النظام وإضافة ميزات جديدة لتلبية احتياجات المستخدمين.
-                </p>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-body">
-                <h3 class="card-title">اتصل بنا</h3>
-                <p class="card-text">
-                    إذا كانت لديك أي استفسارات أو اقتراحات، يرجى التواصل معنا عبر البريد الإلكتروني:
-                    <a href="mailto:support@btec-eval.com">support@btec-eval.com</a>
-                </p>
-            </div>
-        </div>
-    </main>
+    </div>
+</div>
 
-    <footer class="bg-light p-3 mt-5">
-        <div class="container text-center">
-            <p>جميع الحقوق محفوظة &copy; {{ now.year }} - نظام تقييم BTEC</p>
+<div class="row mb-5">
+    <div class="col-12 text-center">
+        <h2 class="fw-bold mb-4">فريقنا</h2>
+        <p class="lead mb-5">يضم فريقنا نخبة من الخبراء في مجالات التعليم والتكنولوجيا والذكاء الاصطناعي</p>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3 mx-auto rounded-circle bg-primary" style="width: 100px; height: 100px;"></div>
+                <h4>د. أحمد محمد</h4>
+                <p class="text-muted">المؤسس والرئيس التنفيذي</p>
+                <p class="small">خبير في تكنولوجيا التعليم مع أكثر من 15 عامًا من الخبرة في تطوير أنظمة التقييم.</p>
+            </div>
         </div>
-    </footer>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3 mx-auto rounded-circle bg-info" style="width: 100px; height: 100px;"></div>
+                <h4>م. سارة علي</h4>
+                <p class="text-muted">مديرة التكنولوجيا</p>
+                <p class="small">متخصصة في الذكاء الاصطناعي وتعلم الآلة مع خبرة واسعة في تطبيقات التعليم.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3 mx-auto rounded-circle bg-success" style="width: 100px; height: 100px;"></div>
+                <h4>د. محمود عبدالله</h4>
+                <p class="text-muted">مدير البحث والتطوير</p>
+                <p class="small">باحث أكاديمي متميز مع العديد من المنشورات في مجال تقييم التعليم وتحليل البيانات.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3 mx-auto rounded-circle bg-warning" style="width: 100px; height: 100px;"></div>
+                <h4>أ. ليلى حسن</h4>
+                <p class="text-muted">مديرة خبرة المستخدم</p>
+                <p class="small">مصممة واجهات مستخدم محترفة مع شغف بتصميم تجارب تعليمية سلسة وممتعة.</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html>
+<div class="row">
+    <div class="col-12 text-center">
+        <h2 class="fw-bold mb-4">تواصل معنا</h2>
+        <p class="lead mb-5">نحن هنا للإجابة على استفساراتك وتقديم الدعم اللازم</p>
+        <a href="{{ url_for('main.contact') }}" class="btn btn-primary btn-lg px-4">اتصل بنا</a>
+    </div>
+</div>
+{% endblock %}

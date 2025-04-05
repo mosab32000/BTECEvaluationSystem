@@ -1,172 +1,174 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام تقييم BTEC - الصفحة الرئيسية</title>
-    
-    <!-- الخطوط -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- أيقونات Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- أنماط CSS الخاصة بنا -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/btec-style.css') }}">
-</head>
-<body>
-    <!-- شريط التنقل -->
-    <nav class="navbar">
-        <div class="container navbar-container">
-            <a href="{{ url_for('main.index') }}" class="navbar-brand">نظام تقييم BTEC</a>
-            
-            <ul class="navbar-nav">
-                <li><a href="{{ url_for('main.index') }}" class="nav-link active">الرئيسية</a></li>
-                <li><a href="{{ url_for('main.features') }}" class="nav-link">الميزات</a></li>
-                <li><a href="{{ url_for('main.about') }}" class="nav-link">حول النظام</a></li>
-                <li><a href="{{ url_for('main.contact') }}" class="nav-link">اتصل بنا</a></li>
-                
-                <!-- روابط للمستخدمين غير المسجلين فقط -->
-                <li class="guest-only"><a href="{{ url_for('auth.login') }}" class="nav-link">تسجيل الدخول</a></li>
-                <li class="guest-only"><a href="{{ url_for('auth.register') }}" class="nav-link">إنشاء حساب</a></li>
-                
-                <!-- روابط للمستخدمين المسجلين فقط -->
-                <li class="auth-only"><a href="{{ url_for('main.dashboard_redirect') }}" class="nav-link">لوحة التحكم</a></li>
-                <li class="auth-only">
-                    <a href="#" id="logout-btn" class="nav-link">تسجيل الخروج</a>
-                </li>
-            </ul>
+{% extends "base.html" %}
+
+{% block title %}
+الصفحة الرئيسية - {{ super() }}
+{% endblock %}
+
+{% block content %}
+<div class="row align-items-center">
+    <div class="col-lg-6">
+        <h1 class="display-4 fw-bold mb-4">نظام تقييم BTEC</h1>
+        <p class="lead mb-4">منصة متطورة للتقييم الأكاديمي مدعومة بالذكاء الاصطناعي، تهدف إلى تحويل عملية التقييم من خلال تقنيات تكيفية ذكية.</p>
+        <div class="d-grid gap-2 d-md-flex">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4">ابدأ الآن</a>
+            <a href="{{ url_for('main.about') }}" class="btn btn-outline-secondary btn-lg px-4">اقرأ المزيد</a>
         </div>
-    </nav>
+    </div>
+    <div class="col-lg-6 d-flex justify-content-center mt-5 mt-lg-0">
+        <img src="{{ url_for('static', filename='img/hero-image.svg') }}" alt="BTEC Evaluation System" class="img-fluid" style="max-height: 400px;">
+    </div>
+</div>
+
+<div class="row mt-5 pt-5">
+    <div class="col-12 text-center mb-5">
+        <h2 class="display-5 fw-bold">مميزات النظام</h2>
+        <p class="lead">تعرف على الميزات التي تجعل نظامنا فريدًا ومبتكرًا</p>
+    </div>
     
-    <!-- حاوية التنبيهات -->
-    <div id="alert-container" class="container my-3"></div>
-    
-    <!-- القسم الرئيسي -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="hero-title">نظام تقييم BTEC المتطور</h1>
-                <p class="hero-subtitle">منصة تقييم ذكية تعتمد على الذكاء الاصطناعي لتحسين تجربة التعلم وتقديم تقييمات دقيقة وموثوقة</p>
-                
-                <div class="hero-buttons">
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-lg">إنشاء حساب جديد</a>
-                    <a href="{{ url_for('main.features') }}" class="btn btn-outline btn-lg">استكشاف الميزات</a>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body text-center p-4">
+                <div class="feature-icon bg-primary bg-gradient p-3 mb-3 d-inline-flex rounded-circle">
+                    <i class="fas fa-brain text-white fa-2x"></i>
                 </div>
+                <h4 class="card-title">تقييم مدعوم بالذكاء الاصطناعي</h4>
+                <p class="card-text">استخدام الذكاء الاصطناعي المتقدم لتقييم المهام وتقديم ملاحظات مفصلة وشخصية للطلاب.</p>
             </div>
         </div>
-    </section>
+    </div>
     
-    <!-- قسم الميزات الرئيسية -->
-    <section class="features">
-        <div class="container">
-            <div class="features-header">
-                <h2>ميزات نظام تقييم BTEC</h2>
-                <p>اكتشف كيف يمكن لنظامنا المتقدم تحسين عملية التقييم والتعلم</p>
-            </div>
-            
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <h3 class="feature-title">تقييم ذكي</h3>
-                    <p class="feature-description">استفد من قوة الذكاء الاصطناعي لتقييم أعمال الطلاب بدقة وكفاءة عالية.</p>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body text-center p-4">
+                <div class="feature-icon bg-success bg-gradient p-3 mb-3 d-inline-flex rounded-circle">
+                    <i class="fas fa-language text-white fa-2x"></i>
                 </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-link"></i>
-                    </div>
-                    <h3 class="feature-title">توثيق بالبلوكشين</h3>
-                    <p class="feature-description">ضمان أمان وموثوقية التقييمات من خلال تخزينها في سلسلة الكتل.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-language"></i>
-                    </div>
-                    <h3 class="feature-title">دعم متعدد اللغات</h3>
-                    <p class="feature-description">تقييم في لغات متعددة مع دعم كامل للغة العربية وتنسيق RTL.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    <h3 class="feature-title">إدارة الفصول</h3>
-                    <p class="feature-description">أدوات متكاملة لإدارة الفصول الدراسية وتتبع حضور الطلاب.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <h3 class="feature-title">تقارير تحليلية</h3>
-                    <p class="feature-description">تحليلات متقدمة لأداء الطلاب مع رؤى قابلة للتنفيذ.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <h3 class="feature-title">متوافق مع جميع الأجهزة</h3>
-                    <p class="feature-description">استخدم النظام من أي جهاز بفضل التصميم المتجاوب الكامل.</p>
-                </div>
+                <h4 class="card-title">دعم متعدد اللغات</h4>
+                <p class="card-text">تقييم وتحليل المهام بعدة لغات، مع تركيز خاص على اللغة العربية، مما يعزز الشمولية.</p>
             </div>
         </div>
-    </section>
+    </div>
     
-    <!-- القدم -->
-    <footer class="footer">
-        <div class="container footer-container">
-            <div class="footer-column">
-                <h4 class="footer-heading">نظام تقييم BTEC</h4>
-                <p>منصة تقييم متقدمة تعتمد على الذكاء الاصطناعي والبلوكشين لتوفير تجربة تعليمية استثنائية.</p>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body text-center p-4">
+                <div class="feature-icon bg-info bg-gradient p-3 mb-3 d-inline-flex rounded-circle">
+                    <i class="fas fa-shield-alt text-white fa-2x"></i>
+                </div>
+                <h4 class="card-title">نظام تحقق آمن</h4>
+                <p class="card-text">تقنية بلوكتشين متقدمة للتحقق من صحة التقييمات وضمان سلامة وأصالة الشهادات الصادرة.</p>
             </div>
-            
-            <div class="footer-column">
-                <h4 class="footer-heading">روابط سريعة</h4>
-                <ul class="footer-links">
-                    <li class="footer-link"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
-                    <li class="footer-link"><a href="{{ url_for('main.features') }}">الميزات</a></li>
-                    <li class="footer-link"><a href="{{ url_for('main.about') }}">حول النظام</a></li>
-                    <li class="footer-link"><a href="{{ url_for('main.contact') }}">اتصل بنا</a></li>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5 pt-4">
+    <div class="col-12 text-center mb-5">
+        <h2 class="display-5 fw-bold">كيف يعمل النظام</h2>
+        <p class="lead">عملية بسيطة تقدم نتائج استثنائية</p>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+        <div class="text-center">
+            <div class="mb-3 d-flex justify-content-center">
+                <div class="step-circle bg-primary d-flex align-items-center justify-content-center">
+                    <span class="text-white fw-bold">1</span>
+                </div>
+            </div>
+            <h4>تقديم المهمة</h4>
+            <p class="text-muted">يقوم الطالب بتحميل المهمة المطلوبة للتقييم</p>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+        <div class="text-center">
+            <div class="mb-3 d-flex justify-content-center">
+                <div class="step-circle bg-primary d-flex align-items-center justify-content-center">
+                    <span class="text-white fw-bold">2</span>
+                </div>
+            </div>
+            <h4>التحليل الذكي</h4>
+            <p class="text-muted">يقوم نظام الذكاء الاصطناعي بتحليل المهمة وتقييمها</p>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+        <div class="text-center">
+            <div class="mb-3 d-flex justify-content-center">
+                <div class="step-circle bg-primary d-flex align-items-center justify-content-center">
+                    <span class="text-white fw-bold">3</span>
+                </div>
+            </div>
+            <h4>مراجعة المعلم</h4>
+            <p class="text-muted">يقوم المعلم بمراجعة التقييم الآلي وإضافة ملاحظاته</p>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+        <div class="text-center">
+            <div class="mb-3 d-flex justify-content-center">
+                <div class="step-circle bg-primary d-flex align-items-center justify-content-center">
+                    <span class="text-white fw-bold">4</span>
+                </div>
+            </div>
+            <h4>النتائج والتوصيات</h4>
+            <p class="text-muted">يتلقى الطالب تقريرًا شاملاً مع توصيات للتحسين</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5 pt-4">
+    <div class="col-md-6 mb-4 mb-md-0">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+                <h3 class="card-title fw-bold mb-4">للطلاب</h3>
+                <ul class="list-unstyled mb-4">
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> تقييمات فورية ودقيقة</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> ملاحظات مفصلة لتحسين الأداء</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> تتبع التقدم والإنجازات</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> شهادات معتمدة قابلة للتحقق</li>
                 </ul>
-            </div>
-            
-            <div class="footer-column">
-                <h4 class="footer-heading">الدعم</h4>
-                <ul class="footer-links">
-                    <li class="footer-link"><a href="#">الأسئلة الشائعة</a></li>
-                    <li class="footer-link"><a href="#">الدعم الفني</a></li>
-                    <li class="footer-link"><a href="#">سياسة الخصوصية</a></li>
-                    <li class="footer-link"><a href="#">شروط الاستخدام</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-column">
-                <h4 class="footer-heading">تواصل معنا</h4>
-                <ul class="footer-links">
-                    <li class="footer-link"><a href="#"><i class="fas fa-envelope"></i> البريد الإلكتروني</a></li>
-                    <li class="footer-link"><a href="#"><i class="fab fa-twitter"></i> تويتر</a></li>
-                    <li class="footer-link"><a href="#"><i class="fab fa-facebook"></i> فيسبوك</a></li>
-                    <li class="footer-link"><a href="#"><i class="fab fa-linkedin"></i> لينكد إن</a></li>
-                </ul>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">تسجيل كطالب</a>
             </div>
         </div>
-        
-        <div class="container footer-bottom">
-            <p>&copy; {{ now.year }} نظام تقييم BTEC. جميع الحقوق محفوظة.</p>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+                <h3 class="card-title fw-bold mb-4">للمعلمين</h3>
+                <ul class="list-unstyled mb-4">
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> توفير الوقت في عملية التقييم</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> أدوات متقدمة لإدارة الفصول الدراسية</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> تقارير تحليلية شاملة</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> معايير تقييم قابلة للتخصيص</li>
+                </ul>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary">تسجيل كمعلم</a>
+            </div>
         </div>
-    </footer>
+    </div>
+</div>
+
+<div class="row mt-5 pt-4">
+    <div class="col-12 text-center">
+        <h2 class="display-5 fw-bold mb-4">ابدأ رحلتك التعليمية الآن</h2>
+        <p class="lead mb-5">انضم إلى الآلاف من الطلاب والمعلمين الذين يستفيدون من منصتنا المتطورة</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-5 py-3">إنشاء حساب مجاني</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .step-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+    }
     
-    <!-- مكتبة Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    
-    <!-- JavaScript الخاص بنا -->
-    <script src="{{ url_for('static', filename='js/btec-app.js') }}"></script>
-</body>
-</html>
+    .feature-icon {
+        width: 70px;
+        height: 70px;
+    }
+</style>
+{% endblock %}
