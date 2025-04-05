@@ -4,7 +4,7 @@ run = ["sh", "-c", "python backend/wsgi.py"]
 build = ["sh", "-c", "pip install -r backend/requirements.txt"]
 
 [workflows]
-runButton = "Flask"
+runButton = "Run Flask Server"
 
 [[workflows.workflow]]
 name = "Flask"
@@ -14,6 +14,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python backend/wsgi.py"
+
+[[workflows.workflow]]
+name = "Run Flask Server"
+author = 39218537
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python run_flask_server.py"
 
 [nix]
 channel = "stable-24_05"
