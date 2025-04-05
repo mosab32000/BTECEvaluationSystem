@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block title %}مُدقِّق - منصة تدقيق المشاريع{% endblock %}
+
+{% block styles %}
+<style>
+    .hero-section {
+        background: linear-gradient(rgba(0, 0, 100, 0.7), rgba(0, 0, 100, 0.7)), url('{{ url_for("static", filename="img/hero-bg.jpg") }}');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        margin-bottom: 50px;
+        border-radius: 0 0 20px 20px;
+    }
+    
+    .feature-box {
+        padding: 30px;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        height: 100%;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-box:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        color: #0d6efd;
+    }
+    
+    .cta-section {
+        background-color: #f8f9fa;
+        padding: 80px 0;
+        margin: 50px 0;
+        border-radius: 20px;
+    }
+    
+    .testimonial-card {
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        height: 100%;
+    }
+    
+    .testimonial-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- قسم الهيرو -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 mb-4">مُدقِّق - منصة احترافية لتدقيق المشاريع</h1>
+        <p class="lead mb-5">منصة متكاملة تساعد على تقييم وتدقيق المشاريع بشكل احترافي وفقًا لأعلى المعايير.</p>
+        <div class="d-flex justify-content-center">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg me-3">لوحة التحكم</a>
+                <a href="{{ url_for('projects.create') }}" class="btn btn-outline-light btn-lg">إنشاء مشروع جديد</a>
+            {% else %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">سجل الآن</a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-lg">تسجيل الدخول</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- قسم المميزات -->
+<section class="container mb-5">
+    <div class="text-center mb-5">
+        <h2 class="mb-3">مميزات المنصة</h2>
+        <p class="lead text-muted">تقدم منصة مُدقِّق مجموعة من المميزات التي تساعد على تدقيق المشاريع بكفاءة</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="feature-box bg-white">
+                <div class="feature-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h4>تدقيق احترافي</h4>
+                <p>تقييم المشاريع وفق معايير مهنية دقيقة تضمن جودة المخرجات والنتائج.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-box bg-white">
+                <div class="feature-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h4>تقارير مفصلة</h4>
+                <p>تقارير شاملة توضح نقاط القوة والضعف في المشروع مع توصيات للتحسين.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-box bg-white">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4>متابعة التقدم</h4>
+                <p>متابعة تقدم المشاريع ومراقبة مراحل التدقيق في لوحة تحكم متكاملة.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-box bg-white">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h4>تعاون الفريق</h4>
+                <p>إمكانية مشاركة المشاريع مع أعضاء الفريق للتعاون في عملية التدقيق.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-box bg-white">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h4>أمان البيانات</h4>
+                <p>حماية كاملة للبيانات والمشاريع مع تشفير متقدم لضمان الخصوصية.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-box bg-white">
+                <div class="feature-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h4>سرعة التدقيق</h4>
+                <p>إتمام عملية التدقيق بسرعة وكفاءة عالية لتوفير الوقت والجهد.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم دعوة للعمل -->
+<section class="cta-section text-center">
+    <div class="container">
+        <h2 class="mb-4">ابدأ باستخدام منصة مُدقِّق اليوم</h2>
+        <p class="lead mb-5">سجل حساب جديد للاستفادة من جميع المميزات والخدمات التي تقدمها المنصة.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">سجل الآن مجاناً</a>
+    </div>
+</section>
+
+<!-- قسم كيفية العمل -->
+<section class="container mb-5">
+    <div class="text-center mb-5">
+        <h2 class="mb-3">كيف تعمل المنصة؟</h2>
+        <p class="lead text-muted">عملية بسيطة وسهلة لتدقيق مشاريعك</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4 text-center">
+            <div class="p-3">
+                <div class="fs-1 mb-3 text-primary">1</div>
+                <h5>إنشاء حساب</h5>
+                <p class="text-muted">قم بالتسجيل في المنصة وإنشاء حساب خاص بك.</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4 text-center">
+            <div class="p-3">
+                <div class="fs-1 mb-3 text-primary">2</div>
+                <h5>رفع المشروع</h5>
+                <p class="text-muted">قم برفع المشروع المراد تدقيقه مع إضافة البيانات المطلوبة.</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4 text-center">
+            <div class="p-3">
+                <div class="fs-1 mb-3 text-primary">3</div>
+                <h5>عملية التدقيق</h5>
+                <p class="text-muted">يتم تدقيق المشروع من قبل مدققين متخصصين وفق معايير محددة.</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4 text-center">
+            <div class="p-3">
+                <div class="fs-1 mb-3 text-primary">4</div>
+                <h5>استلام النتائج</h5>
+                <p class="text-muted">استلام تقرير مفصل عن نتائج التدقيق مع التوصيات اللازمة.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم الشهادات -->
+<section class="container mb-5">
+    <div class="text-center mb-5">
+        <h2 class="mb-3">آراء المستخدمين</h2>
+        <p class="lead text-muted">تجارب حقيقية من مستخدمي المنصة</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="testimonial-card bg-white">
+                <img src="{{ url_for('static', filename='img/user1.jpg') }}" alt="مستخدم 1" class="testimonial-img">
+                <h5>أحمد محمد</h5>
+                <p class="text-muted mb-3">مطور برمجيات</p>
+                <p>"ساعدتني منصة مُدقِّق في تحسين جودة مشاريعي البرمجية من خلال التقارير المفصلة والملاحظات الدقيقة."</p>
+                <div class="text-warning">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="testimonial-card bg-white">
+                <img src="{{ url_for('static', filename='img/user2.jpg') }}" alt="مستخدم 2" class="testimonial-img">
+                <h5>سارة أحمد</h5>
+                <p class="text-muted mb-3">مديرة مشاريع</p>
+                <p>"أداة رائعة لإدارة عملية تدقيق المشاريع. ساعدتني في توفير الوقت والجهد وضمان جودة المخرجات النهائية."</p>
+                <div class="text-warning">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star-half-alt"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="testimonial-card bg-white">
+                <img src="{{ url_for('static', filename='img/user3.jpg') }}" alt="مستخدم 3" class="testimonial-img">
+                <h5>محمد علي</h5>
+                <p class="text-muted mb-3">باحث أكاديمي</p>
+                <p>"منصة احترافية ومميزة قدمت لي تقييمًا دقيقًا لأبحاثي الأكاديمية وساعدتني في تطوير مهاراتي البحثية."</p>
+                <div class="text-warning">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

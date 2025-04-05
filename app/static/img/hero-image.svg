@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
+  <style>
+    .bg { fill: #f0f4ff; }
+    .primary { fill: #2563eb; }
+    .secondary { fill: #1e40af; }
+    .accent { fill: #8b5cf6; }
+    .text { font-family: Arial, sans-serif; fill: #1e293b; }
+    .student { fill: #38bdf8; }
+    .teacher { fill: #f59e0b; }
+  </style>
+  
+  <!-- Background -->
+  <rect class="bg" x="0" y="0" width="500" height="400" rx="20" />
+  
+  <!-- Platform Base -->
+  <rect class="primary" x="100" y="280" width="300" height="20" rx="10" />
+  
+  <!-- AI Core -->
+  <circle class="accent" cx="250" cy="150" r="60" />
+  <path class="secondary" d="M250,120 L270,150 L250,180 L230,150 Z" />
+  <circle fill="white" cx="250" cy="150" r="25" />
+  <circle class="primary" cx="250" cy="150" r="15" />
+  
+  <!-- Connected Elements -->
+  <g>
+    <!-- Student -->
+    <circle class="student" cx="130" cy="220" r="30" />
+    <circle fill="white" cx="130" cy="210" r="8" />
+    <circle fill="white" cx="130" cy="230" r="15" rx="8" />
+    
+    <!-- Teacher -->
+    <circle class="teacher" cx="370" cy="220" r="30" />
+    <rect fill="white" x="355" y="210" width="30" height="5" rx="2" />
+    <rect fill="white" x="355" y="220" width="30" height="5" rx="2" />
+    <rect fill="white" x="355" y="230" width="30" height="5" rx="2" />
+    
+    <!-- Connection Lines -->
+    <path class="primary" stroke-width="3" fill="none" stroke="#2563eb" 
+          d="M130,250 C130,270 180,280 250,280" />
+    <path class="primary" stroke-width="3" fill="none" stroke="#2563eb" 
+          d="M370,250 C370,270 320,280 250,280" />
+    <path class="accent" stroke-width="3" fill="none" stroke="#8b5cf6" 
+          d="M130,190 C130,170 180,120 200,120" />
+    <path class="accent" stroke-width="3" fill="none" stroke="#8b5cf6" 
+          d="M370,190 C370,170 320,120 300,120" />
+    
+    <!-- Data Elements -->
+    <rect class="primary" x="175" y="90" width="40" height="30" rx="5" />
+    <rect class="primary" x="285" y="90" width="40" height="30" rx="5" />
+    <rect class="secondary" x="175" y="190" width="40" height="30" rx="5" />
+    <rect class="secondary" x="285" y="190" width="40" height="30" rx="5" />
+    <rect class="accent" x="215" y="50" width="70" height="40" rx="5" />
+  </g>
+  
+  <!-- Technology Symbols -->
+  <text class="text" x="250" y="350" text-anchor="middle" font-size="24">BTEC Evaluation System</text>
+  <text class="text" x="250" y="375" text-anchor="middle" font-size="14">AI-Powered Academic Assessment</text>
+</svg>

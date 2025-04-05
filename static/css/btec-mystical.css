@@ -1,0 +1,366 @@
+/**
+ * BTEC Mystical CSS
+ * 
+ * ملف أنماط CSS للتصميم الخيالي الساحر لنظام تقييم BTEC
+ */
+
+:root {
+    --primary-color: #4a32a7;
+    --secondary-color: #9c6fe6;
+    --accent-color: #ff9240;
+    --bg-dark: #1a103d;
+    --bg-darker: #120b29;
+    --text-light: #f5f3ff;
+    --mystical-gold: #ffdc73;
+    --mystical-blue: #3b8eea;
+    --castle-stone: #72757e;
+    --mudaqqiq-green: #42b983;
+    --mudaqqiq-red: #e83e8c;
+}
+
+@font-face {
+    font-family: 'Amiri';
+    src: url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+}
+
+body {
+    font-family: 'Amiri', 'Segoe UI', Tahoma, sans-serif;
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(74, 50, 167, 0.4) 0%, rgba(26, 16, 61, 0) 70%),
+        radial-gradient(circle at 80% 70%, rgba(156, 111, 230, 0.4) 0%, rgba(26, 16, 61, 0) 70%);
+    color: var(--text-light);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* العناصر المشتركة */
+.mystical-container {
+    position: relative;
+    padding-top: 2rem;
+    z-index: 1;
+}
+
+.rtl-text {
+    direction: rtl;
+    text-align: right;
+}
+
+.ltr-text {
+    direction: ltr;
+    text-align: left;
+}
+
+/* الأزرار */
+.btn-mystical {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--text-light);
+    border: none;
+    border-radius: 30px;
+    padding: 0.8rem 2rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(74, 50, 167, 0.5);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.btn-mystical::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: all 0.5s ease;
+    z-index: -1;
+}
+
+.btn-mystical:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(74, 50, 167, 0.6);
+    color: white;
+}
+
+.btn-mystical:hover::before {
+    left: 100%;
+}
+
+.btn-gold {
+    background: linear-gradient(135deg, var(--mystical-gold), var(--accent-color));
+    color: var(--bg-dark);
+}
+
+.btn-gold:hover {
+    color: var(--bg-dark);
+    box-shadow: 0 8px 20px rgba(255, 220, 115, 0.6);
+}
+
+/* البطاقات */
+.mystical-card {
+    background: linear-gradient(145deg, rgba(74, 50, 167, 0.2), rgba(26, 16, 61, 0.8));
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(156, 111, 230, 0.2);
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.mystical-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+    border-color: var(--mystical-gold);
+}
+
+.mystical-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(156, 111, 230, 0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 1s ease;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.mystical-card:hover::before {
+    opacity: 1;
+}
+
+/* العناوين */
+.mystical-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--mystical-gold);
+    text-shadow: 0 0 10px rgba(255, 220, 115, 0.5);
+    margin-bottom: 1rem;
+}
+
+.mystical-subtitle {
+    font-size: 1.5rem;
+    color: var(--mystical-blue);
+    margin-bottom: 2rem;
+}
+
+/* النجوم المتلألئة في الخلفية */
+.stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.star {
+    position: absolute;
+    background-color: white;
+    border-radius: 50%;
+    opacity: 0;
+    animation: starAnimation 5s infinite;
+}
+
+@keyframes starAnimation {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+}
+
+/* التأثيرات الطافية */
+.floating-elements {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.floating-element {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-color: rgba(255, 220, 115, 0.1);
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: float 20s infinite ease-in-out;
+    filter: blur(3px);
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-30px) translateX(20px) rotate(10deg);
+    }
+    50% {
+        transform: translateY(0) translateX(40px) rotate(20deg);
+    }
+    75% {
+        transform: translateY(30px) translateX(20px) rotate(10deg);
+    }
+}
+
+/* نمط القلعة */
+.castle-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(rgba(15, 10, 39, 0.9), rgba(15, 10, 39, 0.9)),
+        url('/static/images/castle-background.svg');
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+}
+
+.castle-fog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(ellipse at 30% 40%, rgba(74, 50, 167, 0.2) 0%, transparent 70%),
+        radial-gradient(ellipse at 70% 60%, rgba(156, 111, 230, 0.2) 0%, transparent 70%);
+    z-index: -1;
+    filter: blur(40px);
+}
+
+.moon {
+    position: fixed;
+    top: 80px;
+    right: 80px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(255, 255, 230, 0.7));
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(255, 255, 230, 0.7);
+    z-index: -1;
+}
+
+/* نمط منصة مُدقِّق */
+.mudaqqiq-header {
+    background: linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+    padding: 4rem 0 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.mudaqqiq-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(74, 50, 167, 0.3) 0%, transparent 70%),
+        radial-gradient(circle at 80% 70%, rgba(66, 185, 131, 0.3) 0%, transparent 70%);
+    z-index: 0;
+}
+
+.mudaqqiq-title {
+    font-size: 3.5rem;
+    font-weight: bold;
+    color: var(--mudaqqiq-green);
+    text-shadow: 0 0 15px rgba(66, 185, 131, 0.5);
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+/* نمط شاشة تسجيل الدخول وإنشاء الحساب */
+.auth-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 76px);
+    padding: 2rem 0;
+}
+
+.auth-card {
+    max-width: 500px;
+    width: 100%;
+    background: linear-gradient(145deg, rgba(74, 50, 167, 0.2), rgba(26, 16, 61, 0.8));
+    border-radius: 15px;
+    padding: 2.5rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(156, 111, 230, 0.2);
+}
+
+.auth-title {
+    font-size: 2.5rem;
+    text-align: center;
+    color: var(--mystical-gold);
+    margin-bottom: 2rem;
+    text-shadow: 0 0 10px rgba(255, 220, 115, 0.5);
+}
+
+.auth-input {
+    background-color: rgba(26, 16, 61, 0.6);
+    border: 1px solid rgba(156, 111, 230, 0.3);
+    color: var(--text-light);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+    border-color: var(--mystical-gold);
+    box-shadow: 0 0 10px rgba(255, 220, 115, 0.3);
+    outline: none;
+}
+
+.auth-input::placeholder {
+    color: rgba(245, 243, 255, 0.6);
+}
+
+/* استجابة الجوال */
+@media (max-width: 768px) {
+    .mystical-title {
+        font-size: 2rem;
+    }
+    
+    .mystical-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .auth-card {
+        padding: 1.5rem;
+    }
+    
+    .moon {
+        width: 60px;
+        height: 60px;
+        top: 40px;
+        right: 40px;
+    }
+}

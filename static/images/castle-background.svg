@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="800" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="skyGradient" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#120b29" />
+      <stop offset="100%" stop-color="#0a0617" />
+    </radialGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#fffdf0" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#fffdf0" stop-opacity="0" />
+    </radialGradient>
+    <filter id="fogEffect" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="20" />
+    </filter>
+  </defs>
+  
+  <!-- Night Sky Background -->
+  <rect width="1200" height="800" fill="url(#skyGradient)" />
+  
+  <!-- Stars -->
+  <g id="stars">
+    <circle cx="100" cy="150" r="1.5" fill="#ffffff" opacity="0.7" />
+    <circle cx="200" cy="250" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="300" cy="100" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="400" cy="200" r="1" fill="#ffffff" opacity="0.4" />
+    <circle cx="500" cy="150" r="1.3" fill="#ffffff" opacity="0.7" />
+    <circle cx="600" cy="300" r="1.1" fill="#ffffff" opacity="0.5" />
+    <circle cx="700" cy="120" r="1" fill="#ffffff" opacity="0.6" />
+    <circle cx="800" cy="170" r="1.4" fill="#ffffff" opacity="0.7" />
+    <circle cx="900" cy="220" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="1000" cy="100" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="1100" cy="280" r="1.1" fill="#ffffff" opacity="0.7" />
+    <circle cx="150" cy="350" r="1" fill="#ffffff" opacity="0.4" />
+    <circle cx="250" cy="50" r="1.3" fill="#ffffff" opacity="0.6" />
+    <circle cx="350" cy="330" r="1.1" fill="#ffffff" opacity="0.5" />
+    <circle cx="450" cy="270" r="1" fill="#ffffff" opacity="0.6" />
+    <circle cx="550" cy="80" r="1.4" fill="#ffffff" opacity="0.7" />
+    <circle cx="650" cy="190" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="750" cy="300" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="850" cy="140" r="1.1" fill="#ffffff" opacity="0.7" />
+    <circle cx="950" cy="90" r="1" fill="#ffffff" opacity="0.4" />
+    <circle cx="1050" cy="320" r="1.3" fill="#ffffff" opacity="0.6" />
+    <circle cx="1150" cy="180" r="1.1" fill="#ffffff" opacity="0.5" />
+    <!-- More stars but smaller -->
+    <circle cx="120" cy="130" r="0.7" fill="#ffffff" opacity="0.4" />
+    <circle cx="220" cy="210" r="0.8" fill="#ffffff" opacity="0.3" />
+    <circle cx="320" cy="90" r="0.6" fill="#ffffff" opacity="0.5" />
+    <circle cx="420" cy="180" r="0.7" fill="#ffffff" opacity="0.3" />
+    <circle cx="520" cy="130" r="0.8" fill="#ffffff" opacity="0.4" />
+    <circle cx="620" cy="260" r="0.6" fill="#ffffff" opacity="0.5" />
+    <circle cx="720" cy="110" r="0.7" fill="#ffffff" opacity="0.3" />
+    <circle cx="820" cy="150" r="0.8" fill="#ffffff" opacity="0.4" />
+    <circle cx="920" cy="200" r="0.6" fill="#ffffff" opacity="0.5" />
+    <circle cx="1020" cy="90" r="0.7" fill="#ffffff" opacity="0.3" />
+    <circle cx="1120" cy="240" r="0.8" fill="#ffffff" opacity="0.4" />
+    <!-- Even more tiny stars -->
+    <circle cx="130" cy="160" r="0.5" fill="#ffffff" opacity="0.3" />
+    <circle cx="230" cy="240" r="0.4" fill="#ffffff" opacity="0.2" />
+    <circle cx="330" cy="110" r="0.5" fill="#ffffff" opacity="0.3" />
+    <circle cx="430" cy="190" r="0.4" fill="#ffffff" opacity="0.2" />
+    <circle cx="530" cy="140" r="0.5" fill="#ffffff" opacity="0.3" />
+    <circle cx="630" cy="280" r="0.4" fill="#ffffff" opacity="0.2" />
+    <circle cx="730" cy="115" r="0.5" fill="#ffffff" opacity="0.3" />
+    <circle cx="830" cy="160" r="0.4" fill="#ffffff" opacity="0.2" />
+    <circle cx="930" cy="210" r="0.5" fill="#ffffff" opacity="0.3" />
+    <circle cx="1030" cy="95" r="0.4" fill="#ffffff" opacity="0.2" />
+    <circle cx="1130" cy="260" r="0.5" fill="#ffffff" opacity="0.3" />
+  </g>
+  
+  <!-- Castle Silhouette -->
+  <g id="castle" transform="translate(400, 500)" fill="#0f0a20">
+    <!-- Main Castle Body -->
+    <rect x="0" y="0" width="400" height="300" />
+    
+    <!-- Left Tower -->
+    <rect x="-50" y="-100" width="80" height="400" />
+    <polygon points="-60,-110 -50,-100 30,-100 40,-110 10,-130 -30,-130" />
+    
+    <!-- Right Tower -->
+    <rect x="370" y="-100" width="80" height="400" />
+    <polygon points="360,-110 370,-100 450,-100 460,-110 430,-130 390,-130" />
+    
+    <!-- Center Tower -->
+    <rect x="150" y="-150" width="100" height="450" />
+    <polygon points="140,-160 150,-150 250,-150 260,-160 230,-180 170,-180" />
+    
+    <!-- Battlements on Main Castle -->
+    <rect x="0" y="-20" width="20" height="30" />
+    <rect x="40" y="-20" width="20" height="30" />
+    <rect x="80" y="-20" width="20" height="30" />
+    <rect x="120" y="-20" width="20" height="30" />
+    <rect x="270" y="-20" width="20" height="30" />
+    <rect x="310" y="-20" width="20" height="30" />
+    <rect x="350" y="-20" width="20" height="30" />
+    <rect x="390" y="-20" width="20" height="30" />
+    
+    <!-- Windows -->
+    <rect x="30" y="50" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="100" y="50" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="170" y="50" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="240" y="50" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="310" y="50" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    
+    <rect x="30" y="130" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="100" y="130" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="170" y="130" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="240" y="130" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    <rect x="310" y="130" width="30" height="50" fill="#3b8eea" opacity="0.3" />
+    
+    <!-- Tower Windows -->
+    <rect x="-30" y="-60" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    <rect x="-30" y="30" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    <rect x="-30" y="120" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    
+    <rect x="390" y="-60" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    <rect x="390" y="30" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    <rect x="390" y="120" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    
+    <rect x="180" y="-110" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    <rect x="180" y="-20" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    <rect x="180" y="70" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    <rect x="180" y="160" width="40" height="60" fill="#3b8eea" opacity="0.3" />
+    
+    <!-- Castle Gate -->
+    <rect x="150" y="200" width="100" height="100" fill="#0a0617" />
+    <path d="M150,200 Q200,150 250,200" fill="none" stroke="#0f0a20" stroke-width="10" />
+    
+    <!-- Flag on Center Tower -->
+    <rect x="200" y="-190" width="5" height="40" fill="#4a32a7" />
+    <path d="M205,-190 L240,-180 L205,-170" fill="#9c6fe6" />
+  </g>
+  
+  <!-- Foreground Mountains -->
+  <path d="M-100,800 L150,650 L250,700 L400,580 L600,670 L800,550 L950,650 L1100,550 L1300,750 L1300,800 Z" fill="#0a0617" />
+  
+  <!-- Middle Ground Mountains -->
+  <path d="M-100,800 L50,700 L200,760 L350,680 L500,730 L700,650 L850,720 L1000,650 L1150,700 L1300,650 L1300,800 Z" fill="#0d081e" opacity="0.7" />
+  
+  <!-- Fog Effect -->
+  <g filter="url(#fogEffect)">
+    <path d="M-100,700 Q200,650 400,670 Q600,690 800,670 Q1000,650 1300,700" fill="#4a32a7" opacity="0.05" />
+    <path d="M-100,730 Q300,700 500,710 Q700,720 900,710 Q1100,700 1300,730" fill="#9c6fe6" opacity="0.05" />
+  </g>
+  
+  <!-- Moon -->
+  <circle cx="900" cy="150" r="50" fill="#fffdf0" opacity="0.9" />
+  <circle cx="900" cy="150" r="80" fill="url(#moonGlow)" />
+</svg>

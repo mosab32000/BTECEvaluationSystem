@@ -1,0 +1,890 @@
+# مجلدات المسارات (Routes) - تكملة
+
+```python
+from flask import Blueprint
+
+auth = Blueprint('auth', __name__)
+
+from app.auth import routes
+```
+
+### 11. `app/auth/routes.py`
+
+```python
+from flask import render_template, redirect, url_for, flash, request, current_app, session
+from flask_login import login_user, logout_user, login_required, current_user
+from app import db
+from app.auth import auth
+from app.auth.forms import LoginForm, RegistrationForm, ResetPasswordRequestForm, ResetPasswordForm
+from app.models import User, Role
+from app.utils import send_password_reset_email, log_activity, create_notification
+from werkzeug.urls import url_parse
+
+@auth.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user is None or not user.verify_password(form.password.data):
+            flash('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        if not user.is_active:
+            flash('تم تعليق حسابك. يرجى التواصل مع مدير النظام.', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        login_user(user, remember=form.remember_me.data)
+        log_activity(user, 'تسجيل الدخول', ip_address=request.remote_addr)
+        
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('main.dashboard')
+        
+        flash('تم تسجيل الدخول بنجاح!', 'success')
+        return redirect(next_page)
+    
+    return render_template('auth/login.html', title='تسجيل الدخول', form=form)
+
+@auth.route('/logout')
+@login_required
+def logout():
+    log_activity(current_user, 'تسجيل الخروج', ip_address=request.remote_addr)
+    logout_user()
+    flash('تم تسجيل الخروج بنجاح.', 'success')
+    return redirect(url_for('main.index'))
+
+@auth.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            full_name=form.full_name.data
+        )
+        user.password = form.password.data
+        
+        # إضافة دور المستخدم العادي
+        user_role = Role.query.filter_by(name='user').first()
+        if user_role:
+            user.roles.append(user_role)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        log_activity(user, 'إنشاء حساب جديد', ip_address=request.remote_addr)
+        create_notification(
+            user.id, 
+            "مرحبًا بك في منصة مُدقِّق! يمكنك الآن تقديم مشاريعك للتدقيق.",
+            category='success'
+        )
+        
+        flash('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/register.html', title='التسجيل', form=form)
+
+@auth.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    
+    form = ResetPasswordRequestForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            send_password_reset_email(user)
+        flash(
+            'تم إرسال رسالة بريد إلكتروني مع تعليمات إعادة تعيين كلمة المرور.',
+            'info'
+        )
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/reset_password_request.html',
+                           title='إعادة تعيين كلمة المرور', form=form)
+
+@auth.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    
+    user = User.verify_reset_password_token(token)
+    if not user:
+        flash('الرابط غير صالح أو منتهي الصلاحية.', 'warning')
+        return redirect(url_for('main.index'))
+    
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.password = form.password.data
+        db.session.commit()
+        log_activity(user, 'إعادة تعيين كلمة المرور', ip_address=request.remote_addr)
+        flash('تم تغيير كلمة المرور بنجاح.', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/reset_password.html', form=form)
+```
+
+### 12. `app/auth/forms.py`
+
+```python
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Regexp
+from app.models import User
+
+class LoginForm(FlaskForm):
+    email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email()])
+    password = PasswordField('كلمة المرور', validators=[DataRequired()])
+    remember_me = BooleanField('تذكرني')
+    submit = SubmitField('تسجيل الدخول')
+
+class RegistrationForm(FlaskForm):
+    username = StringField('اسم المستخدم', validators=[
+        DataRequired(),
+        Length(min=3, max=64),
+        Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0,
+               'يجب أن يبدأ اسم المستخدم بحرف ويمكن أن يحتوي فقط على أحرف وأرقام ونقاط وشرطات سفلية')
+    ])
+    email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email()])
+    full_name = StringField('الاسم الكامل', validators=[DataRequired(), Length(min=3, max=150)])
+    password = PasswordField('كلمة المرور', validators=[
+        DataRequired(),
+        Length(min=8, message='يجب أن تتكون كلمة المرور من 8 أحرف على الأقل')
+    ])
+    password2 = PasswordField(
+        'تأكيد كلمة المرور', validators=[DataRequired(), EqualTo('password', message='كلمة المرور غير متطابقة')]
+    )
+    submit = SubmitField('تسجيل')
+
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user is not None:
+            raise ValidationError('يرجى استخدام اسم مستخدم مختلف.')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user is not None:
+            raise ValidationError('هذا البريد الإلكتروني مسجل بالفعل.')
+
+class ResetPasswordRequestForm(FlaskForm):
+    email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email()])
+    submit = SubmitField('طلب إعادة تعيين كلمة المرور')
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('كلمة المرور الجديدة', validators=[
+        DataRequired(),
+        Length(min=8, message='يجب أن تتكون كلمة المرور من 8 أحرف على الأقل')
+    ])
+    password2 = PasswordField(
+        'تأكيد كلمة المرور الجديدة', 
+        validators=[DataRequired(), EqualTo('password', message='كلمة المرور غير متطابقة')]
+    )
+    submit = SubmitField('تغيير كلمة المرور')
+```
+
+### 13. `app/main/__init__.py`
+
+```python
+from flask import Blueprint
+
+main = Blueprint('main', __name__)
+
+from app.main import routes
+```
+
+### 14. `app/main/routes.py`
+
+```python
+from datetime import datetime
+from flask import render_template, flash, redirect, url_for, request, current_app, jsonify
+from flask_login import current_user, login_required
+from app.main import main
+from app.models import Project, User, AuditResult, Notification, ActivityLog
+from app.main.forms import ProfileForm
+from app.utils import save_profile_image, log_activity
+from app import db
+
+@main.before_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
+
+@main.route('/')
+def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    return render_template('index.html', title='الصفحة الرئيسية')
+
+@main.route('/dashboard')
+@login_required
+def dashboard():
+    # إحصائيات المستخدم
+    if current_user.is_admin():
+        # إحصائيات المدير
+        total_users = User.query.count()
+        total_projects = Project.query.count()
+        pending_projects = Project.query.filter_by(status='قيد الانتظار').count()
+        completed_audits = AuditResult.query.filter_by(status='مكتمل').count()
+        
+        recent_projects = Project.query.order_by(Project.submission_date.desc()).limit(5).all()
+        recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+        recent_activity = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(10).all()
+        
+        return render_template(
+            'admin/dashboard.html', 
+            title='لوحة التحكم',
+            total_users=total_users,
+            total_projects=total_projects,
+            pending_projects=pending_projects,
+            completed_audits=completed_audits,
+            recent_projects=recent_projects,
+            recent_users=recent_users,
+            recent_activity=recent_activity
+        )
+    else:
+        # إحصائيات المستخدم العادي
+        user_projects = Project.query.filter_by(user_id=current_user.id).count()
+        pending_projects = Project.query.filter_by(user_id=current_user.id, status='قيد الانتظار').count()
+        completed_projects = Project.query.filter_by(user_id=current_user.id, status='مكتمل').count()
+        
+        recent_projects = Project.query.filter_by(user_id=current_user.id).order_by(
+            Project.submission_date.desc()).limit(5).all()
+        
+        recent_audits = AuditResult.query.join(Project).filter(
+            Project.user_id == current_user.id,
+            AuditResult.status == 'مكتمل'
+        ).order_by(AuditResult.audit_date.desc()).limit(5).all()
+        
+        unread_notifications = Notification.query.filter_by(
+            user_id=current_user.id,
+            read=False
+        ).count()
+        
+        return render_template(
+            'dashboard.html',
+            title='لوحة التحكم',
+            user_projects=user_projects,
+            pending_projects=pending_projects,
+            completed_projects=completed_projects,
+            recent_projects=recent_projects,
+            recent_audits=recent_audits,
+            unread_notifications=unread_notifications
+        )
+
+@main.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    form = ProfileForm()
+    if form.validate_on_submit():
+        if form.profile_image.data:
+            picture_file = save_profile_image(form.profile_image.data)
+            current_user.profile_image = picture_file
+        
+        current_user.full_name = form.full_name.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+        
+        log_activity(current_user, 'تحديث الملف الشخصي', ip_address=request.remote_addr)
+        flash('تم تحديث ملفك الشخصي بنجاح!', 'success')
+        return redirect(url_for('main.profile'))
+    
+    elif request.method == 'GET':
+        form.full_name.data = current_user.full_name
+        form.about_me.data = current_user.about_me
+    
+    return render_template('profile.html', title='الملف الشخصي', form=form)
+
+@main.route('/notifications')
+@login_required
+def notifications():
+    page = request.args.get('page', 1, type=int)
+    notifications = Notification.query.filter_by(user_id=current_user.id).order_by(
+        Notification.timestamp.desc()
+    ).paginate(
+        page=page, 
+        per_page=current_app.config['PROJECTS_PER_PAGE'],
+        error_out=False
+    )
+    
+    # وضع علامة على الإشعارات كمقروءة
+    unread = Notification.query.filter_by(user_id=current_user.id, read=False).all()
+    for notification in unread:
+        notification.read = True
+    db.session.commit()
+    
+    return render_template(
+        'notifications.html',
+        title='الإشعارات',
+        notifications=notifications
+    )
+
+@main.route('/mark_notification_read/<int:id>')
+@login_required
+def mark_notification_read(id):
+    notification = Notification.query.get_or_404(id)
+    if notification.user_id != current_user.id:
+        flash('لا يمكنك الوصول إلى هذا الإشعار', 'danger')
+        return redirect(url_for('main.notifications'))
+    
+    notification.read = True
+    db.session.commit()
+    
+    if notification.link:
+        return redirect(notification.link)
+    else:
+        return redirect(url_for('main.notifications'))
+
+@main.route('/search')
+@login_required
+def search():
+    query = request.args.get('q', '')
+    if not query:
+        return redirect(url_for('main.dashboard'))
+    
+    if current_user.is_admin():
+        projects = Project.query.filter(
+            Project.title.contains(query) | Project.description.contains(query)
+        ).all()
+        users = User.query.filter(
+            User.username.contains(query) | User.email.contains(query) | User.full_name.contains(query)
+        ).all()
+        
+        return render_template(
+            'search_results.html',
+            title='نتائج البحث',
+            query=query,
+            projects=projects,
+            users=users
+        )
+    else:
+        projects = Project.query.filter(
+            (Project.title.contains(query) | Project.description.contains(query)) &
+            (Project.user_id == current_user.id)
+        ).all()
+        
+        return render_template(
+            'search_results.html',
+            title='نتائج البحث',
+            query=query,
+            projects=projects,
+            users=[]
+        )
+```
+
+### 15. `app/main/forms.py`
+
+```python
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
+from wtforms import StringField, TextAreaField, SubmitField
+from wtforms.validators import DataRequired, Length, ValidationError
+from app.models import User
+from flask_login import current_user
+
+class ProfileForm(FlaskForm):
+    full_name = StringField('الاسم الكامل', validators=[
+        DataRequired(),
+        Length(min=3, max=150)
+    ])
+    about_me = TextAreaField('نبذة عني', validators=[
+        Length(max=500)
+    ])
+    profile_image = FileField('صورة الملف الشخصي', validators=[
+        FileAllowed(['jpg', 'jpeg', 'png'], 'يُسمح فقط بملفات الصور (JPG, JPEG, PNG)')
+    ])
+    submit = SubmitField('تحديث الملف الشخصي')
+
+class SearchForm(FlaskForm):
+    search_query = StringField('بحث', validators=[DataRequired()])
+    submit = SubmitField('بحث')
+```
+
+### 16. `app/projects/__init__.py`
+
+```python
+from flask import Blueprint
+
+projects = Blueprint('projects', __name__)
+
+from app.projects import routes
+```
+
+### 17. `app/projects/routes.py`
+
+```python
+from flask import render_template, flash, redirect, url_for, request, current_app, abort
+from flask_login import current_user, login_required
+from app import db
+from app.projects import projects
+from app.projects.forms import ProjectForm, AuditForm
+from app.models import Project, User, AuditCriteria, AuditResult, AuditResultItem
+from app.utils import save_project_file, allowed_file, log_activity, create_notification, generate_audit_report
+from datetime import datetime
+
+@projects.route('/')
+@login_required
+def list():
+    page = request.args.get('page', 1, type=int)
+    
+    if current_user.is_admin() or current_user.has_role('auditor'):
+        # المدير أو المدقق يرى جميع المشاريع
+        projects_query = Project.query.order_by(Project.submission_date.desc())
+    else:
+        # المستخدم العادي يرى مشاريعه فقط
+        projects_query = Project.query.filter_by(user_id=current_user.id).order_by(Project.submission_date.desc())
+    
+    projects_list = projects_query.paginate(
+        page=page,
+        per_page=current_app.config['PROJECTS_PER_PAGE'],
+        error_out=False
+    )
+    
+    return render_template('projects/list.html', 
+                           title='المشاريع',
+                           projects=projects_list)
+
+@projects.route('/create', methods=['GET', 'POST'])
+@login_required
+def create():
+    form = ProjectForm()
+    if form.validate_on_submit():
+        file_path = None
+        if form.project_file.data and allowed_file(form.project_file.data.filename):
+            file_path = save_project_file(form.project_file.data)
+        
+        project = Project(
+            title=form.title.data,
+            description=form.description.data,
+            project_type=form.project_type.data,
+            file_path=file_path,
+            status='قيد الانتظار',
+            user_id=current_user.id
+        )
+        
+        db.session.add(project)
+        db.session.commit()
+        
+        log_activity(
+            current_user, 
+            'إنشاء مشروع جديد',
+            details=f"إنشاء مشروع: {project.title}",
+            ip_address=request.remote_addr
+        )
+        
+        # إشعار للمدراء والمدققين
+        admins = User.query.join(User.roles).filter_by(name='admin').all()
+        auditors = User.query.join(User.roles).filter_by(name='auditor').all()
+        for admin in admins + auditors:
+            create_notification(
+                admin.id,
+                f"تم تقديم مشروع جديد: {project.title}",
+                category='info',
+                link=url_for('projects.view', id=project.id)
+            )
+        
+        flash('تم إنشاء المشروع بنجاح.', 'success')
+        return redirect(url_for('projects.list'))
+    
+    return render_template('projects/create.html', 
+                           title='إنشاء مشروع جديد',
+                           form=form)
+
+@projects.route('/<int:id>')
+@login_required
+def view(id):
+    project = Project.query.get_or_404(id)
+    
+    # التحقق من الصلاحيات
+    if not current_user.is_admin() and not current_user.has_role('auditor') and project.user_id != current_user.id:
+        abort(403)
+    
+    # الحصول على نتائج التدقيق المرتبطة بالمشروع
+    audit_results = AuditResult.query.filter_by(project_id=project.id).all()
+    
+    return render_template('projects/view.html',
+                           title=project.title,
+                           project=project,
+                           audit_results=audit_results)
+
+@projects.route('/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit(id):
+    project = Project.query.get_or_404(id)
+    
+    # التحقق من الصلاحيات
+    if project.user_id != current_user.id:
+        abort(403)
+    
+    # لا يمكن تعديل المشاريع التي قيد التدقيق أو المكتملة
+    if project.status != 'قيد الانتظار' and project.status != 'مرفوض':
+        flash('لا يمكن تعديل المشروع بعد بدء التدقيق أو اكتماله.', 'warning')
+        return redirect(url_for('projects.view', id=project.id))
+    
+    form = ProjectForm()
+    if form.validate_on_submit():
+        project.title = form.title.data
+        project.description = form.description.data
+        project.project_type = form.project_type.data
+        
+        if form.project_file.data and allowed_file(form.project_file.data.filename):
+            project.file_path = save_project_file(form.project_file.data)
+        
+        db.session.commit()
+        
+        log_activity(
+            current_user, 
+            'تحديث مشروع',
+            details=f"تحديث مشروع: {project.title}",
+            ip_address=request.remote_addr
+        )
+        
+        flash('تم تحديث المشروع بنجاح.', 'success')
+        return redirect(url_for('projects.view', id=project.id))
+    
+    elif request.method == 'GET':
+        form.title.data = project.title
+        form.description.data = project.description
+        form.project_type.data = project.project_type
+    
+    return render_template('projects/edit.html',
+                           title='تعديل المشروع',
+                           form=form,
+                           project=project)
+
+@projects.route('/<int:id>/delete', methods=['POST'])
+@login_required
+def delete(id):
+    project = Project.query.get_or_404(id)
+    
+    # التحقق من الصلاحيات
+    if not current_user.is_admin() and project.user_id != current_user.id:
+        abort(403)
+    
+    # لا يمكن حذف المشاريع قيد التدقيق أو المكتملة إلا من قبل المدير
+    if not current_user.is_admin() and (project.status == 'قيد التدقيق' or project.status == 'مكتمل'):
+        flash('لا يمكن حذف المشروع بعد بدء التدقيق أو اكتماله.', 'warning')
+        return redirect(url_for('projects.view', id=project.id))
+    
+    project_title = project.title
+    db.session.delete(project)
+    db.session.commit()
+    
+    log_activity(
+        current_user, 
+        'حذف مشروع',
+        details=f"حذف مشروع: {project_title}",
+        ip_address=request.remote_addr
+    )
+    
+    flash('تم حذف المشروع بنجاح.', 'success')
+    return redirect(url_for('projects.list'))
+
+@projects.route('/<int:id>/start_audit', methods=['GET', 'POST'])
+@login_required
+def start_audit(id):
+    if not current_user.is_admin() and not current_user.has_role('auditor'):
+        abort(403)
+    
+    project = Project.query.get_or_404(id)
+    
+    # التحقق من حالة المشروع
+    if project.status != 'قيد الانتظار' and project.status != 'قيد التدقيق':
+        flash('لا يمكن بدء التدقيق على هذا المشروع.', 'warning')
+        return redirect(url_for('projects.view', id=project.id))
+    
+    # تحديث حالة المشروع
+    if project.status == 'قيد الانتظار':
+        project.status = 'قيد التدقيق'
+        db.session.commit()
+        
+        # إشعار لصاحب المشروع
+        create_notification(
+            project.user_id,
+            f"بدأ تدقيق مشروعك: {project.title}",
+            category='info',
+            link=url_for('projects.view', id=project.id)
+        )
+    
+    # التحقق مما إذا كانت هناك نتيجة تدقيق قائمة لهذا المشروع ولهذا المدقق
+    audit_result = AuditResult.query.filter_by(
+        project_id=project.id,
+        auditor_id=current_user.id,
+        status='قيد التقدم'
+    ).first()
+    
+    # إذا لم تكن هناك نتيجة تدقيق، قم بإنشاء واحدة جديدة
+    if not audit_result:
+        audit_result = AuditResult(
+            project_id=project.id,
+            auditor_id=current_user.id,
+            status='قيد التقدم'
+        )
+        db.session.add(audit_result)
+        db.session.commit()
+    
+    # الحصول على جميع معايير التدقيق النشطة
+    criteria = AuditCriteria.query.filter_by(is_active=True).all()
+    
+    # تحضير نموذج التدقيق
+    form = AuditForm()
+    
+    if form.validate_on_submit():
+        feedback = form.feedback.data
+        
+        # معالجة كل معيار
+        for criterion in criteria:
+            score = float(request.form.get(f'score_{criterion.id}', 0))
+            comment = request.form.get(f'comment_{criterion.id}', '')
+            
+            # التحقق مما إذا كان هذا العنصر موجودًا بالفعل
+            result_item = AuditResultItem.query.filter_by(
+                audit_result_id=audit_result.id,
+                criteria_id=criterion.id
+            ).first()
+            
+            if result_item:
+                # تحديث العنصر الموجود
+                result_item.score = score
+                result_item.comment = comment
+            else:
+                # إنشاء عنصر جديد
+                result_item = AuditResultItem(
+                    audit_result_id=audit_result.id,
+                    criteria_id=criterion.id,
+                    score=score,
+                    comment=comment
+                )
+                db.session.add(result_item)
+        
+        # تحديث نتيجة التدقيق
+        audit_result.feedback = feedback
+        audit_result.status = 'مكتمل' if form.complete_audit.data else 'قيد التقدم'
+        db.session.commit()
+        
+        # حساب الدرجة الإجمالية
+        audit_result.update_overall_score()
+        
+        # إذا تم الانتهاء من التدقيق، قم بتحديث حالة المشروع وإرسال إشعار
+        if form.complete_audit.data:
+            project.status = 'مكتمل'
+            project.completion_date = datetime.utcnow()
+            db.session.commit()
+            
+            # إشعار لصاحب المشروع
+            create_notification(
+                project.user_id,
+                f"اكتمل تدقيق مشروعك: {project.title}",
+                category='success',
+                link=url_for('projects.view', id=project.id)
+            )
+            
+            log_activity(
+                current_user, 
+                'اكتمال تدقيق',
+                details=f"اكتمال تدقيق مشروع: {project.title}",
+                ip_address=request.remote_addr
+            )
+            
+            flash('تم إكمال التدقيق بنجاح.', 'success')
+            return redirect(url_for('projects.view', id=project.id))
+        else:
+            flash('تم حفظ التدقيق كمسودة.', 'success')
+    
+    # تحضير العناصر المملوءة مسبقًا
+    existing_items = {}
+    for item in audit_result.result_items:
+        existing_items[item.criteria_id] = {
+            'score': item.score,
+            'comment': item.comment
+        }
+    
+    if request.method == 'GET' and audit_result.feedback:
+        form.feedback.data = audit_result.feedback
+    
+    return render_template('projects/audit.html',
+                           title='تدقيق المشروع',
+                           form=form,
+                           project=project,
+                           criteria=criteria,
+                           existing_items=existing_items,
+                           audit_result=audit_result)
+
+@projects.route('/audit_results/<int:id>')
+@login_required
+def view_audit_result(id):
+    audit_result = AuditResult.query.get_or_404(id)
+    project = Project.query.get_or_404(audit_result.project_id)
+    
+    # التحقق من الصلاحيات
+    if not current_user.is_admin() and not current_user.has_role('auditor') and project.user_id != current_user.id:
+        abort(403)
+    
+    # تجميع العناصر حسب الفئة
+    categories = {}
+    for item in audit_result.result_items:
+        category = item.criteria.category
+        if category not in categories:
+            categories[category] = []
+        categories[category].append(item)
+    
+    return render_template('projects/audit_result.html',
+                           title='نتيجة التدقيق',
+                           audit_result=audit_result,
+                           project=project,
+                           categories=categories)
+
+@projects.route('/audit_results/<int:id>/report')
+@login_required
+def get_audit_report(id):
+    audit_result = AuditResult.query.get_or_404(id)
+    project = Project.query.get_or_404(audit_result.project_id)
+    
+    # التحقق من الصلاحيات
+    if not current_user.is_admin() and not current_user.has_role('auditor') and project.user_id != current_user.id:
+        abort(403)
+    
+    # توليد تقرير
+    report_data = generate_audit_report(audit_result)
+    
+    return render_template('projects/report.html',
+                           title='تقرير التدقيق',
+                           report=report_data,
+                           project=project)
+```
+
+### 18. `app/projects/forms.py`
+
+```python
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms import StringField, TextAreaField, SelectField, SubmitField, BooleanField, FloatField
+from wtforms.validators import DataRequired, Length, ValidationError, NumberRange
+
+class ProjectForm(FlaskForm):
+    title = StringField('عنوان المشروع', validators=[
+        DataRequired(),
+        Length(min=5, max=150)
+    ])
+    description = TextAreaField('وصف المشروع', validators=[
+        DataRequired(),
+        Length(min=20, max=2000)
+    ])
+    project_type = SelectField('نوع المشروع', choices=[
+        ('web', 'تطبيق ويب'),
+        ('mobile', 'تطبيق جوال'),
+        ('desktop', 'تطبيق سطح المكتب'),
+        ('api', 'واجهة برمجة تطبيقات'),
+        ('ml', 'تعلم آلي'),
+        ('other', 'أخرى')
+    ], validators=[DataRequired()])
+    project_file = FileField('ملف المشروع', validators=[
+        FileAllowed(['pdf', 'doc', 'docx', 'zip', 'rar', 'jpg', 'jpeg', 'png'], 
+                    'يرجى تحميل ملف بتنسيق مدعوم.')
+    ])
+    submit = SubmitField('حفظ المشروع')
+
+class AuditForm(FlaskForm):
+    feedback = TextAreaField('ملاحظات عامة', validators=[
+        Length(max=2000)
+    ])
+    complete_audit = BooleanField('إكمال التدقيق')
+    submit = SubmitField('حفظ التدقيق')
+```
+
+### 19. `app/admin/__init__.py`
+
+```python
+from flask import Blueprint
+
+admin = Blueprint('admin', __name__)
+
+from app.admin import routes
+```
+
+### 20. `app/admin/routes.py`
+
+```python
+from flask import render_template, flash, redirect, url_for, request, current_app, abort
+from flask_login import current_user, login_required
+from app import db
+from app.admin import admin
+from app.admin.forms import UserForm, CriteriaForm, UserRoleForm
+from app.models import User, Role, Project, AuditCriteria, AuditResult, ActivityLog
+from app.utils import log_activity, create_notification
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin():
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+@admin.route('/')
+@login_required
+@admin_required
+def dashboard():
+    return redirect(url_for('main.dashboard'))
+
+@admin.route('/users')
+@login_required
+@admin_required
+def users():
+    page = request.args.get('page', 1, type=int)
+    users = User.query.paginate(
+        page=page,
+        per_page=current_app.config['PROJECTS_PER_PAGE'],
+        error_out=False
+    )
+    
+    return render_template('admin/users.html',
+                           title='إدارة المستخدمين',
+                           users=users)
+
+@admin.route('/users/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_user(id):
+    user = User.query.get_or_404(id)
+    form = UserForm(obj=user)
+    
+    # الحصول على جميع الأدوار المتاحة
+    role_form = UserRoleForm()
+    role_form.role.choices = [(r.id, r.name) for r in Role.query.all()]
+    
+    if form.validate_on_submit():
+        user.full_name = form.full_name.data
+        user.email = form.email.data
+        user.is_active = form.is_active.data
+        user.about_me = form.about_me.data
+        
+        if form.password.data:
+            user.password = form.password.data
+        
+        db.session.commit()
+        
+        log_activity(
+            current_user, 
+            'تحديث مستخدم',
+            details=f"تحديث بيانات المستخدم: {user.username}",
+            ip_address=request.remote_addr
+        )
+        
+        flash('تم تحديث بيانات المستخدم بنجاح.', 'success')
+        return redirect(url_for('admin.users'))
+    
+    return render_template('admin/edit_user.html',
+                           title='تعديل المستخدم',
+                           form=form,
+                           role_form=role_form,
+                           user=user)
+
+@admin.route('/users

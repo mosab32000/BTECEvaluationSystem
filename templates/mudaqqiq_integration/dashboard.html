@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة تحكم مُدقِّق{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>لوحة تحكم مُدقِّق</h1>
+        <div>
+            <a href="{{ url_for('btec_mudaqqiq.launch_mudaqqiq') }}" class="btn btn-primary">
+                <i class="fas fa-external-link-alt me-2"></i> تشغيل منصة مُدقِّق
+            </a>
+        </div>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="display-4">{{ stats.total_projects }}</h3>
+                    <p class="mb-0">إجمالي المشاريع</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 class="display-4">{{ stats.pending_projects }}</h3>
+                    <p class="mb-0">قيد الانتظار</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="display-4">{{ stats.completed_projects }}</h3>
+                    <p class="mb-0">مكتملة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="display-4">{{ stats.avg_score }}</h3>
+                    <p class="mb-0">متوسط الدرجات</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">تقديم مشروع للتدقيق</h5>
+                </div>
+                <div class="card-body">
+                    <p>قم بتقديم مشروعك للتدقيق والتقييم وفق معايير احترافية.</p>
+                    <p>يمكنك رفع المستندات والملفات المطلوبة ومتابعة حالة المشروع.</p>
+                    <a href="{{ url_for('btec_mudaqqiq.launch_mudaqqiq') }}" class="btn btn-primary">تقديم مشروع جديد</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">تقارير التدقيق</h5>
+                </div>
+                <div class="card-body">
+                    <p>اطلع على تقارير التدقيق المفصلة للمشاريع المكتملة.</p>
+                    <p>تتضمن التقارير نتائج التقييم والملاحظات والتوصيات.</p>
+                    <a href="{{ url_for('btec_mudaqqiq.launch_mudaqqiq') }}" class="btn btn-success">عرض التقارير</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-5">
+        <h3 class="mb-4">معلومات عن منصة مُدقِّق</h3>
+        <div class="card">
+            <div class="card-body">
+                <p>منصة مُدقِّق هي منصة متكاملة لتدقيق وتقييم المشاريع بطريقة احترافية وفقًا لمعايير محددة. توفر المنصة واجهة سهلة الاستخدام للمستخدمين لرفع مشاريعهم وتقديمها للتدقيق، كما توفر للمدققين أدوات وآليات متقدمة لإجراء عملية التدقيق وإصدار التقارير بكفاءة عالية.</p>
+                
+                <h5>المميزات الرئيسية:</h5>
+                <ul>
+                    <li>إدارة المشاريع: رفع المشاريع وتتبع حالتها وعرض تفاصيلها.</li>
+                    <li>معايير تدقيق مخصصة: إمكانية إنشاء وتخصيص معايير التدقيق حسب نوع المشروع.</li>
+                    <li>تقارير تفصيلية: إصدار تقارير مفصلة عن نتائج التدقيق مع التوصيات.</li>
+                    <li>لوحة تحكم تفاعلية: توفر إحصائيات ومؤشرات أداء مختلفة.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

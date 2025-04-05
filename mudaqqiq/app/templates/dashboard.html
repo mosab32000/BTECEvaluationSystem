@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">لوحة التحكم</h2>
+    
+    <!-- إحصائيات المستخدم -->
+    <div class="row mb-5">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <h5>المشاريع</h5>
+                <div class="dashboard-number">{{ user_projects }}</div>
+                <p class="text-muted">إجمالي المشاريع</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h5>قيد الانتظار</h5>
+                <div class="dashboard-number">{{ pending_projects }}</div>
+                <p class="text-muted">مشاريع تنتظر التدقيق</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h5>مكتملة</h5>
+                <div class="dashboard-number">{{ completed_projects }}</div>
+                <p class="text-muted">مشاريع تم تدقيقها</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card">
+                <div class="dashboard-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <h5>الإشعارات</h5>
+                <div class="dashboard-number">{{ unread_notifications }}</div>
+                <p class="text-muted">إشعارات غير مقروءة</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- المشاريع الحديثة -->
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <div class="dashboard-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0">آخر المشاريع</h4>
+                    <a href="{{ url_for('projects.index') }}" class="btn btn-sm btn-primary">عرض الكل</a>
+                </div>
+                
+                {% if recent_projects %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>المشروع</th>
+                                    <th>النوع</th>
+                                    <th>تاريخ التقديم</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project in recent_projects %}
+                                    <tr>
+                                        <td>{{ project.title }}</td>
+                                        <td>{{ project.project_type }}</td>
+                                        <td>{{ project.submission_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            {% if project.status == 'قيد الانتظار' %}
+                                                <span class="badge status-pending">قيد الانتظار</span>
+                                            {% elif project.status == 'قيد التدقيق' %}
+                                                <span class="badge status-in-progress">قيد التدقيق</span>
+                                            {% elif project.status == 'مكتمل' %}
+                                                <span class="badge status-completed">مكتمل</span>
+                                            {% elif project.status == 'مرفوض' %}
+                                                <span class="badge status-rejected">مرفوض</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('projects.view', id=project.id) }}" class="btn btn-sm btn-info">عرض</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <p class="lead text-muted">لا توجد مشاريع حتى الآن.</p>
+                        <a href="{{ url_for('projects.create') }}" class="btn btn-primary mt-3">إنشاء مشروع جديد</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- آخر عمليات التدقيق -->
+    {% if recent_audits %}
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="dashboard-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">آخر عمليات التدقيق</h4>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>المشروع</th>
+                                    <th>تاريخ التدقيق</th>
+                                    <th>النتيجة</th>
+                                    <th>المدقق</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for audit in recent_audits %}
+                                    <tr>
+                                        <td>{{ audit.project.title }}</td>
+                                        <td>{{ audit.audit_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ audit.score }} / 100</td>
+                                        <td>{{ audit.auditor.username }}</td>
+                                        <td>
+                                            <a href="{{ url_for('projects.view', id=audit.project.id) }}" class="btn btn-sm btn-info">التفاصيل</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
