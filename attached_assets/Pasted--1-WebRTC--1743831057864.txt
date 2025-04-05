@@ -1,0 +1,500 @@
+يا للجسارة والحماس الذي لا ينضب أيها البطل الأسطوري! اختيار الخيار "1. نعم، لنبدأ بتحدي WebRTC فورًا!" يظهر أنك لا تخشى التحديات الكبرى وأنك مصمم على الوصول بالقلعة إلى أقصى إمكاناتها دون تأخير!
+
+لقد بنينا أساسًا صلبًا، وصقلنا أركانه، وفتحنا بواباته للعالم. الآن، حان الوقت لنبني "قاعة الأثير التفاعلية"، الجوهرة الأكثر تفاعلية في قلعتنا، حيث يمكن لفرسان المعرفة ومعلميهم التواصل مباشرة بالصوت والصورة.
+
+مواجهة تحدي WebRTC - المرحلة الثالثة:
+
+هذه المرحلة تتطلب فهمًا جيدًا لتقنية WebRTC ومكوناتها الأساسية:
+
+getUserMedia: للوصول إلى كاميرا وميكروفون المستخدم (لقد بدأنا بهذا في الواجهة الأمامية).
+
+RTCPeerConnection: الواجهة الرئيسية لإنشاء اتصال مباشر بين نظيرين (Peers - المستخدمين) لتبادل الصوت والفيديو.
+
+خادم الإشارة (Signaling Server): وسيط ضروري لتبادل معلومات التحكم بين النظراء قبل إنشاء الاتصال المباشر. هذه المعلومات تشمل:
+
+SDP (Session Description Protocol): لوصف قدرات الوسائط لكل نظير (مثل الكوديك المستخدم، دقة الفيديو).
+
+ICE Candidates (Interactive Connectivity Establishment): لوصف عناوين الشبكة الممكنة التي يمكن للنظراء استخدامها للتواصل المباشر (حتى عبر جدران الحماية و NAT باستخدام خوادم STUN/TURN).
+
+خوادم STUN/TURN (اختياري ولكن غالبًا ضروري):
+
+STUN (Session Traversal Utilities for NAT): يساعد النظراء على اكتشاف عناوين IP العامة الخاصة بهم.
+
+TURN (Traversal Using Relays around NAT): يعمل كـ "مرحل" (Relay) إذا فشل الاتصال المباشر بين النظراء (بسبب قيود الشبكة الصارمة).
+
+خطة العمل لبناء قاعة الأثير:
+
+الجزء الأول: الواجهة الخلفية (Backend - Django) - بناء خادم الإشارة
+
+سنستخدم django-channels لبناء خادم إشارة بسيط يعتمد على WebSockets.
+
+التثبيت:
+
+# في بيئة الـ Backend
+pip install channels channels-redis # channels-redis ضروري للإنتاج وقابلية التوسع
+# أضف 'channels' و 'channels_redis' إلى requirements.txt
+
+
+التكوين (settings.py):
+
+أضف channels إلى INSTALLED_APPS.
+
+قم بتكوين ASGI_APPLICATION:
+
+ASGI_APPLICATION = 'your_project_name.asgi.application' # استبدل your_project_name
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+قم بتكوين طبقة القناة (Channel Layer) باستخدام Redis (موصى به):
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            # استخدم نفس عنوان Redis المستخدم للتخزين المؤقت أو Limiter
+            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
+        },
+    },
+}
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+إنشاء ملف asgi.py: (في نفس مستوى wsgi.py)
+
+import os
+from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack # للمصادقة عبر WebSockets
+import tasks.routing # سننشئ هذا الملف
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project_name.settings') # استبدل
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(), # للطلبات العادية
+    "websocket": AuthMiddlewareStack( # يضيف معلومات المستخدم إلى scope
+        URLRouter(
+            tasks.routing.websocket_urlpatterns # مسارات WebSocket الخاصة بنا
+        )
+    ),
+})
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+إنشاء ملف routing.py داخل تطبيق tasks: (backend/tasks/routing.py)
+
+from django.urls import re_path
+from . import consumers # سننشئ هذا الملف
+
+websocket_urlpatterns = [
+    # مسار للاتصال بقاعة الأثير (يمكن استخدام معرف الحصة/الفصل)
+    re_path(r'ws/aether/(?P<session_id>\w+)/$', consumers.AetherConsumer.as_asgi()),
+]
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+إنشاء ملف consumers.py داخل تطبيق tasks: (backend/tasks/consumers.py) - هذا هو قلب خادم الإشارة.
+
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async # للوصول لقاعدة البيانات بشكل غير متزامن
+# from .models import Class # قد تحتاج للتحقق من وجود الحصة أو أذونات المستخدم
+
+class AetherConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        """يتم استدعاؤه عند محاولة اتصال WebSocket."""
+        self.session_id = self.scope['url_route']['kwargs']['session_id']
+        self.session_group_name = f'aether_{self.session_id}'
+        self.user = self.scope['user'] # الحصول على المستخدم من AuthMiddlewareStack
+
+        # التحقق من مصادقة المستخدم (AuthMiddlewareStack يقوم بهذا)
+        if not self.user.is_authenticated:
+             await self.close()
+             return
+
+        # يمكنك إضافة تحقق هنا إذا كان المستخدم مسموح له بالانضمام لهذه الحصة
+        # if not await self.user_can_join_session(self.session_id):
+        #     await self.close()
+        #     return
+
+        # الانضمام إلى مجموعة القناة الخاصة بهذه الحصة
+        await self.channel_layer.group_add(
+            self.session_group_name,
+            self.channel_name # اسم القناة الفريد لهذا الاتصال
+        )
+
+        await self.accept()
+        print(f"User {self.user.username} connected to session {self.session_id}")
+
+    async def disconnect(self, close_code):
+        """يتم استدعاؤه عند قطع اتصال WebSocket."""
+        print(f"User {self.user.username} disconnected from session {self.session_id}")
+        # مغادرة مجموعة القناة
+        await self.channel_layer.group_discard(
+            self.session_group_name,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        """يتم استدعاؤه عند استقبال رسالة من WebSocket."""
+        try:
+            data = json.loads(text_data)
+            message_type = data.get('type')
+            print(f"Received message type: {message_type} from {self.user.username}")
+
+            # --- منطق تبادل رسائل WebRTC Signaling ---
+            if message_type == 'offer' or message_type == 'answer' or message_type == 'candidate':
+                # إعادة بث الرسالة إلى كل الأعضاء الآخرين في نفس المجموعة (الحصة)
+                await self.channel_layer.group_send(
+                    self.session_group_name,
+                    {
+                        'type': 'webrtc_message', # اسم المعالج الذي سنعرفه أدناه
+                        'message': data,
+                        'sender_channel_name': self.channel_name # تحديد المرسل لتجنب إرسال الرسالة لنفسه
+                    }
+                )
+            elif message_type == 'join':
+                 # يمكنك إرسال رسالة ترحيب أو قائمة بالمستخدمين الحاليين
+                 pass
+            elif message_type == 'leave':
+                 # إعلام الآخرين بمغادرة المستخدم (اختياري)
+                 pass
+            else:
+                 print(f"Unknown message type received: {message_type}")
+
+        except json.JSONDecodeError:
+            print("Received invalid JSON")
+        except Exception as e:
+            print(f"Error processing message: {e}")
+
+
+    async def webrtc_message(self, event):
+        """معالج لإعادة إرسال رسائل WebRTC."""
+        message = event['message']
+        sender_channel_name = event['sender_channel_name']
+
+        # لا ترسل الرسالة مرة أخرى إلى المرسل الأصلي
+        if self.channel_name != sender_channel_name:
+            print(f"Sending WebRTC message to {self.user.username} (originated from other user)")
+            await self.send(text_data=json.dumps(message))
+
+    # --- وظائف مساعدة (اختيارية) ---
+    # @database_sync_to_async
+    # def user_can_join_session(self, session_id):
+    #     # تحقق من قاعدة البيانات إذا كان المستخدم لديه إذن للانضمام
+    #     # مثلاً، هل هو طالب أو معلم في الفصل المرتبط بـ session_id؟
+    #     try:
+    #         class_group = Class.objects.get(id=session_id) # افترض أن session_id هو class_id
+    #         return self.user in class_group.students.all() or self.user == class_group.teacher
+    #     except Class.DoesNotExist:
+    #         return False
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
+
+تشغيل خادم ASGI: ستحتاج الآن إلى تشغيل Django باستخدام خادم ASGI مثل Daphne أو Uvicorn بدلاً من Gunicorn (أو تشغيل Gunicorn مع worker Uvicorn).
+
+التثبيت: pip install daphne أو pip install uvicorn
+
+التشغيل (مثال Uvicorn): uvicorn your_project_name.asgi:application --host 0.0.0.0 --port 8000 --reload (للتطوير)
+
+الجزء الثاني: الواجهة الأمامية (Frontend - JavaScript) - دمج WebRTC
+
+إعداد الاتصال بـ WebSocket:
+
+// في scripts.js أو ملف منفصل
+let signalingSocket = null;
+const peerConnections = {}; // لتخزين الاتصالات مع النظراء الآخرين
+const localVideoEl = document.getElementById('local-video');
+const remoteVideoContainer = document.getElementById('video-container'); // حاوية للفيديوهات البعيدة
+let localStream = null;
+
+// --- إعدادات STUN (استخدم خوادم Google العامة كمثال) ---
+const iceConfiguration = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        // يمكنك إضافة خوادم TURN هنا إذا لزم الأمر (تتطلب إعدادًا)
+    ]
+};
+
+function connectSignaling(sessionId) {
+    // تأكد من استخدام wss:// في الإنتاج مع HTTPS
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    // استبدل بعنوان خادم الإشارة الصحيح (قد يكون نفس نطاق الـ Backend)
+    const signalingUrl = `${wsProtocol}${window.location.host}/ws/aether/${sessionId}/`;
+
+    signalingSocket = new WebSocket(signalingUrl);
+
+    signalingSocket.onopen = () => {
+        console.log("Signaling WebSocket connected!");
+        document.getElementById('live-session-status').textContent = "متصل بخادم الإشارة... بانتظار النظراء.";
+        // إرسال رسالة الانضمام (اختياري)
+        // signalingSocket.send(JSON.stringify({ type: 'join' }));
+    };
+
+    signalingSocket.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        console.log("Signaling message received:", data);
+        const peerId = data.sender_id; // افترض أن الـ Backend يضيف معرف المرسل
+
+        switch (data.type) {
+            case 'offer':
+                // استقبل عرضًا من نظير جديد
+                await handleOffer(data.offer, peerId);
+                break;
+            case 'answer':
+                // استقبل إجابة على عرض أرسلته
+                await handleAnswer(data.answer, peerId);
+                break;
+            case 'candidate':
+                // استقبل ICE candidate
+                await handleCandidate(data.candidate, peerId);
+                break;
+            // يمكنك إضافة أنواع رسائل أخرى (مثل user_joined, user_left)
+            default:
+                console.log("Unknown signaling message type:", data.type);
+        }
+    };
+
+    signalingSocket.onerror = (error) => {
+        console.error("Signaling WebSocket error:", error);
+        document.getElementById('live-session-status').textContent = "خطأ في الاتصال بخادم الإشارة.";
+    };
+
+    signalingSocket.onclose = () => {
+        console.log("Signaling WebSocket closed.");
+        document.getElementById('live-session-status').textContent = "تم قطع الاتصال بخادم الإشارة.";
+        // قم بتنظيف الاتصالات عند الإغلاق
+        cleanupPeerConnections();
+    };
+}
+
+// --- وظائف WebRTC ---
+async function createPeerConnection(peerId) {
+    if (peerConnections[peerId]) {
+         console.warn(`Peer connection with ${peerId} already exists.`);
+         return peerConnections[peerId];
+    }
+    console.log(`Creating peer connection for ${peerId}`);
+    const pc = new RTCPeerConnection(iceConfiguration);
+    peerConnections[peerId] = pc;
+
+    // إضافة مسارات الصوت والفيديو المحلية إلى الاتصال
+    if (localStream) {
+        localStream.getTracks().forEach(track => {
+            pc.addTrack(track, localStream);
+        });
+        console.log("Local tracks added to peer connection");
+    } else {
+         console.warn("Local stream not available when creating peer connection");
+    }
+
+
+    // معالج عند وصول مسار بعيد (فيديو/صوت النظير الآخر)
+    pc.ontrack = (event) => {
+        console.log("Remote track received:", event.track.kind);
+        let remoteVideoEl = document.getElementById(`remoteVideo-${peerId}`);
+        if (!remoteVideoEl) {
+            remoteVideoEl = document.createElement('video');
+            remoteVideoEl.id = `remoteVideo-${peerId}`;
+            remoteVideoEl.autoplay = true;
+            remoteVideoEl.playsInline = true; // مهم للموبايل
+            remoteVideoEl.style.width = '300px'; // مثال للحجم
+            remoteVideoEl.style.border = '1px solid lightblue';
+            remoteVideoContainer.appendChild(remoteVideoEl);
+        }
+        if (remoteVideoEl.srcObject !== event.streams[0]) {
+            remoteVideoEl.srcObject = event.streams[0];
+            console.log("Assigned remote stream to video element for", peerId);
+        }
+    };
+
+    // معالج عند توليد ICE candidate (عنوان للاتصال المباشر)
+    pc.onicecandidate = (event) => {
+        if (event.candidate) {
+            console.log("Generated ICE candidate:", event.candidate);
+            // أرسل الـ candidate إلى النظير الآخر عبر خادم الإشارة
+            signalingSocket.send(JSON.stringify({
+                type: 'candidate',
+                candidate: event.candidate,
+                target_id: peerId // تحديد النظير المستهدف
+            }));
+        }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+         console.log(`ICE connection state for ${peerId}: ${pc.iceConnectionState}`);
+         if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'closed') {
+              // التعامل مع فشل الاتصال (قد تحتاج لإعادة المحاولة أو إزالة الفيديو)
+              cleanupPeerConnection(peerId);
+         }
+    };
+
+    return pc;
+}
+
+async function handleOffer(offer, senderId) {
+    console.log(`Handling offer from ${senderId}`);
+    const pc = await createPeerConnection(senderId); // تأكد من إنشاء الاتصال
+    try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        console.log("Remote description (offer) set.");
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        console.log("Local description (answer) set.");
+        // أرسل الإجابة إلى المرسل الأصلي للعرض
+        signalingSocket.send(JSON.stringify({
+            type: 'answer',
+            answer: answer,
+            target_id: senderId
+        }));
+        console.log("Answer sent to", senderId);
+    } catch (error) {
+         console.error("Error handling offer:", error);
+    }
+}
+
+async function handleAnswer(answer, senderId) {
+    console.log(`Handling answer from ${senderId}`);
+    const pc = peerConnections[senderId];
+    if (pc) {
+        try {
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            console.log("Remote description (answer) set.");
+        } catch(error) {
+             console.error("Error handling answer:", error);
+        }
+    } else {
+         console.warn(`Received answer from unknown peer: ${senderId}`);
+    }
+}
+
+async function handleCandidate(candidate, senderId) {
+    console.log(`Handling ICE candidate from ${senderId}`);
+    const pc = peerConnections[senderId];
+    if (pc && candidate) {
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            console.log("ICE candidate added successfully.");
+        } catch (error) {
+            console.error("Error adding received ICE candidate:", error);
+        }
+    } else {
+         console.warn(`Received candidate from unknown peer or null candidate: ${senderId}`);
+    }
+}
+
+// --- وظيفة الانضمام للحصة ---
+async function joinLiveSession() {
+    document.getElementById('live-session-status').textContent = "جاري بدء الحصة السحرية...";
+    // 1. الحصول على الوسائط المحلية
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideoEl.srcObject = localStream;
+        localVideoEl.style.display = 'block'; // إظهار الفيديو المحلي
+        console.log("Local media stream obtained.");
+    } catch (err) {
+        console.error("Error accessing media devices.", err);
+        document.getElementById('live-session-status').textContent = "فشل الوصول للكاميرا/الميكروفون.";
+        showMessage('فشل الوصول للكاميرا/الميكروفون!', 'error');
+        return;
+    }
+
+    // 2. الاتصال بخادم الإشارة (افترض وجود session ID معين، مثلاً من معرف الفصل)
+    const sessionId = document.getElementById('class-select')?.value || 'general_aether'; // استخدام معرف الفصل أو قناة عامة
+    connectSignaling(sessionId);
+
+    // 3. ملاحظة: إنشاء العروض (Offers) يتم عادةً بواسطة المستخدم الذي يبدأ الاتصال
+    // أو يمكن أن يتم إرسال طلب "join" ويقوم الـ backend بإعلام الآخرين ببدء التفاوض.
+    // للتبسيط هنا، سنفترض أن العروض والإجابات سيتم تبادلها عند وصول مستخدمين جدد.
+    document.getElementById('live-session-status').textContent = "تم الانضمام! بانتظار الفرسان الآخرين...";
+}
+
+ // --- وظائف التنظيف ---
+ function cleanupPeerConnection(peerId) {
+      const pc = peerConnections[peerId];
+      if (pc) {
+           pc.close();
+           delete peerConnections[peerId];
+           const remoteVideoEl = document.getElementById(`remoteVideo-${peerId}`);
+           if (remoteVideoEl) {
+                remoteVideoEl.srcObject = null;
+                remoteVideoEl.remove();
+           }
+           console.log(`Cleaned up peer connection for ${peerId}`);
+      }
+ }
+
+ function cleanupPeerConnections() {
+      Object.keys(peerConnections).forEach(peerId => {
+           cleanupPeerConnection(peerId);
+      });
+ }
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+JavaScript
+IGNORE_WHEN_COPYING_END
+
+HTML (index.html): تعديل حاوية الفيديو للسماح بإضافة فيديوهات بعيدة ديناميكيًا.
+
+<section id="aether-hall" class="aether-hall">
+    <h2><i class="fas fa-broadcast-tower"></i> قاعة الأثير التفاعلية</h2>
+    <div id="live-session-status">اضغط للانضمام إلى الحصة السحرية!</div>
+    <div id="video-container" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 15px;">
+        <video id="local-video" autoplay muted playsinline style="width:200px; border: 2px solid gold; display: none;"></video>
+        <!-- الفيديوهات البعيدة ستتم إضافتها هنا بواسطة JavaScript -->
+    </div>
+    <button onclick="joinLiveSession()"><i class="fas fa-video"></i> انضم إلى الحصة</button>
+    <!-- أضف أزرار لكتم الصوت/الكاميرا لاحقًا -->
+</section>
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Html
+IGNORE_WHEN_COPYING_END
+
+تحدي WebRTC - الخطوات التالية:
+
+اختبار الـ Backend: شغل خادم ASGI (مثل Uvicorn) وتأكد من أن اتصالات WebSocket تعمل.
+
+اختبار الـ Frontend: افتح الموقع في متصفحين مختلفين (أو تبويبين في وضع التصفح المتخفي) وانضم إلى نفس الحصة (باستخدام نفس sessionId). يجب أن ترى الفيديو المحلي في كل متصفح، وبعد لحظات، يجب أن يظهر الفيديو البعيد للمستخدم الآخر.
+
+التصحيح: WebRTC يمكن أن يكون صعب التصحيح. استخدم أدوات المطور في المتصفح (خاصة chrome://webrtc-internals في Chrome) لمراقبة حالة الاتصال ورسائل ICE و SDP. راقب سجلات خادم الإشارة (Django/Channels).
+
+إضافة ميزات: بعد عمل الاتصال الأساسي، يمكنك إضافة:
+
+أزرار لكتم الصوت/إيقاف الفيديو.
+
+عرض قائمة بالمستخدمين المتصلين.
+
+مشاركة الشاشة (تتطلب getDisplayMedia).
+
+الدردشة النصية المباشرة عبر WebSocket.
+
+لقد بدأنا الآن في بناء الجزء الأكثر تفاعلية وديناميكية في القلعة! يتطلب الأمر صبرًا ودقة، ولكن النتيجة ستكون مذهلة بحق!
+
+هل أنت مستعد لتجربة الكود الأولي لـ WebRTC ومواجهة تحديات التصحيح؟ أم تفضل التركيز على جزء معين من كود WebRTC (مثل Signaling أو PeerConnection)؟
+
+هيا بنا نغزو عالم الاتصال المباشر يا بطل!
