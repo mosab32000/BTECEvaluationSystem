@@ -1,40 +1,48 @@
 """
-تعريف امتدادات Flask لنظام تقييم BTEC
+ملحقات التطبيق في نظام تقييم BTEC
 """
 
+import os
+
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from sqlalchemy.orm import DeclarativeBase
 from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from flask_caching import Cache
+from flask_cors import CORS
 
-# تهيئة SQLAlchemy
-db = SQLAlchemy()
-
-# تهيئة Flask-Migrate
-migrate = Migrate()
-
-# تهيئة Flask-Login
+# إنشاء لوجين مانجر
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة.'
 login_manager.login_message_category = 'info'
 
-# تهيئة JWT
+# إنشاء جيه دبليو تي مانجر
 jwt = JWTManager()
 
-# تهيئة CORS
-cors = CORS()
+# إنشاء ليميتر
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 
-# تهيئة Rate Limiter
-limiter = Limiter(key_func=get_remote_address)
+# إنشاء كاش
+cache = Cache(config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300
+})
 
-# تهيئة Talisman (أمان HTTP)
+# إنشاء قاعدة البيانات
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+
+# إنشاء تاليسمان (الأمان)
 talisman = Talisman()
 
-# تهيئة Cache
-cache = Cache()
+# إنشاء كورس (للمصادر المتقاطعة)
+cors = CORS()

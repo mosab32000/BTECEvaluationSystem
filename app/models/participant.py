@@ -1,137 +1,161 @@
 """
-نموذج المشاركين في الحصص التفاعلية في نظام تقييم BTEC
+نموذج المشارك في الفصل الدراسي في نظام تقييم BTEC
 """
 
 import datetime
-import logging
-from app import db
+from typing import Dict, Any
 
-logger = logging.getLogger(__name__)
+from app.extensions import db
 
-class Participant(db.Model):
-    """نموذج المشارك في الحصة التفاعلية في نظام تقييم BTEC."""
-    __tablename__ = 'participants'
+class ClassroomParticipant(db.Model):
+    """نموذج المشارك في الفصل الدراسي في نظام تقييم BTEC"""
+    __tablename__ = 'classroom_participants'
     
+    # حقول قاعدة البيانات
     id = db.Column(db.Integer, primary_key=True)
-    session_id = db.Column(db.Integer, db.ForeignKey('sessions.id'), nullable=False)
+    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    join_time = db.Column(db.DateTime)
-    leave_time = db.Column(db.DateTime)
-    attendance_status = db.Column(db.String(20), default='pending')  # pending, present, absent, late
-    participation_score = db.Column(db.Float)  # درجة المشاركة (0-10)
-    participation_notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    role = db.Column(db.String(20), default='student')  # student, assistant
+    joined_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
     
-    # قيد فريد للتأكد من أن المستخدم لا يتم تسجيله مرتين في نفس الحصة
-    __table_args__ = (db.UniqueConstraint('session_id', 'user_id', name='uq_participant_session'),)
+    # العلاقات
+    # classroom = db.relationship('Classroom', backref='participants')
+    # user = db.relationship('User', backref='classroom_participations')
+    # attendances = db.relationship('Attendance', backref='participant', lazy='dynamic')
+    
+    # إضافة قيد فريد لضمان أن المستخدم لا يمكن أن يكون مشاركًا في نفس الفصل الدراسي أكثر من مرة
+    __table_args__ = (
+        db.UniqueConstraint('classroom_id', 'user_id', name='uq_classroom_participant'),
+    )
     
     def __repr__(self):
-        return f'<Participant {self.user_id} in Session {self.session_id}>'
+        return f'<ClassroomParticipant classroom_id={self.classroom_id} user_id={self.user_id} role={self.role}>'
     
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
-        تحويل المشارك إلى قاموس
+        تحويل المشارك في الفصل الدراسي إلى قاموس
         
         Returns:
-            dict: بيانات المشارك كقاموس
+            Dict[str, Any]: بيانات المشارك في الفصل الدراسي
+        """
+        return {
+            'id': self.id,
+            'classroom_id': self.classroom_id,
+            'user_id': self.user_id,
+            'role': self.role,
+            'joined_at': self.joined_at.isoformat() if self.joined_at else None,
+            'is_active': self.is_active
+        }
+    
+    def deactivate(self) -> None:
+        """
+        إلغاء تنشيط المشارك في الفصل الدراسي
+        """
+        self.is_active = False
+    
+    def activate(self) -> None:
+        """
+        تنشيط المشارك في الفصل الدراسي
+        """
+        self.is_active = True
+    
+    def change_role(self, new_role: str) -> None:
+        """
+        تغيير دور المشارك في الفصل الدراسي
+        
+        Args:
+            new_role (str): الدور الجديد (student, assistant)
+        """
+        if new_role not in ['student', 'assistant']:
+            raise ValueError(f"الدور '{new_role}' غير صالح. الأدوار الصالحة هي 'student' و 'assistant'.")
+        
+        self.role = new_role
+
+class Attendance(db.Model):
+    """نموذج الحضور في نظام تقييم BTEC"""
+    __tablename__ = 'attendances'
+    
+    # حقول قاعدة البيانات
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('sessions.id'), nullable=False)
+    participant_id = db.Column(db.Integer, db.ForeignKey('classroom_participants.id'), nullable=False)
+    status = db.Column(db.String(20), default='present')  # present, absent, late, excused
+    check_in_time = db.Column(db.DateTime)
+    check_out_time = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    
+    # العلاقات
+    # session = db.relationship('Session', backref='attendances')
+    # participant = db.relationship('ClassroomParticipant', backref='attendances')
+    
+    # إضافة قيد فريد لضمان أن المشارك لا يمكن أن يكون له أكثر من حضور واحد لكل جلسة
+    __table_args__ = (
+        db.UniqueConstraint('session_id', 'participant_id', name='uq_session_participant'),
+    )
+    
+    def __repr__(self):
+        return f'<Attendance session_id={self.session_id} participant_id={self.participant_id} status={self.status}>'
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        تحويل الحضور إلى قاموس
+        
+        Returns:
+            Dict[str, Any]: بيانات الحضور
         """
         return {
             'id': self.id,
             'session_id': self.session_id,
-            'user_id': self.user_id,
-            'join_time': self.join_time.isoformat() if self.join_time else None,
-            'leave_time': self.leave_time.isoformat() if self.leave_time else None,
-            'attendance_status': self.attendance_status,
-            'participation_score': self.participation_score,
-            'participation_notes': self.participation_notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'participant_id': self.participant_id,
+            'status': self.status,
+            'check_in_time': self.check_in_time.isoformat() if self.check_in_time else None,
+            'check_out_time': self.check_out_time.isoformat() if self.check_out_time else None,
+            'notes': self.notes
         }
     
-    @classmethod
-    def get_by_id(cls, participant_id):
+    def check_in(self) -> None:
         """
-        الحصول على مشارك بواسطة المعرف
-        
-        Args:
-            participant_id (int): معرف المشارك
-            
-        Returns:
-            Participant: كائن المشارك أو None إذا لم يتم العثور عليه
+        تسجيل وقت تسجيل الدخول
         """
-        return cls.query.get(participant_id)
+        if not self.check_in_time:
+            self.check_in_time = datetime.datetime.utcnow()
+            if self.status == 'absent':
+                self.status = 'present'
     
-    @classmethod
-    def get_by_session_and_user(cls, session_id, user_id):
+    def check_out(self) -> None:
         """
-        الحصول على مشارك بواسطة معرف الحصة ومعرف المستخدم
-        
-        Args:
-            session_id (int): معرف الحصة
-            user_id (int): معرف المستخدم
-            
-        Returns:
-            Participant: كائن المشارك أو None إذا لم يتم العثور عليه
+        تسجيل وقت تسجيل الخروج
         """
-        return cls.query.filter_by(session_id=session_id, user_id=user_id).first()
+        if self.check_in_time and not self.check_out_time:
+            self.check_out_time = datetime.datetime.utcnow()
     
-    @classmethod
-    def get_by_session(cls, session_id):
+    def mark_as_present(self) -> None:
         """
-        الحصول على جميع المشاركين في حصة معينة
-        
-        Args:
-            session_id (int): معرف الحصة
-            
-        Returns:
-            list: قائمة بكائنات المشاركين في الحصة
+        تحديد الحضور كحاضر
         """
-        return cls.query.filter_by(session_id=session_id).all()
+        self.status = 'present'
+        if not self.check_in_time:
+            self.check_in_time = datetime.datetime.utcnow()
     
-    @classmethod
-    def get_by_user(cls, user_id):
+    def mark_as_absent(self) -> None:
         """
-        الحصول على جميع مشاركات مستخدم معين
-        
-        Args:
-            user_id (int): معرف المستخدم
-            
-        Returns:
-            list: قائمة بكائنات مشاركات المستخدم
+        تحديد الحضور كغائب
         """
-        return cls.query.filter_by(user_id=user_id).all()
+        self.status = 'absent'
+        self.check_in_time = None
+        self.check_out_time = None
     
-    def save(self):
+    def mark_as_late(self) -> None:
         """
-        حفظ المشارك في قاعدة البيانات
-        
-        Returns:
-            bool: نجاح العملية
+        تحديد الحضور كمتأخر
         """
-        try:
-            db.session.add(self)
-            db.session.commit()
-            logger.info(f"تم حفظ المشارك: المستخدم {self.user_id} في الحصة {self.session_id}")
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"خطأ في حفظ المشارك: {str(e)}")
-            return False
+        self.status = 'late'
+        if not self.check_in_time:
+            self.check_in_time = datetime.datetime.utcnow()
     
-    def delete(self):
+    def mark_as_excused(self) -> None:
         """
-        حذف المشارك من قاعدة البيانات
-        
-        Returns:
-            bool: نجاح العملية
+        تحديد الحضور كمعذور
         """
-        try:
-            db.session.delete(self)
-            db.session.commit()
-            logger.info(f"تم حذف المشارك: المستخدم {self.user_id} من الحصة {self.session_id}")
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"خطأ في حذف المشارك: {str(e)}")
-            return False
+        self.status = 'excused'
