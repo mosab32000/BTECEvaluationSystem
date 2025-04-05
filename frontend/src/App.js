@@ -1,15 +1,20 @@
 // src/App.js
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import InteractiveSessions from './components/InteractiveSessions';
 import AttendanceRecord from './components/AttendanceRecord';
 import './App.css';
 
 function App() {
+  const [darkMode, setDarkMode] = useState(false);
+
   return (
     <Router>
-      <div className="app" dir="rtl">
+      <div className={`app ${darkMode ? "dark" : ""}`} dir="rtl">
         <header className="app-header">
+          <button onClick={() => setDarkMode(!darkMode)} className="dark-mode-toggle">
+            {darkMode ? "الوضع النهاري" : "الوضع الليلي"}
+          </button>
           <h1>نظام تقييم BTEC</h1>
           <nav>
             <ul className="nav-menu">
@@ -48,14 +53,14 @@ function Home() {
     <div className="home-page">
       <h1>مرحباً بك في نظام تقييم BTEC</h1>
       <p>نظام متكامل لإدارة وتقييم المهام الدراسية مع توثيق النتائج باستخدام تقنية البلوكتشين.</p>
-      
+
       <div className="features">
         <div className="feature-card">
           <h3>الحصص التفاعلية</h3>
           <p>إنشاء وإدارة الحصص الدراسية التفاعلية مع الطلاب.</p>
           <Link to="/sessions" className="feature-link">انتقل إلى الحصص التفاعلية</Link>
         </div>
-        
+
         <div className="feature-card">
           <h3>سجل الحضور والغياب</h3>
           <p>متابعة حضور وغياب الطلاب في الحصص الدراسية.</p>
