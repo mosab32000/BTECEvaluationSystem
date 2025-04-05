@@ -2,6 +2,7 @@
 حزمة مسارات نظام تقييم BTEC
 """
 import logging
+
 from flask import Blueprint
 
 # تهيئة السجل

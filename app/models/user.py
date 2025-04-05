@@ -1,12 +1,13 @@
 """
 نموذج المستخدم في نظام تقييم BTEC
 """
-import json
 import logging
+import json
 from datetime import datetime
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+
 from app.database import get_db_conn, get_db_cursor
 
 # تهيئة السجل
@@ -21,20 +22,46 @@ class User(UserMixin):
         
         Args:
             id (int, optional): معرف المستخدم
-            email (str, optional): البريد الإلكتروني للمستخدم
+            email (str, optional): البريد الإلكتروني
             password_hash (str, optional): تجزئة كلمة المرور
-            name (str, optional): اسم المستخدم
-            role (str, optional): دور المستخدم (admin, evaluator, student)
-            is_active (bool, optional): حالة تفعيل المستخدم
-            created_at (datetime, optional): تاريخ إنشاء المستخدم
+            name (str, optional): الاسم
+            role (str, optional): الدور (admin, evaluator, student)
+            is_active (bool, optional): حالة النشاط
+            created_at (datetime, optional): تاريخ إنشاء الحساب
+            updated_at (datetime, optional): تاريخ آخر تحديث
         """
         self.id = kwargs.get('id')
         self.email = kwargs.get('email')
         self.password_hash = kwargs.get('password_hash')
         self.name = kwargs.get('name')
-        self.role = kwargs.get('role', 'student')
-        self.is_active = kwargs.get('is_active', True)
+        self.role = kwargs.get('role', 'student')  # الدور الافتراضي هو طالب
+        self.is_active = kwargs.get('is_active', True)  # المستخدم نشط افتراضيًا
         self.created_at = kwargs.get('created_at')
+        self.updated_at = kwargs.get('updated_at')
+    
+    def check_password(self, password):
+        """
+        التحقق من كلمة المرور
+        
+        Args:
+            password (str): كلمة المرور للتحقق
+            
+        Returns:
+            bool: ما إذا كانت كلمة المرور صحيحة
+        """
+        if not self.password_hash:
+            return False
+        
+        return check_password_hash(self.password_hash, password)
+    
+    def set_password(self, password):
+        """
+        تعيين كلمة المرور
+        
+        Args:
+            password (str): كلمة المرور
+        """
+        self.password_hash = generate_password_hash(password)
     
     @staticmethod
     def get_by_id(user_id):
@@ -54,7 +81,6 @@ class User(UserMixin):
                 user_data = cursor.fetchone()
                 
                 if user_data:
-                    # تحويل النتيجة إلى قاموس
                     user_dict = dict(user_data)
                     return User(**user_dict)
                 
@@ -70,7 +96,7 @@ class User(UserMixin):
         الحصول على المستخدم بواسطة البريد الإلكتروني
         
         Args:
-            email (str): البريد الإلكتروني للمستخدم
+            email (str): البريد الإلكتروني
             
         Returns:
             User: كائن المستخدم أو None إذا لم يتم العثور عليه
@@ -126,7 +152,7 @@ class User(UserMixin):
         الحصول على قائمة المستخدمين حسب الدور
         
         Args:
-            role (str): دور المستخدم (admin, evaluator, student)
+            role (str): الدور (admin, evaluator, student)
             limit (int, optional): الحد الأقصى للنتائج. الافتراضي هو 100.
             offset (int, optional): بداية النتائج. الافتراضي هو 0.
             
@@ -150,27 +176,6 @@ class User(UserMixin):
             logger.error(f"خطأ في الحصول على قائمة المستخدمين حسب الدور: {e}")
             return []
     
-    def set_password(self, password):
-        """
-        تعيين كلمة مرور المستخدم (تشفيرها)
-        
-        Args:
-            password (str): كلمة المرور الجديدة
-        """
-        self.password_hash = generate_password_hash(password)
-    
-    def check_password(self, password):
-        """
-        التحقق من كلمة مرور المستخدم
-        
-        Args:
-            password (str): كلمة المرور للتحقق منها
-            
-        Returns:
-            bool: ما إذا كانت كلمة المرور صحيحة
-        """
-        return check_password_hash(self.password_hash, password)
-    
     def save(self):
         """
         حفظ المستخدم في قاعدة البيانات (إنشاء أو تحديث)
@@ -182,7 +187,10 @@ class User(UserMixin):
             conn = get_db_conn()
             cursor = conn.cursor()
             
-            # تحديث المستخدم الموجود
+            # الحصول على التاريخ الحالي للتحديث
+            current_time = datetime.now()
+            
+            # تحديث مستخدم موجود
             if self.id:
                 query = """
                     UPDATE users SET 
@@ -190,7 +198,8 @@ class User(UserMixin):
                         password_hash = %s,
                         name = %s,
                         role = %s,
-                        is_active = %s
+                        is_active = %s,
+                        updated_at = %s
                     WHERE id = %s
                 """
                 cursor.execute(query, (
@@ -199,14 +208,17 @@ class User(UserMixin):
                     self.name,
                     self.role,
                     self.is_active,
+                    current_time,
                     self.id
                 ))
             
             # إنشاء مستخدم جديد
             else:
                 query = """
-                    INSERT INTO users (email, password_hash, name, role, is_active)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO users (
+                        email, password_hash, name, role, is_active, created_at, updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """
                 cursor.execute(query, (
@@ -214,22 +226,28 @@ class User(UserMixin):
                     self.password_hash,
                     self.name,
                     self.role,
-                    self.is_active
+                    self.is_active,
+                    current_time,
+                    current_time
                 ))
                 
                 # الحصول على معرف المستخدم الجديد
                 self.id = cursor.fetchone()[0]
+                self.created_at = current_time
             
+            self.updated_at = current_time
             conn.commit()
             return True
         
         except Exception as e:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             logger.error(f"خطأ في حفظ المستخدم: {e}")
             return False
         
         finally:
-            cursor.close()
+            if cursor:
+                cursor.close()
     
     def delete(self):
         """
@@ -252,12 +270,14 @@ class User(UserMixin):
             return True
         
         except Exception as e:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             logger.error(f"خطأ في حذف المستخدم: {e}")
             return False
         
         finally:
-            cursor.close()
+            if cursor:
+                cursor.close()
     
     def to_dict(self):
         """
@@ -272,8 +292,45 @@ class User(UserMixin):
             'name': self.name,
             'role': self.role,
             'is_active': self.is_active,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+    
+    def is_authenticated(self):
+        """
+        التحقق مما إذا كان المستخدم مصادقًا
+        
+        Returns:
+            bool: ما إذا كان المستخدم مصادقًا
+        """
+        return True
+    
+    def is_active(self):
+        """
+        التحقق مما إذا كان المستخدم نشطًا
+        
+        Returns:
+            bool: ما إذا كان المستخدم نشطًا
+        """
+        return self.is_active
+    
+    def is_anonymous(self):
+        """
+        التحقق مما إذا كان المستخدم مجهولاً
+        
+        Returns:
+            bool: ما إذا كان المستخدم مجهولاً
+        """
+        return False
+    
+    def get_id(self):
+        """
+        الحصول على معرف المستخدم (مطلوب لـ flask-login)
+        
+        Returns:
+            str: معرف المستخدم كسلسلة نصية
+        """
+        return str(self.id)
     
     def __repr__(self):
         """
@@ -282,4 +339,4 @@ class User(UserMixin):
         Returns:
             str: تمثيل المستخدم
         """
-        return f'<User {self.email}>'
+        return f'<User {self.id}: {self.email}>'

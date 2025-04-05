@@ -1,8 +1,8 @@
 """
 نموذج التقييم في نظام تقييم BTEC
 """
-import json
 import logging
+import json
 from datetime import datetime
 
 from app.database import get_db_conn, get_db_cursor
@@ -22,7 +22,7 @@ class Evaluation:
             student_id (int, optional): معرف الطالب
             assignment_id (str, optional): معرف المهمة
             rubric_id (int, optional): معرف معيار التقييم
-            submission_text (str, optional): نص التقديم
+            submission_text (str, optional): نص المهمة المرسلة
             evaluation_result (dict, optional): نتيجة التقييم
             score (float, optional): الدرجة
             ai_score (float, optional): درجة الذكاء الاصطناعي
@@ -30,27 +30,29 @@ class Evaluation:
             evaluator_comments (str, optional): تعليقات المقيم
             status (str, optional): حالة التقييم
             created_at (datetime, optional): تاريخ إنشاء التقييم
-            updated_at (datetime, optional): تاريخ تحديث التقييم
+            updated_at (datetime, optional): تاريخ آخر تحديث
         """
         self.id = kwargs.get('id')
         self.student_id = kwargs.get('student_id')
         self.assignment_id = kwargs.get('assignment_id')
         self.rubric_id = kwargs.get('rubric_id')
         self.submission_text = kwargs.get('submission_text')
-        self.evaluation_result = kwargs.get('evaluation_result', {})
         
-        # إذا كانت نتيجة التقييم عبارة عن سلسلة نصية، نحاول تحويلها إلى كائن JSON
-        if isinstance(self.evaluation_result, str):
+        # معالجة نتيجة التقييم كقاموس
+        evaluation_result = kwargs.get('evaluation_result')
+        if isinstance(evaluation_result, str):
             try:
-                self.evaluation_result = json.loads(self.evaluation_result)
+                self.evaluation_result = json.loads(evaluation_result)
             except json.JSONDecodeError:
                 self.evaluation_result = {}
+        else:
+            self.evaluation_result = evaluation_result or {}
         
         self.score = kwargs.get('score')
         self.ai_score = kwargs.get('ai_score')
         self.evaluator_id = kwargs.get('evaluator_id')
         self.evaluator_comments = kwargs.get('evaluator_comments')
-        self.status = kwargs.get('status', 'pending')
+        self.status = kwargs.get('status', 'pending')  # القيمة الافتراضية: pending
         self.created_at = kwargs.get('created_at')
         self.updated_at = kwargs.get('updated_at')
     
@@ -91,10 +93,10 @@ class Evaluation:
             offset (int, optional): بداية النتائج. الافتراضي هو 0.
             
         Returns:
-            list: قائمة كائنات التقييمات
+            list: قائمة كائنات التقييم
         """
         try:
-            query = "SELECT * FROM evaluations ORDER BY id DESC LIMIT %s OFFSET %s"
+            query = "SELECT * FROM evaluations ORDER BY id LIMIT %s OFFSET %s"
             with get_db_cursor() as cursor:
                 cursor.execute(query, (limit, offset))
                 evaluations_data = cursor.fetchall()
@@ -111,9 +113,9 @@ class Evaluation:
             return []
     
     @staticmethod
-    def get_by_student(student_id, limit=100, offset=0):
+    def get_by_student_id(student_id, limit=100, offset=0):
         """
-        الحصول على قائمة التقييمات حسب الطالب
+        الحصول على قائمة التقييمات حسب معرف الطالب
         
         Args:
             student_id (int): معرف الطالب
@@ -121,10 +123,10 @@ class Evaluation:
             offset (int, optional): بداية النتائج. الافتراضي هو 0.
             
         Returns:
-            list: قائمة كائنات التقييمات
+            list: قائمة كائنات التقييم
         """
         try:
-            query = "SELECT * FROM evaluations WHERE student_id = %s ORDER BY id DESC LIMIT %s OFFSET %s"
+            query = "SELECT * FROM evaluations WHERE student_id = %s ORDER BY id LIMIT %s OFFSET %s"
             with get_db_cursor() as cursor:
                 cursor.execute(query, (student_id, limit, offset))
                 evaluations_data = cursor.fetchall()
@@ -137,13 +139,13 @@ class Evaluation:
                 return evaluations
         
         except Exception as e:
-            logger.error(f"خطأ في الحصول على قائمة التقييمات حسب الطالب: {e}")
+            logger.error(f"خطأ في الحصول على قائمة التقييمات حسب معرف الطالب: {e}")
             return []
     
     @staticmethod
-    def get_by_user(evaluator_id, limit=100, offset=0):
+    def get_by_evaluator_id(evaluator_id, limit=100, offset=0):
         """
-        الحصول على قائمة التقييمات حسب المقيم
+        الحصول على قائمة التقييمات حسب معرف المقيم
         
         Args:
             evaluator_id (int): معرف المقيم
@@ -151,10 +153,10 @@ class Evaluation:
             offset (int, optional): بداية النتائج. الافتراضي هو 0.
             
         Returns:
-            list: قائمة كائنات التقييمات
+            list: قائمة كائنات التقييم
         """
         try:
-            query = "SELECT * FROM evaluations WHERE evaluator_id = %s ORDER BY id DESC LIMIT %s OFFSET %s"
+            query = "SELECT * FROM evaluations WHERE evaluator_id = %s ORDER BY id LIMIT %s OFFSET %s"
             with get_db_cursor() as cursor:
                 cursor.execute(query, (evaluator_id, limit, offset))
                 evaluations_data = cursor.fetchall()
@@ -167,7 +169,7 @@ class Evaluation:
                 return evaluations
         
         except Exception as e:
-            logger.error(f"خطأ في الحصول على قائمة التقييمات حسب المقيم: {e}")
+            logger.error(f"خطأ في الحصول على قائمة التقييمات حسب معرف المقيم: {e}")
             return []
     
     @staticmethod
@@ -176,15 +178,15 @@ class Evaluation:
         الحصول على قائمة التقييمات حسب الحالة
         
         Args:
-            status (str): حالة التقييم
+            status (str): حالة التقييم (pending, completed, etc.)
             limit (int, optional): الحد الأقصى للنتائج. الافتراضي هو 100.
             offset (int, optional): بداية النتائج. الافتراضي هو 0.
             
         Returns:
-            list: قائمة كائنات التقييمات
+            list: قائمة كائنات التقييم
         """
         try:
-            query = "SELECT * FROM evaluations WHERE status = %s ORDER BY id DESC LIMIT %s OFFSET %s"
+            query = "SELECT * FROM evaluations WHERE status = %s ORDER BY id LIMIT %s OFFSET %s"
             with get_db_cursor() as cursor:
                 cursor.execute(query, (status, limit, offset))
                 evaluations_data = cursor.fetchall()
@@ -200,6 +202,36 @@ class Evaluation:
             logger.error(f"خطأ في الحصول على قائمة التقييمات حسب الحالة: {e}")
             return []
     
+    @staticmethod
+    def get_by_assignment_id(assignment_id, limit=100, offset=0):
+        """
+        الحصول على قائمة التقييمات حسب معرف المهمة
+        
+        Args:
+            assignment_id (str): معرف المهمة
+            limit (int, optional): الحد الأقصى للنتائج. الافتراضي هو 100.
+            offset (int, optional): بداية النتائج. الافتراضي هو 0.
+            
+        Returns:
+            list: قائمة كائنات التقييم
+        """
+        try:
+            query = "SELECT * FROM evaluations WHERE assignment_id = %s ORDER BY id LIMIT %s OFFSET %s"
+            with get_db_cursor() as cursor:
+                cursor.execute(query, (assignment_id, limit, offset))
+                evaluations_data = cursor.fetchall()
+                
+                evaluations = []
+                for evaluation_data in evaluations_data:
+                    evaluation_dict = dict(evaluation_data)
+                    evaluations.append(Evaluation(**evaluation_dict))
+                
+                return evaluations
+        
+        except Exception as e:
+            logger.error(f"خطأ في الحصول على قائمة التقييمات حسب معرف المهمة: {e}")
+            return []
+    
     def save(self):
         """
         حفظ التقييم في قاعدة البيانات (إنشاء أو تحديث)
@@ -211,13 +243,13 @@ class Evaluation:
             conn = get_db_conn()
             cursor = conn.cursor()
             
-            # تحويل نتيجة التقييم إلى تنسيق JSON للتخزين
-            evaluation_result_json = json.dumps(self.evaluation_result) if self.evaluation_result else '{}'
-            
             # الحصول على التاريخ الحالي للتحديث
             current_time = datetime.now()
             
-            # تحديث التقييم الموجود
+            # تحويل نتيجة التقييم إلى JSON
+            evaluation_result_json = json.dumps(self.evaluation_result)
+            
+            # تحديث تقييم موجود
             if self.id:
                 query = """
                     UPDATE evaluations SET 
@@ -253,9 +285,8 @@ class Evaluation:
             else:
                 query = """
                     INSERT INTO evaluations (
-                        student_id, assignment_id, rubric_id, submission_text, 
-                        evaluation_result, score, ai_score, evaluator_id, 
-                        evaluator_comments, status, created_at, updated_at
+                        student_id, assignment_id, rubric_id, submission_text, evaluation_result, 
+                        score, ai_score, evaluator_id, evaluator_comments, status, created_at, updated_at
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
@@ -284,12 +315,14 @@ class Evaluation:
             return True
         
         except Exception as e:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             logger.error(f"خطأ في حفظ التقييم: {e}")
             return False
         
         finally:
-            cursor.close()
+            if cursor:
+                cursor.close()
     
     def delete(self):
         """
@@ -305,11 +338,11 @@ class Evaluation:
             conn = get_db_conn()
             cursor = conn.cursor()
             
-            # حذف أي سجلات تحقق مرتبطة بهذا التقييم أولاً
-            verification_query = "DELETE FROM blockchain_verifications WHERE evaluation_id = %s"
-            cursor.execute(verification_query, (self.id,))
+            # حذف التحققات من البلوكتشين المرتبطة بهذا التقييم
+            blockchain_query = "DELETE FROM blockchain_verifications WHERE evaluation_id = %s"
+            cursor.execute(blockchain_query, (self.id,))
             
-            # ثم حذف التقييم نفسه
+            # حذف التقييم
             query = "DELETE FROM evaluations WHERE id = %s"
             cursor.execute(query, (self.id,))
             
@@ -317,159 +350,14 @@ class Evaluation:
             return True
         
         except Exception as e:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             logger.error(f"خطأ في حذف التقييم: {e}")
             return False
         
         finally:
-            cursor.close()
-    
-    def get_verification(self):
-        """
-        الحصول على سجل التحقق من صحة التقييم
-        
-        Returns:
-            dict: بيانات التحقق أو None إذا لم يتم العثور عليه
-        """
-        if not self.id:
-            return None
-        
-        try:
-            query = """
-                SELECT * FROM blockchain_verifications 
-                WHERE evaluation_id = %s 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """
-            with get_db_cursor() as cursor:
-                cursor.execute(query, (self.id,))
-                verification_data = cursor.fetchone()
-                
-                if verification_data:
-                    return dict(verification_data)
-                
-            return None
-        
-        except Exception as e:
-            logger.error(f"خطأ في الحصول على سجل التحقق من صحة التقييم: {e}")
-            return None
-    
-    def add_verification(self, hash_value, transaction_id, verified=False):
-        """
-        إضافة سجل تحقق من صحة التقييم
-        
-        Args:
-            hash_value (str): قيمة التجزئة
-            transaction_id (str): معرف المعاملة
-            verified (bool, optional): حالة التحقق. الافتراضي هو False.
-            
-        Returns:
-            bool: ما إذا تمت الإضافة بنجاح
-        """
-        if not self.id:
-            return False
-        
-        try:
-            conn = get_db_conn()
-            cursor = conn.cursor()
-            
-            query = """
-                INSERT INTO blockchain_verifications (
-                    evaluation_id, hash_value, transaction_id, verified
-                )
-                VALUES (%s, %s, %s, %s)
-                RETURNING id
-            """
-            cursor.execute(query, (
-                self.id,
-                hash_value,
-                transaction_id,
-                verified
-            ))
-            
-            verification_id = cursor.fetchone()[0]
-            conn.commit()
-            
-            logger.info(f"تم إضافة سجل تحقق جديد: ID={verification_id}")
-            return True
-        
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"خطأ في إضافة سجل تحقق من صحة التقييم: {e}")
-            return False
-        
-        finally:
-            cursor.close()
-    
-    @staticmethod
-    def get_statistics():
-        """
-        الحصول على إحصاءات التقييمات
-        
-        Returns:
-            dict: إحصاءات التقييمات
-        """
-        try:
-            stats = {
-                'total': 0,
-                'by_status': {},
-                'avg_score': 0,
-                'recent': []
-            }
-            
-            # إجمالي التقييمات وتوزيعها حسب الحالة
-            query_total = """
-                SELECT status, COUNT(*) as count 
-                FROM evaluations 
-                GROUP BY status
-            """
-            with get_db_cursor() as cursor:
-                cursor.execute(query_total)
-                status_counts = cursor.fetchall()
-                
-                for status_data in status_counts:
-                    status = status_data['status']
-                    count = status_data['count']
-                    stats['by_status'][status] = count
-                    stats['total'] += count
-            
-            # متوسط الدرجات
-            query_avg = """
-                SELECT AVG(score) as avg_score 
-                FROM evaluations 
-                WHERE score IS NOT NULL
-            """
-            with get_db_cursor() as cursor:
-                cursor.execute(query_avg)
-                avg_data = cursor.fetchone()
-                
-                if avg_data and avg_data['avg_score']:
-                    stats['avg_score'] = round(float(avg_data['avg_score']), 2)
-            
-            # التقييمات الأخيرة
-            query_recent = """
-                SELECT id, student_id, status, score, created_at 
-                FROM evaluations 
-                ORDER BY created_at DESC 
-                LIMIT 5
-            """
-            with get_db_cursor() as cursor:
-                cursor.execute(query_recent)
-                recent_data = cursor.fetchall()
-                
-                for evaluation_data in recent_data:
-                    stats['recent'].append(dict(evaluation_data))
-            
-            return stats
-        
-        except Exception as e:
-            logger.error(f"خطأ في الحصول على إحصاءات التقييمات: {e}")
-            return {
-                'total': 0,
-                'by_status': {},
-                'avg_score': 0,
-                'recent': []
-            }
+            if cursor:
+                cursor.close()
     
     def to_dict(self):
         """
@@ -501,4 +389,4 @@ class Evaluation:
         Returns:
             str: تمثيل التقييم
         """
-        return f'<Evaluation {self.id}: {self.status}>'
+        return f'<Evaluation {self.id}: {self.student_id}/{self.assignment_id}>'
