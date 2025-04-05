@@ -1,53 +1,19 @@
 """
-مسارات فحص الصحة والحالة
+مسار فحص الصحة لنظام تقييم BTEC
 """
-import os
-import sys
-import psutil
-import logging
-from datetime import datetime, timedelta
-
 from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required
 
-from app import db
-from app.models.user import User
-from app.models.evaluation import Evaluation
-from app.models.system_metrics import SystemMetrics
-from app.core.security import token_required
-from app.database import get_latest_metrics
+# تعريف البلوبرنت
+health_bp = Blueprint('health', __name__, url_prefix='/api/health')
 
-# إنشاء Blueprint لفحص الصحة
-health_bp = Blueprint('health', __name__, url_prefix='/health')
-
-@health_bp.route('', methods=['GET'])
+@health_bp.route('/')
 def health_check():
-    """
-    فحص صحة النظام
-    """
-    # فحص الاتصال بقاعدة البيانات
-    db_status = 'ok'
-    try:
-        with db.engine.connect() as connection:
-            connection.execute("SELECT 1")
-    except Exception as e:
-        db_status = f'error: {str(e)}'
-    
-    # الحصول على معلومات النظام
-    system_info = {
-        'cpu_percent': psutil.cpu_percent(),
-        'memory_percent': psutil.virtual_memory().percent,
-        'disk_percent': psutil.disk_usage('/').percent,
-    }
-    
-    # إرجاع نتيجة الفحص
+    """نقطة نهاية للتحقق من صحة النظام"""
     return jsonify({
-        'status': 'ok',
-        'timestamp': datetime.utcnow().isoformat(),
-        'environment': os.getenv('FLASK_ENV', 'production'),
-        'database': db_status,
-        'system': system_info
-    }), 200
+        "status": "ok",
+        "service": "BTEC Evaluation System",
+        "version": "1.0.0"
+    })
 
 @health_bp.route('/stats', methods=['GET'])
 def system_stats():
@@ -159,3 +125,19 @@ def get_uptime():
     except Exception as e:
         logging.error(f"خطأ في الحصول على مدة تشغيل النظام: {str(e)}")
         return "غير معروف"
+
+import os
+import sys
+import psutil
+import logging
+from datetime import datetime, timedelta
+
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
+
+from app import db
+from app.models.user import User
+from app.models.evaluation import Evaluation
+from app.models.system_metrics import SystemMetrics
+from app.core.security import token_required
+from app.database import get_latest_metrics

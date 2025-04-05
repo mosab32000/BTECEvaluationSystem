@@ -1,0 +1,302 @@
+تمام، سؤال ممتاز! لربط الصفحات وجعل تطبيق Django/React متكاملًا، تحتاج إلى التعامل مع جانبين رئيسيين:
+
+توجيه الواجهة الأمامية (Frontend Routing - React): كيف ينتقل المستخدم بين "الصفحات" أو العروض المختلفة داخل تطبيق React ذي الصفحة الواحدة (Single Page Application - SPA).
+
+تكامل الواجهة الخلفية (Backend Integration - Django/React): كيف يتواصل تطبيق React مع واجهة برمجة تطبيقات Django (API) لجلب البيانات وإرسالها (وهو ما قمنا به جزئيًا بالفعل مع axios).
+
+لنقم بتفصيل كيفية تحقيق ذلك:
+
+1. توجيه الواجهة الأمامية باستخدام react-router-dom
+
+مكتبة react-router-dom هي المعيار الفعلي للتوجيه في تطبيقات React. إنها تتيح لك تحديد مكونات مختلفة لعرضها بناءً على عنوان URL في المتصفح، دون الحاجة إلى إعادة تحميل الصفحة بالكامل.
+
+الخطوات:
+
+تثبيت المكتبة: إذا لم تكن قد قمت بذلك بالفعل، قم بتثبيتها في مجلد frontend:
+
+cd frontend
+npm install react-router-dom
+
+
+تغليف التطبيق بالموجه (Router): في ملف frontend/src/index.js (أو أحيانًا App.js، لكن index.js هو المكان الشائع)، قم بتغليف مكون App الرئيسي بـ <BrowserRouter>:
+
+--- START OF FILE frontend/src/index.js (Updated) ---
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom'; // Import BrowserRouter
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <BrowserRouter> {/* Wrap App with BrowserRouter */}
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+reportWebVitals();
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+JavaScript
+IGNORE_WHEN_COPYING_END
+
+--- END OF FILE frontend/src/index.js (Updated) ---
+
+تحديد المسارات (Routes) والمكونات: في ملف frontend/src/App.js، ستحتاج إلى استخدام مكونات Routes و Route لتحديد أي مكون يعرض لأي مسار URL.
+
+مثال: لنفترض أنك تريد:
+
+الصفحة الرئيسية (/) تعرض نموذج الرفع وقائمة المهام (كما هو الحال الآن).
+
+صفحة تفاصيل المهمة (/task/:taskId) تعرض تفاصيل مهمة واحدة وربما خيارات تحليل/تقييم متقدمة لها.
+
+صفحة الإعدادات (/settings) تعرض إعدادات التطبيق.
+
+إنشاء مكونات الصفحات: قد تحتاج إلى إنشاء مكونات جديدة لهذه الصفحات:
+
+frontend/src/pages/HomePage.js (يمكن أن يحتوي على TaskUploadForm و TaskList)
+
+frontend/src/pages/TaskDetailPage.js
+
+frontend/src/pages/SettingsPage.js
+
+تعديل App.js لاستخدام المسارات:
+
+--- START OF FILE frontend/src/App.js (Updated with Routing) ---
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, Link, useParams, useNavigate } from 'react-router-dom'; // Import routing components
+import axios from 'axios';
+import TaskUploadForm from './components/TaskUploadForm';
+import TaskList from './components/TaskList';
+import './App.css';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
+// --- HomePage Component ---
+function HomePage({ tasks, onAnalyze, onEvaluate, onDelete, loadingState, analysisResults, evaluationResults, onUploadSuccess, uploadError, fetchError, listLoading }) {
+  return (
+    <>
+      <TaskUploadForm onUploadSuccess={onUploadSuccess} uploadError={uploadError} />
+      <hr />
+      {fetchError && <p className="error fetch-error">{fetchError}</p>}
+      {listLoading && <p>Loading tasks...</p>}
+      <TaskList
+         tasks={tasks}
+         onAnalyze={onAnalyze}
+         onEvaluate={onEvaluate}
+         onDelete={onDelete}
+         analysisResults={analysisResults}
+         evaluationResults={evaluationResults}
+         loadingState={loadingState}
+       />
+    </>
+  );
+}
+
+// --- TaskDetailPage Component (Example) ---
+function TaskDetailPage() {
+   const { taskId } = useParams(); // Get taskId from URL parameter
+   const [task, setTask] = useState(null);
+   const [error, setError] = useState(null);
+   const navigate = useNavigate(); // Hook for navigation
+
+   useEffect(() => {
+       const fetchTaskDetail = async () => {
+           try {
+               setError(null);
+               const response = await axios.get(`${API_URL}/tasks/${taskId}/`);
+               setTask(response.data);
+           } catch (err) {
+               console.error(`Error fetching task ${taskId}:`, err);
+               setError(`Failed to load task details. ${err.response?.data?.detail || err.message}`);
+           }
+       };
+       fetchTaskDetail();
+   }, [taskId]); // Refetch if taskId changes
+
+   const goBack = () => navigate(-1); // Function to go back
+
+   if (error) return <div className="error">{error}</div>;
+   if (!task) return <div>Loading task details...</div>;
+
+   return (
+       <div className="task-detail-page">
+           <button onClick={goBack} style={{ marginBottom: '15px' }}>← Back to List</button>
+           <h2>Task Detail: {task.title} (ID: {task.id})</h2>
+           <p><strong>Description:</strong> {task.description || 'N/A'}</p>
+           <p><strong>Uploaded:</strong> {new Date(task.created_at).toLocaleString()}</p>
+           {task.uploaded_file_url && <p><a href={task.uploaded_file_url} target="_blank" rel="noopener noreferrer">View File</a></p>}
+           {/* Display results here in more detail */}
+           <pre>Analysis: {JSON.stringify(task.analysis_result, null, 2)}</pre>
+           <pre>Evaluation: {JSON.stringify(task.evaluation_result, null, 2)}</pre>
+           {/* Add Analyze/Evaluate buttons specific to this page if needed */}
+       </div>
+   );
+}
+
+// --- SettingsPage Component (Placeholder) ---
+function SettingsPage() {
+  return (
+    <div>
+      <h2>Application Settings</h2>
+      <p>Settings configuration options will go here.</p>
+      {/* Add form elements for settings */}
+    </div>
+  );
+}
+
+
+// --- Main App Component ---
+function App() {
+  const [tasks, setTasks] = useState([]);
+  const [analysisResults, setAnalysisResults] = useState({});
+  const [evaluationResults, setEvaluationResults] = useState({});
+  const [loadingState, setLoadingState] = useState({});
+  const [fetchError, setFetchError] = useState(null);
+  const [uploadError, setUploadError] = useState('');
+
+  const fetchTasks = useCallback(async () => { /* ... as before ... */ }, []);
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+  const setLoading = useCallback((taskId, action, isLoading, error = null) => { /* ... as before ... */ }, []);
+  const handleUploadSuccess = useCallback(async (formData) => { /* ... as before ... */ }, [setLoading]); // Needs setLoading if it uses it
+  const handleAnalyze = useCallback(async (taskId) => { /* ... as before ... */ }, [setLoading]);
+  const handleEvaluate = useCallback(async (taskId) => { /* ... as before ... */ }, [setLoading]);
+  const handleDelete = useCallback(async (taskId) => { /* ... as before ... */ }, [setLoading]);
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <nav style={{ marginBottom: '10px' }}>
+           <Link to="/" style={{ color: 'white', marginRight: '15px', textDecoration: 'none' }}>Home</Link>
+           {/* <Link to="/tasks" style={{ color: 'white', marginRight: '15px', textDecoration: 'none' }}>Task List</Link> */}
+           <Link to="/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings</Link>
+        </nav>
+        <h1>AI Task Audit App</h1>
+      </header>
+      <main>
+        <Routes> {/* Define available routes */}
+          <Route path="/" element={
+             <HomePage
+                 tasks={tasks}
+                 onAnalyze={handleAnalyze}
+                 onEvaluate={handleEvaluate}
+                 onDelete={handleDelete}
+                 loadingState={loadingState}
+                 analysisResults={analysisResults}
+                 evaluationResults={evaluationResults}
+                 onUploadSuccess={handleUploadSuccess}
+                 uploadError={uploadError}
+                 fetchError={fetchError}
+                 listLoading={loadingState.listLoading}
+              />
+           } />
+          <Route path="/task/:taskId" element={<TaskDetailPage />} /> {/* Route for task detail */}
+          <Route path="/settings" element={<SettingsPage />} /> {/* Route for settings */}
+          {/* Add a 404 Not Found route */}
+          <Route path="*" element={<div><h2>404 Not Found</h2><p>The page you requested does not exist.</p><Link to="/">Go Home</Link></div>} />
+        </Routes>
+      </main>
+      <footer className="App-footer">
+         <p>© {new Date().getFullYear()} Task Audit Project.</p>
+      </footer>
+    </div>
+  );
+}
+
+export default App;
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+JavaScript
+IGNORE_WHEN_COPYING_END
+
+--- END OF FILE frontend/src/App.js (Updated with Routing) ---
+
+إضافة روابط (Links): استخدم مكون <Link> من react-router-dom للتنقل بين الصفحات بدلاً من استخدام وسوم <a> العادية (التي تسبب إعادة تحميل كاملة). انظر المثال في App.js أعلاه. يمكنك أيضًا إضافة روابط في TaskList.js للانتقال إلى صفحة تفاصيل المهمة.
+
+--- START OF FILE frontend/src/components/TaskList.js (Add Link Example) ---
+
+import React from 'react';
+import { Link } from 'react-router-dom'; // Import Link
+
+// ... (rest of the component as before) ...
+
+function TaskList({ tasks, onAnalyze, onEvaluate, analysisResults, evaluationResults, loadingState, onDelete }) {
+  // ... (if tasks.length === 0) ...
+  return (
+    <div className="task-list">
+      <h2>Uploaded Tasks</h2>
+      <ul>
+        {tasks.map(task => (
+          <li key={task.id} className="task-item">
+            <div className="task-info">
+              {/* Link the title to the detail page */}
+              <h3><Link to={`/task/${task.id}`}>{task.title || 'Untitled Task'}</Link></h3>
+              {/* ... rest of task info ... */}
+            </div>
+            {/* ... Task Actions ... */}
+            {/* ... Results Display ... */}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default TaskList;
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+JavaScript
+IGNORE_WHEN_COPYING_END
+
+--- END OF FILE frontend/src/components/TaskList.js (Add Link Example) ---
+
+2. تكامل الواجهة الخلفية (Django/React)
+
+لقد قمنا بالفعل بتأسيس هذا التكامل باستخدام axios لإجراء طلبات HTTP (GET, POST, DELETE) من React إلى واجهة برمجة تطبيقات Django. النقاط الرئيسية للتأكد من التكامل الصحيح هي:
+
+CORS (Cross-Origin Resource Sharing): يجب أن تكون إعدادات CORS_ALLOWED_ORIGINS في backend/task_audit_project/settings.py صحيحة وتسمح بالطلبات من عنوان URL وخادم التطوير الخاص بـ React (عادةً http://localhost:3000). هذا ضروري لأن الواجهة والخلفية تعملان على منافذ مختلفة.
+
+نقاط نهاية API (API Endpoints): يجب أن يتطابق عنوان URL الأساسي (API_URL في React) والمسارات المحددة في طلبات axios مع المسارات المحددة في backend/tasks/urls.py و backend/task_audit_project/urls.py. (في مثالنا، القاعدة هي http://localhost:8000/api/ والمسارات هي tasks/, tasks/{pk}/, tasks/{pk}/analyze/, tasks/{pk}/evaluate/).
+
+معالجة البيانات (Data Handling):
+
+React إلى Django: عند إرسال البيانات (مثل تحميل الملفات عبر FormData أو إرسال JSON)، تأكد من أن التنسيق يتوافق مع ما يتوقعه Django Rest Framework (MultiPartParser, JSONParser).
+
+Django إلى React: يجب أن يقوم Django بإرجاع استجابات JSON متسقة يمكن لـ React فهمها ومعالجتها (وهو ما يفعله Django Rest Framework بشكل افتراضي).
+
+معالجة الأخطاء (Error Handling): يجب أن يكون لدى كل من الواجهة الأمامية والخلفية معالجة قوية للأخطاء.
+
+الخلفية (Django): يجب أن تُرجع رموز حالة HTTP مناسبة (400، 404، 500، إلخ) مع رسائل خطأ واضحة بتنسيق JSON.
+
+الواجهة الأمامية (React): يجب أن تتحقق من استجابات axios (خاصة في كتل catch) وتعرض رسائل خطأ مفيدة للمستخدم.
+
+المصادقة والترخيص (Authentication & Authorization - إذا تم تنفيذها):
+
+إذا أضفت نظام تسجيل دخول، فستحتاج الواجهة الأمامية إلى تخزين رموز المصادقة (مثل JWT tokens) وإرسالها مع كل طلب API محمي (عادةً في رأس Authorization: Bearer <token>).
+
+ستحتاج الواجهة الخلفية إلى التحقق من هذه الرموز وتحديد الأذونات المناسبة لكل نقطة نهاية.
+
+ملخص التكامل:
+
+إعداد التوجيه في React: استخدم react-router-dom لإنشاء تجربة SPA مع صفحات مختلفة (قائمة المهام، تفاصيل المهمة، إعدادات).
+
+تأكيد تكوين CORS: تأكد من أن Django يسمح بالطلبات من React.
+
+مطابقة API Endpoints: تأكد من أن عناوين URL المستخدمة في axios تتطابق مع المسارات في Django.
+
+معالجة متسقة للبيانات والأخطاء: استخدم JSON وتنسيقات متوقعة، وعالج الأخطاء في كلا الطرفين.
+
+(اختياري) التعامل مع المصادقة: إذا لزم الأمر، قم بتمرير رموز المصادقة والتحقق منها.
+
+بتطبيق هذه الخطوات، ستحصل على تطبيق ويب متكامل حيث يمكن للمستخدمين التنقل بين الأقسام المختلفة والتفاعل بسلاسة مع البيانات والوظائف التي توفرها الواجهة الخلفية Django.
