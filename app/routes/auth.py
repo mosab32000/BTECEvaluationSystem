@@ -1,162 +1,126 @@
 """
-مسارات المصادقة في نظام تقييم BTEC
+وحدة مسارات المصادقة لنظام تقييم BTEC
 """
 
-import logging
-from flask import render_template, redirect, url_for, request, flash, session, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
-from app.routes import auth_bp
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, logout_user, login_required, current_user
+
+from app.extensions import db, limiter
 from app.models.user import User
 
-logger = logging.getLogger(__name__)
+auth_blueprint = Blueprint('auth', __name__)
 
-@auth_bp.route('/register', methods=['GET', 'POST'])
-def register():
-    """صفحة التسجيل"""
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        name = request.form.get('name')
-        
-        # التحقق من صحة البيانات
-        if not email or not password or not confirm_password or not name:
-            flash('جميع الحقول مطلوبة', 'error')
-            return render_template('auth/register.html')
-        
-        if password != confirm_password:
-            flash('كلمات المرور غير متطابقة', 'error')
-            return render_template('auth/register.html')
-        
-        # التحقق مما إذا كان البريد الإلكتروني مستخدمًا بالفعل
-        existing_user = User.get_by_email(email)
-        if existing_user:
-            flash('البريد الإلكتروني مستخدم بالفعل', 'error')
-            return render_template('auth/register.html')
-        
-        # إنشاء مستخدم جديد
-        user = User(email=email, name=name, role='student')
-        user.set_password(password)
-        if user.save():
-            flash('تم التسجيل بنجاح. يمكنك الآن تسجيل الدخول.', 'success')
-            return redirect(url_for('auth.login'))
-        else:
-            flash('حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.', 'error')
-    
-    return render_template('auth/register.html')
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
+@auth_blueprint.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10/minute")
 def login():
     """صفحة تسجيل الدخول"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard_redirect'))
+    
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+        remember = 'remember' in request.form
         
-        # التحقق من صحة البيانات
-        if not email or not password:
-            flash('البريد الإلكتروني وكلمة المرور مطلوبين', 'error')
-            return render_template('auth/login.html')
+        user = User.query.filter_by(email=email).first()
         
-        # التحقق من صحة بيانات المستخدم
-        user = User.get_by_email(email)
-        if not user or not user.check_password(password):
-            flash('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error')
-            return render_template('auth/login.html')
-        
-        # التحقق من حالة المستخدم
-        if not user.is_active:
-            flash('حسابك غير نشط. يرجى الاتصال بالمسؤول.', 'error')
-            return render_template('auth/login.html')
-        
-        # تسجيل الدخول
-        session['user_id'] = user.id
-        session['user_role'] = user.role
-        session['user_name'] = user.name
-        
-        # توجيه المستخدم حسب الدور
-        if user.role == 'admin':
-            return redirect(url_for('admin.index'))
+        if user and user.is_active and check_password_hash(user.password_hash, password):
+            login_user(user, remember=remember)
+            
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            next_page = request.args.get('next')
+            if next_page:
+                return redirect(next_page)
+            return redirect(url_for('main.dashboard_redirect'))
         else:
-            return redirect(url_for('evaluation.index'))
+            flash('فشل تسجيل الدخول. يرجى التحقق من بريدك الإلكتروني وكلمة المرور.', 'error')
     
     return render_template('auth/login.html')
 
-@auth_bp.route('/logout')
+
+@auth_blueprint.route('/logout')
+@login_required
 def logout():
     """تسجيل الخروج"""
+    logout_user()
     session.clear()
-    flash('تم تسجيل الخروج بنجاح', 'success')
+    flash('تم تسجيل الخروج بنجاح.', 'success')
     return redirect(url_for('main.index'))
 
-@auth_bp.route('/profile', methods=['GET', 'POST'])
-def profile():
-    """صفحة الملف الشخصي"""
-    # التحقق من تسجيل الدخول
-    if 'user_id' not in session:
-        flash('يجب تسجيل الدخول للوصول إلى هذه الصفحة', 'error')
-        return redirect(url_for('auth.login'))
-    
-    user = User.get_by_id(session['user_id'])
-    if not user:
-        session.clear()
-        flash('حدث خطأ في جلستك. يرجى تسجيل الدخول مرة أخرى.', 'error')
-        return redirect(url_for('auth.login'))
+
+@auth_blueprint.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5/hour")
+def register():
+    """صفحة التسجيل"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard_redirect'))
     
     if request.method == 'POST':
         name = request.form.get('name')
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        password_confirm = request.form.get('password_confirm')
         
-        # تحديث الاسم
-        if name and name != user.name:
-            user.name = name
-            session['user_name'] = name
+        if password != password_confirm:
+            flash('كلمات المرور غير متطابقة.', 'error')
+            return render_template('auth/register.html')
         
-        # تحديث كلمة المرور إذا تم تقديمها
-        if current_password and new_password and confirm_password:
-            if not user.check_password(current_password):
-                flash('كلمة المرور الحالية غير صحيحة', 'error')
-                return render_template('auth/profile.html', user=user)
-            
-            if new_password != confirm_password:
-                flash('كلمات المرور الجديدة غير متطابقة', 'error')
-                return render_template('auth/profile.html', user=user)
-            
-            user.set_password(new_password)
+        user_exists = User.query.filter_by(email=email).first() is not None
         
-        # حفظ التغييرات
-        if user.save():
-            flash('تم تحديث الملف الشخصي بنجاح', 'success')
-        else:
-            flash('حدث خطأ أثناء تحديث الملف الشخصي', 'error')
+        if user_exists:
+            flash('البريد الإلكتروني مسجل بالفعل.', 'error')
+            return render_template('auth/register.html')
+        
+        new_user = User(
+            name=name,
+            email=email,
+            password_hash=generate_password_hash(password),
+            role='student'  # الدور الافتراضي للمستخدمين الجدد
+        )
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.', 'success')
+        return redirect(url_for('auth.login'))
     
-    return render_template('auth/profile.html', user=user)
+    return render_template('auth/register.html')
 
-@auth_bp.route('/api/login', methods=['POST'])
-def api_login():
-    """واجهة API لتسجيل الدخول"""
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+
+@auth_blueprint.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit("5/hour")
+def forgot_password():
+    """صفحة نسيت كلمة المرور"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard_redirect'))
     
-    email = data.get('email')
-    password = data.get('password')
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            # TODO: إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
+            flash('تم إرسال تعليمات إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.', 'success')
+        else:
+            flash('لم يتم العثور على حساب بهذا البريد الإلكتروني.', 'error')
+        
+        return redirect(url_for('auth.login'))
     
-    if not email or not password:
-        return jsonify({'error': 'البريد الإلكتروني وكلمة المرور مطلوبين'}), 400
+    return render_template('auth/forgot_password.html')
+
+
+@auth_blueprint.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """صفحة إعادة تعيين كلمة المرور"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard_redirect'))
     
-    user = User.get_by_email(email)
-    if not user or not user.check_password(password):
-        return jsonify({'error': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'}), 401
+    # TODO: التحقق من صلاحية الرمز وتنفيذ إعادة تعيين كلمة المرور
     
-    if not user.is_active:
-        return jsonify({'error': 'حسابك غير نشط'}), 403
-    
-    # إنشاء رمز جلسة أو JWT هنا إذا لزم الأمر
-    
-    return jsonify({
-        'message': 'تم تسجيل الدخول بنجاح',
-        'user': user.to_dict()
-    })
+    return render_template('auth/reset_password.html')

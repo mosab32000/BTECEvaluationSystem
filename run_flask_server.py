@@ -59,10 +59,10 @@ def serve_static(path):
     return send_from_directory('static', path)
 
 if __name__ == '__main__':
-    # الحصول على المنفذ من البيئة أو استخدام 3000 كقيمة افتراضية
-    port = int(os.environ.get('PORT', 3000))
+    # الحصول على المنفذ من البيئة أو استخدام 5000 كقيمة افتراضية
+    port = int(os.environ.get('PORT', 5000))
     logger.info(f"بدء تشغيل نظام تقييم BTEC على المنفذ {port}...")
-    
+
     app.run(host='0.0.0.0', port=port, debug=True)
 """
 Script to run the Flask server for BTEC Evaluation System
@@ -88,14 +88,14 @@ def main():
     try:
         # Import application after environment is set up
         from backend.wsgi import app
-        
+
         # Run the app
         host = os.environ.get('HOST', '0.0.0.0')
         port = int(os.environ.get('PORT', 5000))
-        
+
         logger.info(f"Starting Flask server on {host}:{port}")
         app.run(host=host, port=port, debug=True)
-        
+
     except Exception as e:
         logger.error(f"Failed to start server: {e}")
         import traceback

@@ -1,31 +1,21 @@
 """
-نقطة الدخول الرئيسية للنشر في WSGI لنظام تقييم BTEC
+ملف WSGI لتشغيل تطبيق نظام تقييم BTEC على خدمات استضافة مثل Render
+يستخدم هذا الملف في إعدادات Procfile
 """
 
 import os
-import secrets
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# تحميل متغيرات البيئة من ملف .env
 from dotenv import load_dotenv
+
+# تحميل متغيرات البيئة
 load_dotenv()
 
-# ضمان وجود المفاتيح السرية
-def ensure_secret_key(env_var, length=32):
-    """التأكد من وجود المفتاح السري، وإنشاء واحد جديد إذا لم يكن موجوداً"""
-    if env_var not in os.environ:
-        os.environ[env_var] = secrets.token_hex(length)
-
-# ضمان وجود المفاتيح السرية الأساسية
-ensure_secret_key("SECRET_KEY")
-ensure_secret_key("JWT_SECRET_KEY")
-ensure_secret_key("WTF_CSRF_SECRET_KEY")
-
-# إنشاء كائن التطبيق
 from app import create_app
+
+# إنشاء تطبيق Flask
 app = create_app()
 
 if __name__ == "__main__":
-    # تعيين المنفذ من متغيرات البيئة أو استخدام القيمة الافتراضية
-    port = int(os.environ.get("PORT", 5000))
-    # تشغيل التطبيق
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

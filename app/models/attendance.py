@@ -1,154 +1,137 @@
 """
-نموذج سجلات الحضور والغياب في نظام تقييم BTEC
+نموذج سجل الحضور في نظام تقييم BTEC
 """
 
-import datetime
-import logging
-from app import db
+from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from app.extensions import db
 
-class Attendance(db.Model):
-    """نموذج سجل الحضور والغياب في نظام تقييم BTEC."""
-    __tablename__ = 'attendance'
+
+class AttendanceLog(db.Model):
+    """نموذج سجل الحضور في نظام تقييم BTEC."""
+    __tablename__ = 'attendance_logs'
     
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
-    date = db.Column(db.Date, default=datetime.date.today, nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'))
+    date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), default='present')  # present, absent, late, excused
+    recorded_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     note = db.Column(db.Text)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # العلاقات
+    student = db.relationship('User', foreign_keys=[student_id], backref='attendance_logs')
+    recorder = db.relationship('User', foreign_keys=[recorded_by], backref='recorded_attendance_logs')
     
     def __repr__(self):
-        return f'<Attendance {self.student_id} - {self.date}>'
+        return f'<AttendanceLog {self.id} - Student {self.student_id} - Class {self.class_id}>'
     
-    def to_dict(self):
-        """
-        تحويل سجل الحضور إلى قاموس
+    @property
+    def is_present(self):
+        """التحقق مما إذا كان الطالب حاضرًا.
         
         Returns:
-            dict: بيانات سجل الحضور كقاموس
+            bool: True إذا كان الطالب حاضرًا، False خلاف ذلك
         """
+        return self.status == 'present'
+    
+    @property
+    def is_absent(self):
+        """التحقق مما إذا كان الطالب غائبًا.
+        
+        Returns:
+            bool: True إذا كان الطالب غائبًا، False خلاف ذلك
+        """
+        return self.status == 'absent'
+    
+    @property
+    def is_late(self):
+        """التحقق مما إذا كان الطالب متأخرًا.
+        
+        Returns:
+            bool: True إذا كان الطالب متأخرًا، False خلاف ذلك
+        """
+        return self.status == 'late'
+    
+    @property
+    def is_excused(self):
+        """التحقق مما إذا كان غياب الطالب بعذر.
+        
+        Returns:
+            bool: True إذا كان غياب الطالب بعذر، False خلاف ذلك
+        """
+        return self.status == 'excused'
+    
+    def mark_present(self, recorder_id=None):
+        """تسجيل الطالب كحاضر.
+        
+        Args:
+            recorder_id (int): معرف المستخدم الذي سجل الحضور
+        """
+        self.status = 'present'
+        if recorder_id:
+            self.recorded_by = recorder_id
+        self.updated_at = datetime.utcnow()
+    
+    def mark_absent(self, recorder_id=None):
+        """تسجيل الطالب كغائب.
+        
+        Args:
+            recorder_id (int): معرف المستخدم الذي سجل الغياب
+        """
+        self.status = 'absent'
+        if recorder_id:
+            self.recorded_by = recorder_id
+        self.updated_at = datetime.utcnow()
+    
+    def mark_late(self, recorder_id=None):
+        """تسجيل الطالب كمتأخر.
+        
+        Args:
+            recorder_id (int): معرف المستخدم الذي سجل التأخير
+        """
+        self.status = 'late'
+        if recorder_id:
+            self.recorded_by = recorder_id
+        self.updated_at = datetime.utcnow()
+    
+    def mark_excused(self, recorder_id=None, note=None):
+        """تسجيل غياب الطالب بعذر.
+        
+        Args:
+            recorder_id (int): معرف المستخدم الذي سجل الغياب بعذر
+            note (str): ملاحظة حول سبب الغياب بعذر
+        """
+        self.status = 'excused'
+        if recorder_id:
+            self.recorded_by = recorder_id
+        if note:
+            self.note = note
+        self.updated_at = datetime.utcnow()
+    
+    def to_dict(self):
+        """تحويل بيانات سجل الحضور إلى قاموس.
+        
+        Returns:
+            dict: بيانات سجل الحضور
+        """
+        student_name = self.student.name if self.student else None
+        recorder_name = self.recorder.name if self.recorder else None
+        class_name = self.class_group.name if hasattr(self, 'class_group') and self.class_group else None
+        
         return {
             'id': self.id,
             'student_id': self.student_id,
-            'classroom_id': self.classroom_id,
+            'student_name': student_name,
+            'class_id': self.class_id,
+            'class_name': class_name,
             'date': self.date.isoformat() if self.date else None,
             'status': self.status,
+            'recorded_by': self.recorded_by,
+            'recorder_name': recorder_name,
             'note': self.note,
-            'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
-    
-    @classmethod
-    def get_by_id(cls, attendance_id):
-        """
-        الحصول على سجل حضور بواسطة المعرف
-        
-        Args:
-            attendance_id (int): معرف سجل الحضور
-            
-        Returns:
-            Attendance: كائن سجل الحضور أو None إذا لم يتم العثور عليه
-        """
-        return cls.query.get(attendance_id)
-    
-    @classmethod
-    def get_by_student_and_date(cls, student_id, date):
-        """
-        الحصول على سجل حضور طالب في تاريخ معين
-        
-        Args:
-            student_id (int): معرف الطالب
-            date (date): التاريخ
-            
-        Returns:
-            list: قائمة بكائنات سجلات الحضور للطالب في التاريخ المحدد
-        """
-        return cls.query.filter_by(student_id=student_id, date=date).all()
-    
-    @classmethod
-    def get_by_classroom_and_date(cls, classroom_id, date):
-        """
-        الحصول على سجلات الحضور لفصل دراسي في تاريخ معين
-        
-        Args:
-            classroom_id (int): معرف الفصل الدراسي
-            date (date): التاريخ
-            
-        Returns:
-            list: قائمة بكائنات سجلات الحضور للفصل الدراسي في التاريخ المحدد
-        """
-        return cls.query.filter_by(classroom_id=classroom_id, date=date).all()
-    
-    @classmethod
-    def get_by_student_and_classroom(cls, student_id, classroom_id):
-        """
-        الحصول على سجلات حضور طالب في فصل دراسي معين
-        
-        Args:
-            student_id (int): معرف الطالب
-            classroom_id (int): معرف الفصل الدراسي
-            
-        Returns:
-            list: قائمة بكائنات سجلات الحضور للطالب في الفصل الدراسي المحدد
-        """
-        return cls.query.filter_by(student_id=student_id, classroom_id=classroom_id).all()
-    
-    @classmethod
-    def get_student_attendance_rate(cls, student_id, classroom_id):
-        """
-        الحصول على نسبة حضور طالب في فصل دراسي معين
-        
-        Args:
-            student_id (int): معرف الطالب
-            classroom_id (int): معرف الفصل الدراسي
-            
-        Returns:
-            float: نسبة الحضور (0-100)
-        """
-        records = cls.query.filter_by(student_id=student_id, classroom_id=classroom_id).all()
-        if not records:
-            return 0
-        
-        total = len(records)
-        present = len([r for r in records if r.status == 'present'])
-        return (present / total) * 100
-    
-    def save(self):
-        """
-        حفظ سجل الحضور في قاعدة البيانات
-        
-        Returns:
-            bool: نجاح العملية
-        """
-        try:
-            db.session.add(self)
-            db.session.commit()
-            logger.info(f"تم حفظ سجل الحضور للطالب {self.student_id} في {self.date}")
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"خطأ في حفظ سجل الحضور: {str(e)}")
-            return False
-    
-    def delete(self):
-        """
-        حذف سجل الحضور من قاعدة البيانات
-        
-        Returns:
-            bool: نجاح العملية
-        """
-        try:
-            db.session.delete(self)
-            db.session.commit()
-            logger.info(f"تم حذف سجل الحضور للطالب {self.student_id} في {self.date}")
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"خطأ في حذف سجل الحضور: {str(e)}")
-            return False

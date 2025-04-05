@@ -1,127 +1,100 @@
 """
-نموذج الفصول الدراسية في نظام تقييم BTEC
+نماذج الفصول الدراسية في نظام تقييم BTEC
 """
 
-import datetime
-import logging
-from app import db
+from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from app.extensions import db
 
-class Classroom(db.Model):
+# جدول العلاقة بين الفصول والطلاب
+class_student = db.Table(
+    'class_student',
+    db.Column('class_id', db.Integer, db.ForeignKey('classes.id'), primary_key=True),
+    db.Column('student_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('joined_at', db.DateTime, default=datetime.utcnow)
+)
+
+
+class Class(db.Model):
     """نموذج الفصل الدراسي في نظام تقييم BTEC."""
-    __tablename__ = 'classrooms'
+    __tablename__ = 'classes'
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    schedule = db.Column(db.String(100))  # مثال: "الأحد، الثلاثاء، الخميس 10:00-11:30"
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     course_code = db.Column(db.String(20))
-    max_students = db.Column(db.Integer, default=30)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    semester = db.Column(db.String(20))
+    academic_year = db.Column(db.String(10))
+    status = db.Column(db.String(20), default='active')  # active, completed, cancelled
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # العلاقات
+    teacher = db.relationship('User', foreign_keys=[teacher_id], backref='teaching_classes')
+    students = db.relationship('User', secondary=class_student, backref='enrolled_classes')
+    attendance_logs = db.relationship('AttendanceLog', backref='class_group', lazy='dynamic')
     
     def __repr__(self):
-        return f'<Classroom {self.name}>'
+        return f'<Class {self.id} - {self.name}>'
     
-    def to_dict(self):
+    def add_student(self, student):
+        """إضافة طالب إلى الفصل.
+        
+        Args:
+            student (User): الطالب المراد إضافته
+            
+        Returns:
+            bool: True إذا تمت الإضافة بنجاح، False إذا كان الطالب مضافًا بالفعل
         """
-        تحويل الفصل الدراسي إلى قاموس
+        if student in self.students:
+            return False
+        
+        self.students.append(student)
+        return True
+    
+    def remove_student(self, student):
+        """إزالة طالب من الفصل.
+        
+        Args:
+            student (User): الطالب المراد إزالته
+            
+        Returns:
+            bool: True إذا تمت الإزالة بنجاح، False إذا لم يكن الطالب موجودًا في الفصل
+        """
+        if student not in self.students:
+            return False
+        
+        self.students.remove(student)
+        return True
+    
+    def get_student_count(self):
+        """الحصول على عدد الطلاب في الفصل.
         
         Returns:
-            dict: بيانات الفصل الدراسي كقاموس
+            int: عدد الطلاب
         """
+        return len(self.students)
+    
+    def to_dict(self):
+        """تحويل بيانات الفصل إلى قاموس.
+        
+        Returns:
+            dict: بيانات الفصل
+        """
+        teacher_name = self.teacher.name if self.teacher else None
+        
         return {
             'id': self.id,
             'name': self.name,
             'description': self.description,
-            'schedule': self.schedule,
             'teacher_id': self.teacher_id,
+            'teacher_name': teacher_name,
             'course_code': self.course_code,
-            'max_students': self.max_students,
-            'is_active': self.is_active,
+            'semester': self.semester,
+            'academic_year': self.academic_year,
+            'status': self.status,
+            'student_count': self.get_student_count(),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
-    
-    @classmethod
-    def get_by_id(cls, classroom_id):
-        """
-        الحصول على فصل دراسي بواسطة المعرف
-        
-        Args:
-            classroom_id (int): معرف الفصل الدراسي
-            
-        Returns:
-            Classroom: كائن الفصل الدراسي أو None إذا لم يتم العثور عليه
-        """
-        return cls.query.get(classroom_id)
-    
-    @classmethod
-    def get_by_teacher(cls, teacher_id):
-        """
-        الحصول على الفصول الدراسية لمدرس معين
-        
-        Args:
-            teacher_id (int): معرف المدرس
-            
-        Returns:
-            list: قائمة بكائنات الفصول الدراسية للمدرس
-        """
-        return cls.query.filter_by(teacher_id=teacher_id).all()
-    
-    @classmethod
-    def get_active(cls):
-        """
-        الحصول على الفصول الدراسية النشطة
-        
-        Returns:
-            list: قائمة بكائنات الفصول الدراسية النشطة
-        """
-        return cls.query.filter_by(is_active=True).all()
-    
-    @classmethod
-    def get_all(cls):
-        """
-        الحصول على جميع الفصول الدراسية
-        
-        Returns:
-            list: قائمة بجميع كائنات الفصول الدراسية
-        """
-        return cls.query.all()
-    
-    def save(self):
-        """
-        حفظ الفصل الدراسي في قاعدة البيانات
-        
-        Returns:
-            bool: نجاح العملية
-        """
-        try:
-            db.session.add(self)
-            db.session.commit()
-            logger.info(f"تم حفظ الفصل الدراسي: {self.name}")
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"خطأ في حفظ الفصل الدراسي: {str(e)}")
-            return False
-    
-    def delete(self):
-        """
-        حذف الفصل الدراسي من قاعدة البيانات
-        
-        Returns:
-            bool: نجاح العملية
-        """
-        try:
-            db.session.delete(self)
-            db.session.commit()
-            logger.info(f"تم حذف الفصل الدراسي: {self.name}")
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"خطأ في حذف الفصل الدراسي: {str(e)}")
-            return False

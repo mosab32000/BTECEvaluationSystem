@@ -3,146 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="نظام تقييم BTEC المتطور - منصة تقييم أكاديمي ذكية تعتمد على الذكاء الاصطناعي">
     <title>{% block title %}نظام تقييم BTEC{% endblock %}</title>
     
     <!-- الخطوط -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&family=Cairo:wght@200;300;400;500;600;700;800;900;1000&family=Lalezar&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     
     <!-- أيقونات Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- أنماط CSS الأساسية -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/btec-mystical.css') }}">
+    <!-- أنماط CSS الخاصة بنا -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/btec-style.css') }}">
     
     <!-- أنماط إضافية خاصة بالصفحة -->
     {% block styles %}{% endblock %}
-    
-    <!-- رمز الموقع المفضل -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
 </head>
 <body>
-    <!-- رأس الصفحة -->
-    <header class="main-header">
-        <div class="container">
-            <nav class="navbar">
-                <div class="logo">
-                    <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="شعار BTEC" class="logo-img">
-                    <span class="logo-text">نظام تقييم BTEC</span>
-                </div>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="{{ url_for('main.index') }}" class="navbar-brand">نظام تقييم BTEC</a>
+            
+            <ul class="navbar-nav">
+                <li><a href="{{ url_for('main.index') }}" class="nav-link {% if request.path == url_for('main.index') %}active{% endif %}">الرئيسية</a></li>
+                <li><a href="{{ url_for('main.features') }}" class="nav-link {% if request.path == url_for('main.features') %}active{% endif %}">الميزات</a></li>
+                <li><a href="{{ url_for('main.about') }}" class="nav-link {% if request.path == url_for('main.about') %}active{% endif %}">حول النظام</a></li>
+                <li><a href="{{ url_for('main.contact') }}" class="nav-link {% if request.path == url_for('main.contact') %}active{% endif %}">اتصل بنا</a></li>
                 
-                <ul class="nav-links">
-                    <li><a href="{{ url_for('index') }}" class="nav-link {% if request.path == url_for('index') %}active{% endif %}">الرئيسية</a></li>
-                    
-                    {% if current_user.is_authenticated %}
-                        <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">لوحة التحكم</a></li>
-                        
-                        {% if current_user.has_role('admin') or current_user.has_role('teacher') %}
-                            <li><a href="{{ url_for('evaluations.index') }}" class="nav-link {% if 'evaluations' in request.path %}active{% endif %}">التقييمات</a></li>
-                            <li><a href="{{ url_for('rubrics.index') }}" class="nav-link {% if 'rubrics' in request.path %}active{% endif %}">معايير التقييم</a></li>
-                            <li><a href="{{ url_for('classes.index') }}" class="nav-link {% if 'classes' in request.path %}active{% endif %}">الفصول</a></li>
-                        {% else %}
-                            <li><a href="{{ url_for('submissions.index') }}" class="nav-link {% if 'submissions' in request.path %}active{% endif %}">التسليمات</a></li>
-                        {% endif %}
-                    {% else %}
-                        <li><a href="{{ url_for('auth.login') }}" class="nav-link {% if 'login' in request.path %}active{% endif %}">تسجيل الدخول</a></li>
-                        <li><a href="{{ url_for('auth.register') }}" class="nav-link {% if 'register' in request.path %}active{% endif %}">التسجيل</a></li>
-                        <li><a href="{{ url_for('about') }}" class="nav-link {% if 'about' in request.path %}active{% endif %}">حول النظام</a></li>
-                    {% endif %}
-                </ul>
+                <!-- روابط للمستخدمين غير المسجلين فقط -->
+                <li class="guest-only"><a href="{{ url_for('auth.login') }}" class="nav-link {% if request.path == url_for('auth.login') %}active{% endif %}">تسجيل الدخول</a></li>
+                <li class="guest-only"><a href="{{ url_for('auth.register') }}" class="nav-link {% if request.path == url_for('auth.register') %}active{% endif %}">إنشاء حساب</a></li>
                 
-                {% if current_user.is_authenticated %}
-                <div class="user-menu">
-                    <img src="{{ current_user.avatar or url_for('static', filename='img/default-avatar.svg') }}" alt="الصورة الرمزية" class="user-avatar">
-                    <div class="dropdown-menu">
-                        <span class="dropdown-item user-name">{{ current_user.name }}</span>
-                        <a href="{{ url_for('profile.index') }}" class="dropdown-item">
-                            <i class="fas fa-user-circle"></i> الملف الشخصي
-                        </a>
-                        {% if current_user.has_role('admin') %}
-                        <a href="{{ url_for('admin.index') }}" class="dropdown-item">
-                            <i class="fas fa-cog"></i> إدارة النظام
-                        </a>
-                        {% endif %}
-                        <a href="{{ url_for('auth.logout') }}" class="dropdown-item">
-                            <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
-            </nav>
+                <!-- روابط للمستخدمين المسجلين فقط -->
+                <li class="auth-only">
+                    <a href="{{ url_for('main.dashboard_redirect') }}" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                    </a>
+                </li>
+                <li class="auth-only">
+                    <a href="#" id="logout-btn" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                    </a>
+                </li>
+            </ul>
         </div>
-    </header>
+    </nav>
     
-    <!-- محتوى الصفحة الرئيسي -->
-    <main>
-        {% block hero %}{% endblock %}
-        
-        <div class="main-content">
-            <div class="container">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-                
-                {% block content %}{% endblock %}
-            </div>
-        </div>
-    </main>
-    
-    <!-- تذييل الصفحة -->
-    <footer class="main-footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <div class="footer-logo">
-                        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="شعار BTEC" class="logo-img">
-                        <span class="logo-text">نظام تقييم BTEC</span>
+    <!-- حاوية التنبيهات -->
+    <div id="alert-container" class="container my-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-                    <p>منصة تقييم أكاديمي متطورة تعتمد على الذكاء الاصطناعي لتقديم تجربة تعليمية شخصية وذكية.</p>
-                </div>
-                
-                <div class="footer-section">
-                    <h3 class="footer-title">روابط سريعة</h3>
-                    <ul class="footer-links">
-                        <li class="footer-link"><a href="{{ url_for('index') }}">الرئيسية</a></li>
-                        {% if current_user.is_authenticated %}
-                            <li class="footer-link"><a href="{{ url_for('dashboard') }}">لوحة التحكم</a></li>
-                        {% else %}
-                            <li class="footer-link"><a href="{{ url_for('auth.login') }}">تسجيل الدخول</a></li>
-                        {% endif %}
-                        <li class="footer-link"><a href="{{ url_for('about') }}">حول النظام</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-section">
-                    <h3 class="footer-title">تواصل معنا</h3>
-                    <ul class="footer-links">
-                        <li class="footer-link"><a href="mailto:info@btec-rebel.com"><i class="fas fa-envelope"></i> البريد الإلكتروني</a></li>
-                        <li class="footer-link"><a href="tel:+970123456789"><i class="fas fa-phone"></i> الهاتف</a></li>
-                        <li class="footer-link"><a href="#"><i class="fas fa-map-marker-alt"></i> الموقع</a></li>
-                    </ul>
-                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+    <!-- المحتوى الرئيسي -->
+    {% block content %}{% endblock %}
+    
+    <!-- القدم -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-column">
+                <h4 class="footer-heading">نظام تقييم BTEC</h4>
+                <p>منصة تقييم متقدمة تعتمد على الذكاء الاصطناعي والبلوكشين لتوفير تجربة تعليمية استثنائية.</p>
             </div>
             
-            <div class="footer-bottom">
-                <p>&copy; {{ now.year }} نظام تقييم BTEC. جميع الحقوق محفوظة. <br> تم تطويره بواسطة <span class="text-gradient">مصعب الحلالة</span></p>
+            <div class="footer-column">
+                <h4 class="footer-heading">روابط سريعة</h4>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+                    <li class="footer-link"><a href="{{ url_for('main.features') }}">الميزات</a></li>
+                    <li class="footer-link"><a href="{{ url_for('main.about') }}">حول النظام</a></li>
+                    <li class="footer-link"><a href="{{ url_for('main.contact') }}">اتصل بنا</a></li>
+                </ul>
             </div>
+            
+            <div class="footer-column">
+                <h4 class="footer-heading">الدعم</h4>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="#">الأسئلة الشائعة</a></li>
+                    <li class="footer-link"><a href="#">الدعم الفني</a></li>
+                    <li class="footer-link"><a href="#">سياسة الخصوصية</a></li>
+                    <li class="footer-link"><a href="#">شروط الاستخدام</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-column">
+                <h4 class="footer-heading">تواصل معنا</h4>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="#"><i class="fas fa-envelope"></i> البريد الإلكتروني</a></li>
+                    <li class="footer-link"><a href="#"><i class="fab fa-twitter"></i> تويتر</a></li>
+                    <li class="footer-link"><a href="#"><i class="fab fa-facebook"></i> فيسبوك</a></li>
+                    <li class="footer-link"><a href="#"><i class="fab fa-linkedin"></i> لينكد إن</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="container footer-bottom">
+            <p>&copy; {{ now.year }} نظام تقييم BTEC. جميع الحقوق محفوظة.</p>
         </div>
     </footer>
     
-    <!-- صندوق الرسائل -->
-    <div id="message-box" class="message-box"></div>
+    <!-- مكتبة Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     
-    <!-- JavaScript الأساسي -->
+    <!-- JavaScript الخاص بنا -->
     <script src="{{ url_for('static', filename='js/btec-app.js') }}"></script>
     
     <!-- JavaScript إضافي خاص بالصفحة -->

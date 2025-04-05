@@ -1,20 +1,73 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 - خطأ في الخادم</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-rtl.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<body>
-    <div class="container mt-5 text-center">
-        <div class="error-container">
-            <h1 class="display-1">500</h1>
-            <h2>خطأ في الخادم</h2>
-            <p class="lead">عذراً، حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.</p>
-            <a href="{{ url_for('main.index') }}" class="btn btn-primary mt-3">العودة إلى الصفحة الرئيسية</a>
-        </div>
+{% extends 'base.html' %}
+
+{% block title %}500 - خطأ في الخادم - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-code">500</div>
+    <h1 class="error-title">خطأ في الخادم</h1>
+    <p class="error-message">عذرًا، حدث خطأ غير متوقع في الخادم. يعمل فريقنا على حل المشكلة، يرجى المحاولة مرة أخرى في وقت لاحق.</p>
+    
+    <div class="error-actions">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+            <i class="fas fa-home"></i> العودة إلى الصفحة الرئيسية
+        </a>
+        <button onclick="goBack()" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> العودة إلى الصفحة السابقة
+        </button>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .error-container {
+        text-align: center;
+        padding: var(--space-xxl) 0;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .error-code {
+        font-size: calc(var(--font-size-xxxl) * 2);
+        font-weight: bold;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: var(--space-md);
+        line-height: 1;
+    }
+    
+    .error-title {
+        margin-bottom: var(--space-md);
+    }
+    
+    .error-message {
+        font-size: var(--font-size-lg);
+        color: rgba(0, 0, 0, 0.6);
+        margin-bottom: var(--space-xl);
+    }
+    
+    .error-actions {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-md);
+    }
+    
+    @media (max-width: 768px) {
+        .error-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+{% endblock %}
