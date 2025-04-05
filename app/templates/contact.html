@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}اتصل بنا - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-12 text-center">
+        <h1 class="display-4 fw-bold mb-4">اتصل بنا</h1>
+        <p class="lead">نحن هنا للإجابة على استفساراتك ومساعدتك في كل ما تحتاجه</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="card-title fw-bold mb-4">أرسل لنا رسالة</h2>
+                <form class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">الاسم الكامل</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="invalid-feedback">
+                            يرجى إدخال اسمك.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                        <div class="invalid-feedback">
+                            يرجى إدخال بريد إلكتروني صحيح.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">الموضوع</label>
+                        <input type="text" class="form-control" id="subject" name="subject" required>
+                        <div class="invalid-feedback">
+                            يرجى إدخال موضوع الرسالة.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="message" class="form-label">الرسالة</label>
+                        <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                        <div class="invalid-feedback">
+                            يرجى إدخال رسالتك.
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">إرسال الرسالة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="card-title fw-bold mb-4">معلومات الاتصال</h2>
+                <div class="d-flex mb-4">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="fas fa-map-marker-alt text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5>العنوان</h5>
+                        <p class="mb-0">طريق الملك عبدالله، حي الرياض، الأردن</p>
+                    </div>
+                </div>
+                
+                <div class="d-flex mb-4">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="fas fa-envelope text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5>البريد الإلكتروني</h5>
+                        <p class="mb-0">info@btec-eval.com</p>
+                        <p class="mb-0">support@btec-eval.com</p>
+                    </div>
+                </div>
+                
+                <div class="d-flex mb-4">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="fas fa-phone text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5>الهاتف</h5>
+                        <p class="mb-0">+962 6 123 4567</p>
+                        <p class="mb-0">+962 7 9876 5432</p>
+                    </div>
+                </div>
+                
+                <div class="d-flex mb-4">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="fas fa-clock text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5>ساعات العمل</h5>
+                        <p class="mb-0">الأحد - الخميس: 9:00 صباحًا - 5:00 مساءً</p>
+                        <p class="mb-0">الجمعة - السبت: مغلق</p>
+                    </div>
+                </div>
+                
+                <h4 class="mt-5 mb-3">تابعنا على</h4>
+                <div class="d-flex">
+                    <a href="#" class="text-decoration-none me-3">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fab fa-facebook-f text-white"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="text-decoration-none me-3">
+                        <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fab fa-twitter text-white"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="text-decoration-none me-3">
+                        <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fab fa-youtube text-white"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="text-decoration-none">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fab fa-linkedin-in text-white"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

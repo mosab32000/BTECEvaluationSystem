@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}طلبات كثيرة جدًا - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-1 fw-bold text-warning">429</h1>
+    <h2 class="mb-4">طلبات كثيرة جدًا</h2>
+    <p class="lead mb-5">عذرًا، لقد قمت بإرسال الكثير من الطلبات. يرجى المحاولة مرة أخرى بعد قليل.</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg px-4">العودة إلى الصفحة الرئيسية</a>
+</div>
+{% endblock %}
