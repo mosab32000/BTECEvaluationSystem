@@ -1,118 +1,208 @@
 """
 نموذج معايير التقييم في نظام تقييم BTEC
 """
+import uuid
 import json
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB
-
 from app import db
 
-class RubricTemplate(db.Model):
-    """نموذج قالب معايير التقييم في نظام تقييم BTEC."""
-    __tablename__ = 'rubric_template'
+class Rubric(db.Model):
+    """نموذج معايير التقييم في نظام تقييم BTEC."""
+    __tablename__ = 'rubric'
     
-    # الأعمدة الأساسية
-    id = Column(Integer, primary_key=True)
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
-    criteria_json = Column(JSONB)  # معايير التقييم (JSON)
-    is_active = Column(Boolean, default=True)
-    is_public = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), default=lambda: str(uuid.uuid4()), unique=True)
+    
+    # معلومات معايير التقييم
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    criteria = db.Column(db.Text, nullable=False)  # JSON نصي يحتوي على معايير التقييم
+    template_type = db.Column(db.String(50), default='general')  # general, programming, project, etc.
     
     # العلاقات
-    user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship('User', back_populates='rubric_templates')
-    evaluations = relationship('Evaluation', back_populates='rubric')
+    evaluations = db.relationship('Evaluation', backref='rubric', lazy='dynamic')
     
-    def set_criteria(self, criteria):
-        """تعيين معايير التقييم.
-        
-        Args:
-            criteria: معايير التقييم (قائمة من القواميس)
-        """
-        self.criteria_json = criteria
+    # التوقيت
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    def get_criteria(self):
-        """الحصول على معايير التقييم.
-        
-        Returns:
-            list: قائمة من القواميس تمثل معايير التقييم
-        """
-        return self.criteria_json
-    
-    def calculate_max_score(self):
-        """حساب أقصى درجة ممكنة لمعايير التقييم.
-        
-        Returns:
-            float: أقصى درجة ممكنة
-        """
-        criteria = self.get_criteria()
-        if not criteria:
-            return 0
-        
-        max_score = 0
-        for criterion in criteria:
-            weight = criterion.get('weight', 0)
-            levels = criterion.get('levels', [])
-            if levels:
-                max_level_score = max(level.get('score', 0) for level in levels)
-                max_score += (weight / 100) * max_level_score
-        
-        return max_score
-    
-    def normalize_score(self, score):
-        """تطبيع الدرجة لتكون بين 0 و 100.
-        
-        Args:
-            score: الدرجة المراد تطبيعها
-            
-        Returns:
-            float: الدرجة المطبّعة
-        """
-        max_score = self.calculate_max_score()
-        if max_score == 0:
-            return 0
-        
-        return (score / max_score) * 100
-    
-    def to_dict(self):
-        """تحويل كائن قالب معايير التقييم إلى قاموس.
-        
-        Returns:
-            dict: قاموس يمثل قالب معايير التقييم
-        """
-        rubric_dict = {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description,
-            'criteria': self.get_criteria(),
-            'max_score': self.calculate_max_score(),
-            'is_active': self.is_active,
-            'is_public': self.is_public,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'user_id': self.user_id
-        }
-        
-        # إضافة بيانات المستخدم المنشئ
-        if self.user:
-            rubric_dict['user'] = {
-                'id': self.user.id,
-                'name': self.user.name,
-                'email': self.user.email
-            }
-        
-        return rubric_dict
+    # خيارات إضافية
+    is_default = db.Column(db.Boolean, default=False)
+    language = db.Column(db.String(10), default='ar')  # ar, en
     
     def __repr__(self):
-        """تمثيل سلسلة نصية لقالب معايير التقييم.
-        
-        Returns:
-            str: تمثيل سلسلة نصية
+        return f'<Rubric {self.id} - {self.name}>'
+    
+    def get_criteria_dict(self):
+        """الحصول على قاموس معايير التقييم"""
+        try:
+            return json.loads(self.criteria)
+        except:
+            return {}
+    
+    def to_dict(self):
+        """تحويل معايير التقييم إلى قاموس للواجهة البرمجية"""
+        return {
+            'id': self.id,
+            'uuid': self.uuid,
+            'name': self.name,
+            'description': self.description,
+            'criteria': self.get_criteria_dict(),
+            'template_type': self.template_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'is_default': self.is_default,
+            'language': self.language
+        }
+    
+    @staticmethod
+    def create_default_rubric(name, description, template_type):
         """
-        return f"<RubricTemplate {self.id} ({self.name})>"
+        إنشاء معايير تقييم افتراضية
+        
+        Args:
+            name: اسم معايير التقييم
+            description: وصف معايير التقييم
+            template_type: نوع القالب (general, programming, etc.)
+            
+        Returns:
+            Rubric: كائن معايير التقييم الجديد
+        """
+        criteria = {}
+        
+        if template_type == 'general':
+            criteria = {
+                "content": {
+                    "name": "المحتوى",
+                    "description": "جودة المحتوى ومدى ارتباطه بالمهمة",
+                    "weight": 30,
+                    "levels": {
+                        "5": "ممتاز - المحتوى متميز وشامل ويتجاوز متطلبات المهمة",
+                        "4": "جيد جداً - المحتوى شامل ويلبي جميع متطلبات المهمة",
+                        "3": "جيد - المحتوى يلبي معظم متطلبات المهمة",
+                        "2": "مقبول - المحتوى يلبي الحد الأدنى من متطلبات المهمة",
+                        "1": "ضعيف - المحتوى لا يلبي متطلبات المهمة"
+                    }
+                },
+                "structure": {
+                    "name": "البنية والتنظيم",
+                    "description": "تنظيم المحتوى وتسلسله المنطقي",
+                    "weight": 20,
+                    "levels": {
+                        "5": "ممتاز - تنظيم استثنائي مع تسلسل منطقي متميز",
+                        "4": "جيد جداً - تنظيم جيد جداً مع تسلسل منطقي واضح",
+                        "3": "جيد - تنظيم مقبول مع بعض الخلل في التسلسل المنطقي",
+                        "2": "مقبول - تنظيم ضعيف مع خلل واضح في التسلسل المنطقي",
+                        "1": "ضعيف - لا يوجد تنظيم واضح أو تسلسل منطقي"
+                    }
+                },
+                "language": {
+                    "name": "اللغة والأسلوب",
+                    "description": "صحة اللغة وجودة الأسلوب الكتابي",
+                    "weight": 15,
+                    "levels": {
+                        "5": "ممتاز - لغة متميزة وأسلوب كتابي متميز",
+                        "4": "جيد جداً - لغة صحيحة وأسلوب كتابي جيد",
+                        "3": "جيد - بعض الأخطاء اللغوية وأسلوب كتابي مقبول",
+                        "2": "مقبول - أخطاء لغوية متكررة وأسلوب كتابي ضعيف",
+                        "1": "ضعيف - أخطاء لغوية كثيرة وأسلوب كتابي ركيك"
+                    }
+                },
+                "research": {
+                    "name": "البحث والتحليل",
+                    "description": "جودة البحث والتحليل والتفكير النقدي",
+                    "weight": 25,
+                    "levels": {
+                        "5": "ممتاز - بحث وتحليل متميز مع تفكير نقدي عميق",
+                        "4": "جيد جداً - بحث وتحليل جيد مع تفكير نقدي واضح",
+                        "3": "جيد - بحث وتحليل مقبول مع بعض التفكير النقدي",
+                        "2": "مقبول - بحث وتحليل ضعيف مع قليل من التفكير النقدي",
+                        "1": "ضعيف - لا يوجد بحث أو تحليل أو تفكير نقدي واضح"
+                    }
+                },
+                "presentation": {
+                    "name": "العرض والتقديم",
+                    "description": "جودة تقديم المهمة والالتزام بالتنسيق المطلوب",
+                    "weight": 10,
+                    "levels": {
+                        "5": "ممتاز - عرض متميز مع التزام كامل بالتنسيق المطلوب",
+                        "4": "جيد جداً - عرض جيد مع التزام بالتنسيق المطلوب",
+                        "3": "جيد - عرض مقبول مع بعض الخلل في التنسيق",
+                        "2": "مقبول - عرض ضعيف مع خلل واضح في التنسيق",
+                        "1": "ضعيف - عرض سيء مع عدم الالتزام بالتنسيق المطلوب"
+                    }
+                }
+            }
+        elif template_type == 'programming':
+            criteria = {
+                "functionality": {
+                    "name": "الوظائف والمتطلبات",
+                    "description": "مدى تحقيق البرنامج للوظائف والمتطلبات المطلوبة",
+                    "weight": 30,
+                    "levels": {
+                        "5": "ممتاز - البرنامج يحقق جميع المتطلبات بتميز ويتجاوز التوقعات",
+                        "4": "جيد جداً - البرنامج يحقق جميع المتطلبات بشكل كامل",
+                        "3": "جيد - البرنامج يحقق معظم المتطلبات مع بعض القصور",
+                        "2": "مقبول - البرنامج يحقق الحد الأدنى من المتطلبات",
+                        "1": "ضعيف - البرنامج لا يحقق المتطلبات الأساسية"
+                    }
+                },
+                "code_quality": {
+                    "name": "جودة الكود",
+                    "description": "جودة الكود من حيث التنظيم والأسلوب والأداء",
+                    "weight": 25,
+                    "levels": {
+                        "5": "ممتاز - كود منظم بشكل استثنائي وأسلوب متميز وأداء عالي",
+                        "4": "جيد جداً - كود منظم جيداً وأسلوب جيد وأداء مناسب",
+                        "3": "جيد - كود منظم بشكل مقبول وأسلوب معقول وأداء مقبول",
+                        "2": "مقبول - كود غير منظم بشكل جيد وأسلوب ضعيف وأداء ضعيف",
+                        "1": "ضعيف - كود غير منظم وأسلوب سيء وأداء سيء"
+                    }
+                },
+                "design": {
+                    "name": "التصميم والبنية",
+                    "description": "جودة تصميم البرنامج وبنيته الهيكلية",
+                    "weight": 20,
+                    "levels": {
+                        "5": "ممتاز - تصميم متميز وبنية هيكلية متميزة",
+                        "4": "جيد جداً - تصميم جيد وبنية هيكلية جيدة",
+                        "3": "جيد - تصميم مقبول وبنية هيكلية مقبولة",
+                        "2": "مقبول - تصميم ضعيف وبنية هيكلية ضعيفة",
+                        "1": "ضعيف - تصميم سيء وبنية هيكلية سيئة"
+                    }
+                },
+                "testing": {
+                    "name": "الاختبار والتوثيق",
+                    "description": "جودة اختبار البرنامج وتوثيقه",
+                    "weight": 15,
+                    "levels": {
+                        "5": "ممتاز - اختبار شامل وتوثيق متميز",
+                        "4": "جيد جداً - اختبار جيد وتوثيق جيد",
+                        "3": "جيد - اختبار مقبول وتوثيق مقبول",
+                        "2": "مقبول - اختبار ضعيف وتوثيق ضعيف",
+                        "1": "ضعيف - لا يوجد اختبار أو توثيق"
+                    }
+                },
+                "innovation": {
+                    "name": "الابتكار والإبداع",
+                    "description": "مستوى الابتكار والإبداع في حل المشكلة",
+                    "weight": 10,
+                    "levels": {
+                        "5": "ممتاز - حل مبتكر وإبداعي بشكل استثنائي",
+                        "4": "جيد جداً - حل مبتكر وإبداعي بشكل جيد",
+                        "3": "جيد - حل يظهر بعض الابتكار والإبداع",
+                        "2": "مقبول - حل تقليدي مع القليل من الابتكار",
+                        "1": "ضعيف - حل تقليدي بدون أي ابتكار"
+                    }
+                }
+            }
+        
+        # إنشاء كائن معايير التقييم
+        return Rubric(
+            name=name,
+            description=description,
+            criteria=json.dumps(criteria),
+            template_type=template_type,
+            is_default=True
+        )

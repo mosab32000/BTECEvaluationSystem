@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل الدخول - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white text-center py-3">
+                <h4 class="mb-0">تسجيل الدخول</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">البريد الإلكتروني</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                placeholder="أدخل بريدك الإلكتروني">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">كلمة المرور</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                placeholder="أدخل كلمة المرور">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">تذكرني</label>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">تسجيل الدخول</button>
+                        <a href="{{ url_for('auth.reset_password_request') }}" class="btn btn-link">نسيت كلمة المرور؟</a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light py-3 text-center">
+                ليس لديك حساب؟ <a href="{{ url_for('auth.register') }}">إنشاء حساب جديد</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

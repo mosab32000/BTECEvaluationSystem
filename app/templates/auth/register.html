@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}التسجيل - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white text-center py-3">
+                <h4 class="mb-0">إنشاء حساب جديد</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">الاسم الكامل</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                placeholder="أدخل اسمك الكامل">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">البريد الإلكتروني</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                placeholder="أدخل بريدك الإلكتروني">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">كلمة المرور</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                placeholder="أدخل كلمة المرور" minlength="8">
+                        </div>
+                        <div class="form-text">يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password_confirm" class="form-label">تأكيد كلمة المرور</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password_confirm" name="password_confirm" required
+                                placeholder="أعد إدخال كلمة المرور">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                        <label class="form-check-label" for="terms">
+                            أوافق على <a href="#">شروط الاستخدام</a> و<a href="#">سياسة الخصوصية</a>
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">إنشاء حساب</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light py-3 text-center">
+                لديك حساب بالفعل؟ <a href="{{ url_for('auth.login') }}">تسجيل الدخول</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // التحقق من تطابق كلمتي المرور
+        const passwordForm = document.querySelector('form');
+        passwordForm.addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password_confirm').value;
+            
+            if (password !== passwordConfirm) {
+                e.preventDefault();
+                alert('كلمتا المرور غير متطابقتين. يرجى المحاولة مرة أخرى.');
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock %}
