@@ -4,7 +4,7 @@ run = ["sh", "-c", "python backend/wsgi.py"]
 build = ["sh", "-c", "pip install -r backend/requirements.txt"]
 
 [workflows]
-runButton = "Run Flask Server"
+runButton = "Task Audit App"
 
 [[workflows.workflow]]
 name = "Flask"
@@ -17,6 +17,15 @@ args = "python backend/wsgi.py"
 
 [[workflows.workflow]]
 name = "Run Flask Server"
+author = 39218537
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python run_flask_server.py"
+
+[[workflows.workflow]]
+name = "Task Audit App"
 author = 39218537
 mode = "sequential"
 
