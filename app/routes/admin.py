@@ -1,327 +1,295 @@
 """
 مسارات الإدارة في نظام تقييم BTEC
 """
+
 import logging
-import json
-from datetime import datetime
-import os
+from flask import render_template, redirect, url_for, request, flash, session, jsonify, abort
 
-from flask import Blueprint, request, jsonify, render_template, redirect
-from flask import url_for, session, flash, current_app
-from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
-
+from app.routes import admin_bp
 from app.models.user import User
 from app.models.evaluation import Evaluation
 from app.models.rubric import Rubric
 
-# تهيئة السجل
 logger = logging.getLogger(__name__)
 
-# إنشاء blueprint للإدارة
-bp = Blueprint('admin', __name__, url_prefix='/admin')
-
-# التحقق من صلاحيات المسؤول
-def admin_required(view):
-    """
-    وظيفة للتحقق من صلاحيات المسؤول
-    """
-    @login_required
-    def wrapped_view(**kwargs):
-        if current_user.role != 'admin':
-            flash('عذراً، يجب أن تكون مسؤولاً للوصول إلى هذه الصفحة.', 'error')
-            return redirect(url_for('index'))
-        return view(**kwargs)
-    
-    # احتفظ باسم الدالة الأصلية ومعلوماتها
-    wrapped_view.__name__ = view.__name__
-    wrapped_view.__doc__ = view.__doc__
-    return wrapped_view
-
-@bp.route('/')
-@admin_required
+@admin_bp.route('/')
 def index():
     """لوحة التحكم الرئيسية للمسؤول"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
     # إحصائيات النظام
-    user_count = len(User.get_all())
-    evaluation_count = len(Evaluation.get_all())
+    user_count = User.count_all()
+    student_count = User.count_by_role('student')
+    teacher_count = User.count_by_role('teacher')
+    admin_count = User.count_by_role('admin')
     
-    # إحصائيات المستخدمين
-    admin_count = len(User.get_by_role('admin'))
-    evaluator_count = len(User.get_by_role('evaluator'))
-    student_count = len(User.get_by_role('student'))
+    evaluation_count = Evaluation.count_all()
+    pending_count = Evaluation.count_by_status('pending')
+    completed_count = Evaluation.count_by_status('completed')
     
-    # إحصائيات التقييمات
-    pending_count = len(Evaluation.get_by_status('pending'))
-    completed_count = len(Evaluation.get_by_status('completed'))
+    rubric_count = Rubric.count_all()
     
-    return render_template(
-        'admin/index.html',
-        user_count=user_count,
-        evaluation_count=evaluation_count,
-        admin_count=admin_count,
-        evaluator_count=evaluator_count,
-        student_count=student_count,
-        pending_count=pending_count,
-        completed_count=completed_count
-    )
+    return render_template('admin/index.html',
+                          user_count=user_count,
+                          student_count=student_count,
+                          teacher_count=teacher_count,
+                          admin_count=admin_count,
+                          evaluation_count=evaluation_count,
+                          pending_count=pending_count,
+                          completed_count=completed_count,
+                          rubric_count=rubric_count)
 
-@bp.route('/users')
-@admin_required
-def users():
-    """إدارة المستخدمين"""
+@admin_bp.route('/users')
+def list_users():
+    """صفحة إدارة المستخدمين"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
+    # الحصول على قائمة المستخدمين
     users = User.get_all()
+    
     return render_template('admin/users.html', users=users)
 
-@bp.route('/users/create', methods=['GET', 'POST'])
-@admin_required
+@admin_bp.route('/users/create', methods=['GET', 'POST'])
 def create_user():
-    """إنشاء مستخدم جديد"""
+    """صفحة إنشاء مستخدم جديد"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
     if request.method == 'POST':
-        # الحصول على بيانات النموذج
+        # الحصول على البيانات من النموذج
         email = request.form.get('email')
         password = request.form.get('password')
         name = request.form.get('name')
         role = request.form.get('role')
         
-        # التحقق من البيانات
-        error = None
-        if not email:
-            error = 'البريد الإلكتروني مطلوب'
-        elif not password:
-            error = 'كلمة المرور مطلوبة'
-        elif not role:
-            error = 'الدور مطلوب'
+        # التحقق من صحة البيانات
+        if not email or not password or not name or not role:
+            flash('جميع الحقول مطلوبة', 'error')
+            return render_template('admin/create_user.html')
         
-        # التحقق من وجود المستخدم
+        if role not in ['admin', 'teacher', 'student']:
+            flash('الدور غير صالح', 'error')
+            return render_template('admin/create_user.html')
+        
+        # التحقق مما إذا كان البريد الإلكتروني مستخدمًا بالفعل
         existing_user = User.get_by_email(email)
         if existing_user:
-            error = 'البريد الإلكتروني مستخدم بالفعل'
+            flash('البريد الإلكتروني مستخدم بالفعل', 'error')
+            return render_template('admin/create_user.html')
         
-        # إنشاء المستخدم إذا لم يكن هناك خطأ
-        if error is None:
-            user = User()
-            user.email = email
-            user.set_password(password)
-            user.name = name
-            user.role = role
-            
-            if user.save():
-                flash(f'تم إنشاء المستخدم {email} بنجاح', 'success')
-                return redirect(url_for('admin.users'))
-            else:
-                error = 'حدث خطأ أثناء إنشاء المستخدم'
-        
-        flash(error, 'error')
+        # إنشاء مستخدم جديد
+        user = User(email=email, name=name, role=role)
+        user.set_password(password)
+        if user.save():
+            flash('تم إنشاء المستخدم بنجاح', 'success')
+            return redirect(url_for('admin.list_users'))
+        else:
+            flash('حدث خطأ أثناء إنشاء المستخدم. يرجى المحاولة مرة أخرى.', 'error')
     
     return render_template('admin/create_user.html')
 
-@bp.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
-@admin_required
+@admin_bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
 def edit_user(user_id):
-    """تعديل مستخدم"""
+    """صفحة تعديل مستخدم"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
+    # الحصول على المستخدم المراد تعديله
     user = User.get_by_id(user_id)
     if not user:
         flash('المستخدم غير موجود', 'error')
-        return redirect(url_for('admin.users'))
+        return redirect(url_for('admin.list_users'))
     
     if request.method == 'POST':
-        # الحصول على بيانات النموذج
+        # الحصول على البيانات من النموذج
         email = request.form.get('email')
         name = request.form.get('name')
         role = request.form.get('role')
-        is_active = request.form.get('is_active') == 'on'
-        new_password = request.form.get('password')
+        password = request.form.get('password')
         
-        # التحقق من البيانات
-        error = None
-        if not email:
-            error = 'البريد الإلكتروني مطلوب'
-        elif not role:
-            error = 'الدور مطلوب'
+        # التحقق من صحة البيانات
+        if not email or not name or not role:
+            flash('الحقول الأساسية مطلوبة', 'error')
+            return render_template('admin/edit_user.html', user=user)
         
-        # التحقق من وجود المستخدم بنفس البريد الإلكتروني
+        if role not in ['admin', 'teacher', 'student']:
+            flash('الدور غير صالح', 'error')
+            return render_template('admin/edit_user.html', user=user)
+        
+        # التحقق مما إذا كان البريد الإلكتروني مستخدمًا بالفعل بواسطة مستخدم آخر
         if email != user.email:
             existing_user = User.get_by_email(email)
-            if existing_user:
-                error = 'البريد الإلكتروني مستخدم بالفعل'
+            if existing_user and existing_user.id != user.id:
+                flash('البريد الإلكتروني مستخدم بالفعل', 'error')
+                return render_template('admin/edit_user.html', user=user)
         
-        # تحديث المستخدم إذا لم يكن هناك خطأ
-        if error is None:
-            user.email = email
-            user.name = name
-            user.role = role
-            
-            # تعيين كلمة مرور جديدة إذا تم توفيرها
-            if new_password:
-                user.set_password(new_password)
-            
-            # تحديث حالة التنشيط
-            user.is_active = is_active
-            
-            if user.save():
-                flash(f'تم تحديث المستخدم {email} بنجاح', 'success')
-                return redirect(url_for('admin.users'))
-            else:
-                error = 'حدث خطأ أثناء تحديث المستخدم'
+        # تحديث بيانات المستخدم
+        user.email = email
+        user.name = name
+        user.role = role
         
-        flash(error, 'error')
+        # تحديث كلمة المرور إذا تم تقديمها
+        if password:
+            user.set_password(password)
+        
+        if user.save():
+            flash('تم تحديث المستخدم بنجاح', 'success')
+            return redirect(url_for('admin.list_users'))
+        else:
+            flash('حدث خطأ أثناء تحديث المستخدم. يرجى المحاولة مرة أخرى.', 'error')
     
     return render_template('admin/edit_user.html', user=user)
 
-@bp.route('/users/<int:user_id>/delete', methods=['POST'])
-@admin_required
+@admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     """حذف مستخدم"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
+    # منع حذف المستخدم الحالي
+    if user_id == session['user_id']:
+        flash('لا يمكنك حذف حسابك الخاص', 'error')
+        return redirect(url_for('admin.list_users'))
+    
+    # الحصول على المستخدم المراد حذفه
     user = User.get_by_id(user_id)
     if not user:
         flash('المستخدم غير موجود', 'error')
-    elif user.id == current_user.id:
-        flash('لا يمكنك حذف حسابك الشخصي', 'error')
-    elif user.delete():
-        flash(f'تم حذف المستخدم {user.email} بنجاح', 'success')
+        return redirect(url_for('admin.list_users'))
+    
+    # حذف المستخدم
+    if user.delete():
+        flash('تم حذف المستخدم بنجاح', 'success')
     else:
         flash('حدث خطأ أثناء حذف المستخدم', 'error')
     
-    return redirect(url_for('admin.users'))
+    return redirect(url_for('admin.list_users'))
 
-@bp.route('/rubrics')
-@admin_required
-def rubrics():
-    """إدارة معايير التقييم"""
+@admin_bp.route('/rubrics')
+def list_rubrics():
+    """صفحة إدارة معايير التقييم"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
+    # الحصول على قائمة معايير التقييم
     rubrics = Rubric.get_all()
+    
     return render_template('admin/rubrics.html', rubrics=rubrics)
 
-@bp.route('/rubrics/create', methods=['GET', 'POST'])
-@admin_required
+@admin_bp.route('/rubrics/create', methods=['GET', 'POST'])
 def create_rubric():
-    """إنشاء معيار تقييم جديد"""
+    """صفحة إنشاء معيار تقييم جديد"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
     if request.method == 'POST':
-        # الحصول على بيانات النموذج
+        # الحصول على البيانات من النموذج
         name = request.form.get('name')
         description = request.form.get('description')
-        criteria_json = request.form.get('criteria_json')
-        max_score = request.form.get('max_score')
         
-        # التحقق من البيانات
-        error = None
+        # التحقق من صحة البيانات
         if not name:
-            error = 'اسم المعيار مطلوب'
+            flash('اسم معيار التقييم مطلوب', 'error')
+            return render_template('admin/create_rubric.html')
         
-        # التحقق من صحة معايير التقييم
-        try:
-            criteria = json.loads(criteria_json or '{}')
-        except json.JSONDecodeError:
-            error = 'تنسيق معايير التقييم غير صالح'
+        # إنشاء معيار تقييم جديد
+        rubric = Rubric(
+            name=name,
+            description=description,
+            created_by=session['user_id']
+        )
         
-        # إنشاء معيار التقييم إذا لم يكن هناك خطأ
-        if error is None:
-            rubric = Rubric()
-            rubric.name = name
-            rubric.description = description
-            rubric.criteria = criteria
-            rubric.max_score = float(max_score) if max_score else 100
-            rubric.created_by = current_user.id
-            
-            if rubric.save():
-                flash(f'تم إنشاء معيار التقييم "{name}" بنجاح', 'success')
-                return redirect(url_for('admin.rubrics'))
-            else:
-                error = 'حدث خطأ أثناء إنشاء معيار التقييم'
-        
-        flash(error, 'error')
+        if rubric.save():
+            flash('تم إنشاء معيار التقييم بنجاح', 'success')
+            return redirect(url_for('admin.list_rubrics'))
+        else:
+            flash('حدث خطأ أثناء إنشاء معيار التقييم. يرجى المحاولة مرة أخرى.', 'error')
     
     return render_template('admin/create_rubric.html')
 
-@bp.route('/rubrics/<int:rubric_id>/edit', methods=['GET', 'POST'])
-@admin_required
+@admin_bp.route('/rubrics/edit/<int:rubric_id>', methods=['GET', 'POST'])
 def edit_rubric(rubric_id):
-    """تعديل معيار تقييم"""
+    """صفحة تعديل معيار تقييم"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
+    # الحصول على معيار التقييم المراد تعديله
     rubric = Rubric.get_by_id(rubric_id)
     if not rubric:
         flash('معيار التقييم غير موجود', 'error')
-        return redirect(url_for('admin.rubrics'))
+        return redirect(url_for('admin.list_rubrics'))
     
     if request.method == 'POST':
-        # الحصول على بيانات النموذج
+        # الحصول على البيانات من النموذج
         name = request.form.get('name')
         description = request.form.get('description')
-        criteria_json = request.form.get('criteria_json')
-        max_score = request.form.get('max_score')
         
-        # التحقق من البيانات
-        error = None
+        # التحقق من صحة البيانات
         if not name:
-            error = 'اسم المعيار مطلوب'
+            flash('اسم معيار التقييم مطلوب', 'error')
+            return render_template('admin/edit_rubric.html', rubric=rubric)
         
-        # التحقق من صحة معايير التقييم
-        try:
-            criteria = json.loads(criteria_json or '{}')
-        except json.JSONDecodeError:
-            error = 'تنسيق معايير التقييم غير صالح'
+        # تحديث بيانات معيار التقييم
+        rubric.name = name
+        rubric.description = description
         
-        # تحديث معيار التقييم إذا لم يكن هناك خطأ
-        if error is None:
-            rubric.name = name
-            rubric.description = description
-            rubric.criteria = criteria
-            rubric.max_score = float(max_score) if max_score else 100
-            
-            if rubric.save():
-                flash(f'تم تحديث معيار التقييم "{name}" بنجاح', 'success')
-                return redirect(url_for('admin.rubrics'))
-            else:
-                error = 'حدث خطأ أثناء تحديث معيار التقييم'
-        
-        flash(error, 'error')
+        if rubric.save():
+            flash('تم تحديث معيار التقييم بنجاح', 'success')
+            return redirect(url_for('admin.list_rubrics'))
+        else:
+            flash('حدث خطأ أثناء تحديث معيار التقييم. يرجى المحاولة مرة أخرى.', 'error')
     
-    return render_template(
-        'admin/edit_rubric.html',
-        rubric=rubric,
-        criteria_json=json.dumps(rubric.criteria, ensure_ascii=False, indent=2)
-    )
+    return render_template('admin/edit_rubric.html', rubric=rubric)
 
-@bp.route('/rubrics/<int:rubric_id>/delete', methods=['POST'])
-@admin_required
+@admin_bp.route('/rubrics/delete/<int:rubric_id>', methods=['POST'])
 def delete_rubric(rubric_id):
     """حذف معيار تقييم"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
+    # الحصول على معيار التقييم المراد حذفه
     rubric = Rubric.get_by_id(rubric_id)
     if not rubric:
         flash('معيار التقييم غير موجود', 'error')
-    elif rubric.delete():
-        flash(f'تم حذف معيار التقييم "{rubric.name}" بنجاح', 'success')
+        return redirect(url_for('admin.list_rubrics'))
+    
+    # حذف معيار التقييم
+    if rubric.delete():
+        flash('تم حذف معيار التقييم بنجاح', 'success')
     else:
         flash('حدث خطأ أثناء حذف معيار التقييم', 'error')
     
-    return redirect(url_for('admin.rubrics'))
+    return redirect(url_for('admin.list_rubrics'))
 
-@bp.route('/evaluations')
-@admin_required
-def evaluations():
-    """إدارة التقييمات"""
-    evaluations = Evaluation.get_all(limit=50)
+@admin_bp.route('/evaluations')
+def list_evaluations():
+    """صفحة إدارة التقييمات"""
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash('ليس لديك صلاحية الوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('main.index'))
+    
+    # الحصول على قائمة التقييمات
+    evaluations = Evaluation.get_all()
+    
     return render_template('admin/evaluations.html', evaluations=evaluations)
-
-@bp.route('/settings', methods=['GET', 'POST'])
-@admin_required
-def settings():
-    """إعدادات النظام"""
-    if request.method == 'POST':
-        # TODO: تنفيذ حفظ الإعدادات
-        flash('تم حفظ الإعدادات بنجاح', 'success')
-        return redirect(url_for('admin.index'))
-    
-    return render_template('admin/settings.html')
-
-@bp.route('/logs')
-@admin_required
-def logs():
-    """سجلات النظام"""
-    log_file = current_app.config.get('LOG_FILE')
-    logs = []
-    
-    if os.path.exists(log_file):
-        with open(log_file, 'r') as f:
-            logs = f.readlines()[-100:]  # الحصول على آخر 100 سطر
-    
-    return render_template('admin/logs.html', logs=logs)

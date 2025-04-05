@@ -1,129 +1,170 @@
-/* نظام تقييم BTEC - ملف CSS الرئيسي */
+/* نظام تقييم BTEC - الأنماط الرئيسية */
 
+/* متغيرات CSS */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --border-radius: 4px;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* أنماط عامة */
 body {
-    font-family: "Segoe UI", "Tahoma", sans-serif;
+    font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
     background-color: #f8f9fa;
+    text-align: right;
 }
 
-.navbar {
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
 }
 
-.jumbotron {
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+a:hover {
+    color: #1a5276;
+    text-decoration: none;
 }
 
-.card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+/* أنماط الهيدر */
+header {
+    margin-bottom: 20px;
+    box-shadow: var(--box-shadow);
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
 }
 
-.btn {
-    border-radius: 5px;
-    padding: 8px 20px;
-}
-
-.btn-primary {
-    background-color: #2c5bdc;
-    border-color: #2c5bdc;
-}
-
-.btn-primary:hover {
-    background-color: #224ab3;
-    border-color: #224ab3;
-}
-
-.btn-outline-primary {
-    color: #2c5bdc;
-    border-color: #2c5bdc;
-}
-
-.btn-outline-primary:hover {
-    background-color: #2c5bdc;
-    border-color: #2c5bdc;
-}
-
-footer {
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
-}
-
-/* تخصيص لمنطقة المصادقة */
+/* أنماط حاويات المصادقة */
 .auth-container {
-    max-width: 480px;
+    max-width: 500px;
     margin: 40px auto;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     padding: 30px;
+    background: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
 }
 
+/* أنماط النماذج */
 .form-control {
-    border-radius: 5px;
-    padding: 10px 15px;
-    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    border-color: #ddd;
+    padding: 10px 12px;
 }
 
 .form-control:focus {
-    border-color: #2c5bdc;
-    box-shadow: 0 0 0 0.2rem rgba(44, 91, 220, 0.25);
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
 }
 
-/* تخصيص لصفحات التقييم */
-.evaluation-card {
+.btn-primary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+}
+
+/* أنماط البطاقات */
+.card {
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: var(--box-shadow);
     margin-bottom: 20px;
-    border-right: 5px solid #2c5bdc;
 }
 
-.evaluation-pending {
-    border-right-color: #ffc107;
+.card-title {
+    font-weight: 600;
+    color: var(--primary-color);
 }
 
-.evaluation-completed {
-    border-right-color: #28a745;
+/* أنماط الجدول */
+.table {
+    border-radius: var(--border-radius);
+    overflow: hidden;
 }
 
-.search-box {
+.table thead th {
+    background-color: var(--primary-color);
+    color: white;
+    border-bottom: none;
+}
+
+/* أنماط رسائل الخطأ والنجاح */
+.alert {
+    border-radius: var(--border-radius);
+    border: none;
     margin-bottom: 20px;
-    padding: 15px;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
 }
 
-/* تخصيص للوحة التحكم */
-.dashboard-stats {
-    display: flex;
-    flex-wrap: wrap;
-    margin-bottom: 30px;
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
 }
 
-.stat-card {
-    flex: 1;
-    min-width: 200px;
-    margin: 10px;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
-    text-align: center;
+.alert-error, .alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
 }
 
-.stat-number {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #2c5bdc;
-}
-
-.stat-title {
-    font-size: 1rem;
+/* أنماط الذيل */
+footer {
     color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* أنماط التقييم */
+.evaluation-status {
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    font-size: 0.85rem;
+}
+
+.status-pending {
+    background-color: #fef9c3;
+    color: #854d0e;
+}
+
+.status-in-progress {
+    background-color: #e0f2fe;
+    color: #075985;
+}
+
+.status-completed {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-rejected {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* أنماط الشاشات الصغيرة */
+@media (max-width: 768px) {
+    .auth-container {
+        padding: 20px;
+        margin: 20px 10px;
+    }
+
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
 }

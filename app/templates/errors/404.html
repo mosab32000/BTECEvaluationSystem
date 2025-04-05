@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الصفحة غير موجودة - نظام تقييم BTEC</title>
+    <title>404 - الصفحة غير موجودة</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-rtl.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
 <body>
     <div class="container mt-5 text-center">
-        <h1 class="display-1">404</h1>
-        <h2>الصفحة غير موجودة</h2>
-        <p class="lead">عذراً، الصفحة التي تبحث عنها غير موجودة.</p>
-        <a href="/" class="btn btn-primary mt-3">العودة إلى الصفحة الرئيسية</a>
+        <div class="error-container">
+            <h1 class="display-1">404</h1>
+            <h2>الصفحة غير موجودة</h2>
+            <p class="lead">عذراً، الصفحة التي تبحث عنها غير موجودة.</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary mt-3">العودة إلى الصفحة الرئيسية</a>
+        </div>
     </div>
 </body>
 </html>

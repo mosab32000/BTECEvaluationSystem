@@ -1,412 +1,317 @@
 """
-مسارات واجهة برمجة التطبيقات API في نظام تقييم BTEC
+واجهات API في نظام تقييم BTEC
 """
-import logging
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
 
+import logging
+import json
+from flask import request, jsonify, abort, session
+
+from app.routes import api_bp
 from app.models.user import User
 from app.models.evaluation import Evaluation
 from app.models.rubric import Rubric
-from app.database import get_metrics
 
 logger = logging.getLogger(__name__)
 
-# استخدام Blueprint المعرف في __init__.py
-from app.routes import api_bp
-
-@api_bp.route('/health', methods=['GET'])
+@api_bp.route('/health')
 def health():
-    """نقطة نهاية للتحقق من صحة النظام"""
-    try:
-        # التحقق من صحة قاعدة البيانات
-        metrics = get_metrics()
-        
-        return jsonify({
-            'status': 'healthy',
-            'version': '1.0.0',
-            'database': {
-                'connected': True,
-                'metrics': metrics
-            }
-        }), 200
-    except Exception as e:
-        logger.error(f"خطأ في نقطة نهاية الصحة: {str(e)}")
-        return jsonify({
-            'status': 'unhealthy',
-            'error': str(e)
-        }), 500
+    """
+    نقطة نهاية للتحقق من صحة واجهة API
+    """
+    from datetime import datetime
+    return jsonify({
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "api_version": "1.0.0"
+    })
 
-@api_bp.route('/info', methods=['GET'])
-def info():
-    """معلومات عامة عن النظام"""
-    try:
-        # الحصول على إحصائيات النظام
-        metrics = get_metrics()
-        
-        return jsonify({
-            'name': 'نظام تقييم BTEC',
-            'version': '1.0.0',
-            'description': 'منصة متكاملة لتقييم مهام BTEC باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين',
-            'features': [
-                'تقييم ذكي بالذكاء الاصطناعي',
-                'توثيق آمن بالبلوكتشين',
-                'تحليلات وإحصائيات متقدمة',
-                'تكامل مع أنظمة LMS',
-                'نظام الشارات والتحفيز',
-                'دعم كامل للغة العربية'
-            ],
-            'metrics': metrics
-        }), 200
-    except Exception as e:
-        logger.error(f"خطأ في نقطة نهاية المعلومات: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء الحصول على معلومات النظام',
-            'details': str(e)
-        }), 500
+@api_bp.route('/login', methods=['POST'])
+def login():
+    """
+    واجهة API لتسجيل الدخول
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+    
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not email or not password:
+        return jsonify({'error': 'البريد الإلكتروني وكلمة المرور مطلوبين'}), 400
+    
+    user = User.get_by_email(email)
+    if not user or not user.check_password(password):
+        return jsonify({'error': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'}), 401
+    
+    if not user.is_active:
+        return jsonify({'error': 'حسابك غير نشط'}), 403
+    
+    # إنشاء رمز جلسة أو JWT هنا إذا لزم الأمر
+    
+    return jsonify({
+        'success': True,
+        'message': 'تم تسجيل الدخول بنجاح',
+        'user': user.to_dict(exclude=['password_hash'])
+    })
 
-@api_bp.route('/rubrics', methods=['GET'])
-@jwt_required()
-def get_rubrics():
-    """الحصول على قائمة معايير التقييم"""
-    try:
-        # الحصول على معايير التقييم
-        rubrics = Rubric.get_all()
-        
+@api_bp.route('/register', methods=['POST'])
+def register():
+    """
+    واجهة API لتسجيل حساب جديد
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+    
+    email = data.get('email')
+    password = data.get('password')
+    name = data.get('name')
+    
+    if not email or not password or not name:
+        return jsonify({'error': 'جميع الحقول مطلوبة'}), 400
+    
+    # التحقق مما إذا كان البريد الإلكتروني مستخدمًا بالفعل
+    existing_user = User.get_by_email(email)
+    if existing_user:
+        return jsonify({'error': 'البريد الإلكتروني مستخدم بالفعل'}), 400
+    
+    # إنشاء مستخدم جديد
+    user = User(email=email, name=name, role='student')
+    user.set_password(password)
+    if user.save():
         return jsonify({
-            'rubrics': [rubric.to_dict() for rubric in rubrics]
-        }), 200
-    except Exception as e:
-        logger.error(f"خطأ في الحصول على معايير التقييم: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء الحصول على معايير التقييم',
-            'details': str(e)
-        }), 500
-
-@api_bp.route('/rubrics/<int:rubric_id>', methods=['GET'])
-@jwt_required()
-def get_rubric(rubric_id):
-    """الحصول على معيار تقييم محدد"""
-    try:
-        # الحصول على معيار التقييم
-        rubric = Rubric.get_by_id(rubric_id)
-        
-        if not rubric:
-            return jsonify({
-                'error': 'معيار التقييم غير موجود'
-            }), 404
-        
-        return jsonify(rubric.to_dict()), 200
-    except Exception as e:
-        logger.error(f"خطأ في الحصول على معيار التقييم {rubric_id}: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء الحصول على معيار التقييم',
-            'details': str(e)
-        }), 500
-
-@api_bp.route('/statistics', methods=['GET'])
-@jwt_required()
-def get_statistics():
-    """الحصول على إحصائيات النظام"""
-    try:
-        # التحقق من دور المستخدم (الإحصائيات للمسؤولين فقط)
-        current_user_email = get_jwt_identity()
-        user = User.get_by_email(current_user_email)
-        
-        if not user or user.role != 'admin':
-            return jsonify({
-                'error': 'ليس لديك صلاحية للوصول إلى هذه البيانات'
-            }), 403
-        
-        # الحصول على إحصائيات التقييمات
-        evaluation_stats = Evaluation.get_statistics()
-        
-        # الحصول على إحصائيات قاعدة البيانات
-        db_metrics = get_metrics()
-        
-        # الحصول على عدد المستخدمين
-        users = User.get_all()
-        user_count = len(users)
-        admin_count = len([u for u in users if u.role == 'admin'])
-        
-        return jsonify({
-            'users': {
-                'total': user_count,
-                'admins': admin_count,
-                'regular': user_count - admin_count
-            },
-            'evaluations': evaluation_stats,
-            'database': db_metrics
-        }), 200
-    except Exception as e:
-        logger.error(f"خطأ في الحصول على إحصائيات النظام: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء الحصول على إحصائيات النظام',
-            'details': str(e)
-        }), 500
-
-@api_bp.route('/search', methods=['GET'])
-@jwt_required()
-def search():
-    """البحث في النظام"""
-    try:
-        # الحصول على معايير البحث
-        query = request.args.get('q', '')
-        type = request.args.get('type', 'all')
-        
-        if not query:
-            return jsonify({
-                'error': 'يجب توفير استعلام البحث'
-            }), 400
-        
-        results = {
-            'evaluations': [],
-            'rubrics': [],
-            'users': []
-        }
-        
-        # البحث في التقييمات
-        if type in ['all', 'evaluations']:
-            evaluations = Evaluation.search(query)
-            results['evaluations'] = [eval.to_dict() for eval in evaluations]
-        
-        # البحث في معايير التقييم
-        if type in ['all', 'rubrics']:
-            rubrics = Rubric.search(query)
-            results['rubrics'] = [rubric.to_dict() for rubric in rubrics]
-        
-        # البحث في المستخدمين (للمسؤولين فقط)
-        if type in ['all', 'users']:
-            current_user_email = get_jwt_identity()
-            user = User.get_by_email(current_user_email)
-            
-            if user and user.role == 'admin':
-                # طريقة البحث ليست مضمنة في نموذج المستخدم، لذلك سنستخدم حلاً مؤقتًا
-                all_users = User.get_all()
-                search_users = [u for u in all_users if query.lower() in u.email.lower() or (u.name and query.lower() in u.name.lower())]
-                results['users'] = [u.to_dict() for u in search_users]
-        
-        return jsonify({
-            'query': query,
-            'type': type,
-            'results': results,
-            'counts': {
-                'evaluations': len(results['evaluations']),
-                'rubrics': len(results['rubrics']),
-                'users': len(results['users'])
-            }
-        }), 200
-    except Exception as e:
-        logger.error(f"خطأ في البحث: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء البحث',
-            'details': str(e)
-        }), 500
-
-@api_bp.route('/users/me', methods=['GET'])
-@jwt_required()
-def get_current_user():
-    """الحصول على معلومات المستخدم الحالي"""
-    try:
-        current_user_email = get_jwt_identity()
-        user = User.get_by_email(current_user_email)
-        
-        if not user:
-            return jsonify({
-                'error': 'المستخدم غير موجود'
-            }), 404
-        
-        # الحصول على عدد التقييمات الخاصة بالمستخدم
-        user_evaluations = Evaluation.get_by_user(user.id)
-        total_evaluations = len(user_evaluations)
-        completed_evaluations = len([e for e in user_evaluations if e.status == 'completed'])
-        
-        user_data = user.to_dict()
-        user_data['stats'] = {
-            'total_evaluations': total_evaluations,
-            'completed_evaluations': completed_evaluations,
-            'pending_evaluations': total_evaluations - completed_evaluations
-        }
-        
-        return jsonify(user_data), 200
-    except Exception as e:
-        logger.error(f"خطأ في الحصول على معلومات المستخدم الحالي: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء الحصول على معلومات المستخدم',
-            'details': str(e)
-        }), 500
-
-@api_bp.route('/users/<int:user_id>', methods=['GET'])
-@jwt_required()
-def get_user(user_id):
-    """الحصول على معلومات مستخدم محدد (للمسؤولين فقط)"""
-    try:
-        # التحقق من دور المستخدم
-        current_user_email = get_jwt_identity()
-        current_user = User.get_by_email(current_user_email)
-        
-        if not current_user or current_user.role != 'admin':
-            return jsonify({
-                'error': 'ليس لديك صلاحية للوصول إلى هذه البيانات'
-            }), 403
-        
-        # الحصول على المستخدم المطلوب
-        user = User.get_by_id(user_id)
-        
-        if not user:
-            return jsonify({
-                'error': 'المستخدم غير موجود'
-            }), 404
-        
-        # الحصول على عدد التقييمات الخاصة بالمستخدم
-        user_evaluations = Evaluation.get_by_user(user.id)
-        total_evaluations = len(user_evaluations)
-        completed_evaluations = len([e for e in user_evaluations if e.status == 'completed'])
-        
-        user_data = user.to_dict()
-        user_data['stats'] = {
-            'total_evaluations': total_evaluations,
-            'completed_evaluations': completed_evaluations,
-            'pending_evaluations': total_evaluations - completed_evaluations
-        }
-        
-        return jsonify(user_data), 200
-    except Exception as e:
-        logger.error(f"خطأ في الحصول على معلومات المستخدم {user_id}: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء الحصول على معلومات المستخدم',
-            'details': str(e)
-        }), 500
+            'success': True,
+            'message': 'تم التسجيل بنجاح',
+            'user': user.to_dict(exclude=['password_hash'])
+        })
+    else:
+        return jsonify({'error': 'حدث خطأ أثناء التسجيل'}), 500
 
 @api_bp.route('/users', methods=['GET'])
-@jwt_required()
 def get_users():
-    """الحصول على قائمة المستخدمين (للمسؤولين فقط)"""
-    try:
-        # التحقق من دور المستخدم
-        current_user_email = get_jwt_identity()
-        current_user = User.get_by_email(current_user_email)
-        
-        if not current_user or current_user.role != 'admin':
-            return jsonify({
-                'error': 'ليس لديك صلاحية للوصول إلى هذه البيانات'
-            }), 403
-        
-        # الحصول على المستخدمين
-        users = User.get_all()
-        
-        return jsonify({
-            'users': [user.to_dict() for user in users],
-            'count': len(users)
-        }), 200
-    except Exception as e:
-        logger.error(f"خطأ في الحصول على قائمة المستخدمين: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء الحصول على قائمة المستخدمين',
-            'details': str(e)
-        }), 500
+    """
+    واجهة API للحصول على قائمة المستخدمين
+    """
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذه البيانات'}), 403
+    
+    users = User.get_all()
+    return jsonify({
+        'success': True,
+        'users': [user.to_dict(exclude=['password_hash']) for user in users]
+    })
 
-@api_bp.route('/users/<int:user_id>/toggle-active', methods=['POST'])
-@jwt_required()
-def toggle_user_active(user_id):
-    """تغيير حالة تفعيل المستخدم (للمسؤولين فقط)"""
-    try:
-        # التحقق من دور المستخدم
-        current_user_email = get_jwt_identity()
-        current_user = User.get_by_email(current_user_email)
-        
-        if not current_user or current_user.role != 'admin':
-            return jsonify({
-                'error': 'ليس لديك صلاحية للقيام بهذه العملية'
-            }), 403
-        
-        # الحصول على المستخدم المطلوب
-        user = User.get_by_id(user_id)
-        
-        if not user:
-            return jsonify({
-                'error': 'المستخدم غير موجود'
-            }), 404
-        
-        # لا يمكن تعطيل المستخدم نفسه
-        if user.id == current_user.id:
-            return jsonify({
-                'error': 'لا يمكنك تغيير حالة تفعيل حسابك'
-            }), 400
-        
-        # تغيير حالة التفعيل
-        user.is_active = not user.is_active
-        
-        if user.save():
-            logger.info(f"تم تغيير حالة تفعيل المستخدم {user.email} إلى {user.is_active} بواسطة {current_user.email}")
-            return jsonify({
-                'message': f"تم {'تفعيل' if user.is_active else 'تعطيل'} المستخدم بنجاح",
-                'user': user.to_dict()
-            }), 200
-        else:
-            return jsonify({
-                'error': 'حدث خطأ أثناء تحديث حالة المستخدم'
-            }), 500
-    except Exception as e:
-        logger.error(f"خطأ في تغيير حالة تفعيل المستخدم {user_id}: {str(e)}")
-        return jsonify({
-            'error': 'حدث خطأ أثناء تغيير حالة تفعيل المستخدم',
-            'details': str(e)
-        }), 500
+@api_bp.route('/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    """
+    واجهة API للحصول على بيانات مستخدم معين
+    """
+    # التحقق من تسجيل الدخول
+    if 'user_id' not in session:
+        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
+    
+    # التحقق من صلاحية الوصول (المستخدم نفسه أو المسؤول)
+    if session['user_id'] != user_id and session.get('user_role') != 'admin':
+        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذه البيانات'}), 403
+    
+    user = User.get_by_id(user_id)
+    if not user:
+        return jsonify({'error': 'المستخدم غير موجود'}), 404
+    
+    return jsonify({
+        'success': True,
+        'user': user.to_dict(exclude=['password_hash'])
+    })
 
-@api_bp.route('/users/<int:user_id>/change-role', methods=['POST'])
-@jwt_required()
-def change_user_role(user_id):
-    """تغيير دور المستخدم (للمسؤولين فقط)"""
-    try:
-        # التحقق من دور المستخدم
-        current_user_email = get_jwt_identity()
-        current_user = User.get_by_email(current_user_email)
-        
-        if not current_user or current_user.role != 'admin':
-            return jsonify({
-                'error': 'ليس لديك صلاحية للقيام بهذه العملية'
-            }), 403
-        
-        # الحصول على البيانات
-        data = request.get_json()
-        new_role = data.get('role')
-        
-        if not new_role or new_role not in ['user', 'admin']:
-            return jsonify({
-                'error': 'الدور غير صالح'
-            }), 400
-        
-        # الحصول على المستخدم المطلوب
-        user = User.get_by_id(user_id)
-        
-        if not user:
-            return jsonify({
-                'error': 'المستخدم غير موجود'
-            }), 404
-        
-        # لا يمكن تغيير دور المستخدم نفسه
-        if user.id == current_user.id:
-            return jsonify({
-                'error': 'لا يمكنك تغيير دور حسابك'
-            }), 400
-        
-        # تغيير الدور
-        user.role = new_role
-        
-        if user.save():
-            logger.info(f"تم تغيير دور المستخدم {user.email} إلى {new_role} بواسطة {current_user.email}")
-            return jsonify({
-                'message': f"تم تغيير دور المستخدم بنجاح إلى {new_role}",
-                'user': user.to_dict()
-            }), 200
-        else:
-            return jsonify({
-                'error': 'حدث خطأ أثناء تحديث دور المستخدم'
-            }), 500
-    except Exception as e:
-        logger.error(f"خطأ في تغيير دور المستخدم {user_id}: {str(e)}")
+@api_bp.route('/rubrics', methods=['GET'])
+def get_rubrics():
+    """
+    واجهة API للحصول على قائمة معايير التقييم
+    """
+    # التحقق من تسجيل الدخول
+    if 'user_id' not in session:
+        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
+    
+    rubrics = Rubric.get_all()
+    return jsonify({
+        'success': True,
+        'rubrics': [rubric.to_dict() for rubric in rubrics]
+    })
+
+@api_bp.route('/rubrics/<int:rubric_id>', methods=['GET'])
+def get_rubric(rubric_id):
+    """
+    واجهة API للحصول على معيار تقييم معين
+    """
+    # التحقق من تسجيل الدخول
+    if 'user_id' not in session:
+        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
+    
+    rubric = Rubric.get_by_id(rubric_id)
+    if not rubric:
+        return jsonify({'error': 'معيار التقييم غير موجود'}), 404
+    
+    return jsonify({
+        'success': True,
+        'rubric': rubric.to_dict()
+    })
+
+@api_bp.route('/evaluations', methods=['GET'])
+def get_evaluations():
+    """
+    واجهة API للحصول على قائمة التقييمات
+    """
+    # التحقق من تسجيل الدخول
+    if 'user_id' not in session:
+        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
+    
+    # الحصول على التقييمات حسب دور المستخدم
+    user = User.get_by_id(session['user_id'])
+    if not user:
+        return jsonify({'error': 'حدث خطأ في جلستك'}), 401
+    
+    if user.role == 'admin':
+        # المسؤول يرى جميع التقييمات
+        evaluations = Evaluation.get_all()
+    elif user.role == 'teacher':
+        # المدرس يرى التقييمات التي قام بتقييمها وغير المقيمة
+        evaluations = Evaluation.get_by_evaluator(user.id) + Evaluation.get_pending()
+    else:
+        # الطالب يرى التقييمات الخاصة به فقط
+        evaluations = Evaluation.get_by_student(user.id)
+    
+    return jsonify({
+        'success': True,
+        'evaluations': [evaluation.to_dict() for evaluation in evaluations]
+    })
+
+@api_bp.route('/evaluations/<int:evaluation_id>', methods=['GET'])
+def get_evaluation(evaluation_id):
+    """
+    واجهة API للحصول على تقييم معين
+    """
+    # التحقق من تسجيل الدخول
+    if 'user_id' not in session:
+        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
+    
+    # الحصول على التقييم
+    evaluation = Evaluation.get_by_id(evaluation_id)
+    if not evaluation:
+        return jsonify({'error': 'التقييم غير موجود'}), 404
+    
+    # التحقق من صلاحية الوصول
+    user = User.get_by_id(session['user_id'])
+    if not user:
+        return jsonify({'error': 'حدث خطأ في جلستك'}), 401
+    
+    # السماح بالوصول فقط للمسؤول أو المدرس أو الطالب صاحب التقييم
+    if user.role not in ['admin', 'teacher'] and evaluation.student_id != user.id:
+        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذا التقييم'}), 403
+    
+    return jsonify({
+        'success': True,
+        'evaluation': evaluation.to_dict(),
+        'student': User.get_by_id(evaluation.student_id).to_dict() if evaluation.student_id else None,
+        'rubric': Rubric.get_by_id(evaluation.rubric_id).to_dict() if evaluation.rubric_id else None,
+        'evaluator': User.get_by_id(evaluation.evaluator_id).to_dict() if evaluation.evaluator_id else None
+    })
+
+@api_bp.route('/evaluations', methods=['POST'])
+def create_evaluation():
+    """
+    واجهة API لإنشاء تقييم جديد
+    """
+    # التحقق من تسجيل الدخول
+    if 'user_id' not in session:
+        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه الوظيفة'}), 401
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+    
+    # الحصول على البيانات من الطلب
+    student_id = session['user_id']  # الطالب هو المستخدم الحالي
+    assignment_id = data.get('assignment_id')
+    rubric_id = data.get('rubric_id')
+    submission_text = data.get('submission_text')
+    
+    # التحقق من صحة البيانات
+    if not assignment_id or not rubric_id or not submission_text:
+        return jsonify({'error': 'جميع الحقول مطلوبة'}), 400
+    
+    # التحقق من وجود معيار التقييم
+    rubric = Rubric.get_by_id(rubric_id)
+    if not rubric:
+        return jsonify({'error': 'معيار التقييم غير موجود'}), 400
+    
+    # إنشاء تقييم جديد
+    evaluation = Evaluation(
+        student_id=student_id,
+        assignment_id=assignment_id,
+        rubric_id=rubric_id,
+        submission_text=submission_text,
+        status='pending'
+    )
+    
+    if evaluation.save():
         return jsonify({
-            'error': 'حدث خطأ أثناء تغيير دور المستخدم',
-            'details': str(e)
-        }), 500
+            'success': True,
+            'message': 'تم إنشاء التقييم بنجاح',
+            'evaluation': evaluation.to_dict()
+        })
+    else:
+        return jsonify({'error': 'حدث خطأ أثناء إنشاء التقييم'}), 500
+
+@api_bp.route('/evaluations/<int:evaluation_id>/evaluate', methods=['POST'])
+def evaluate_submission(evaluation_id):
+    """
+    واجهة API لتقييم مهمة
+    """
+    # التحقق من تسجيل الدخول ودور المستخدم
+    if 'user_id' not in session:
+        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه الوظيفة'}), 401
+    
+    user = User.get_by_id(session['user_id'])
+    if not user or user.role not in ['admin', 'teacher']:
+        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذه الوظيفة'}), 403
+    
+    # الحصول على التقييم
+    evaluation = Evaluation.get_by_id(evaluation_id)
+    if not evaluation:
+        return jsonify({'error': 'التقييم غير موجود'}), 404
+    
+    # التحقق من حالة التقييم
+    if evaluation.status != 'pending':
+        return jsonify({'error': 'لا يمكن تقييم مهمة تم تقييمها مسبقًا'}), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+    
+    # الحصول على البيانات من الطلب
+    score = data.get('score')
+    evaluator_comments = data.get('evaluator_comments')
+    evaluation_result = data.get('evaluation_result')
+    
+    # التحقق من صحة البيانات
+    if not score or not evaluator_comments:
+        return jsonify({'error': 'الدرجة والتعليقات مطلوبة'}), 400
+    
+    # تحديث التقييم
+    evaluation.evaluator_id = user.id
+    evaluation.score = float(score)
+    evaluation.evaluator_comments = evaluator_comments
+    if evaluation_result:
+        evaluation.evaluation_result = evaluation_result
+    evaluation.status = 'completed'
+    
+    if evaluation.save():
+        return jsonify({
+            'success': True,
+            'message': 'تم تقييم المهمة بنجاح',
+            'evaluation': evaluation.to_dict()
+        })
+    else:
+        return jsonify({'error': 'حدث خطأ أثناء تقييم المهمة'}), 500

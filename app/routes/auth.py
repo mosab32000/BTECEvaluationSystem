@@ -1,208 +1,162 @@
 """
 مسارات المصادقة في نظام تقييم BTEC
 """
+
 import logging
-import json
-from datetime import datetime, timedelta
-import os
+from flask import render_template, redirect, url_for, request, flash, session, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
 
-from flask import Blueprint, request, jsonify, render_template, redirect
-from flask import url_for, session, flash, current_app
-from flask_login import login_user, logout_user, login_required, current_user
-from flask_jwt_extended import create_access_token, create_refresh_token
-from werkzeug.security import check_password_hash, generate_password_hash
-
+from app.routes import auth_bp
 from app.models.user import User
 
-# تهيئة السجل
 logger = logging.getLogger(__name__)
 
-# إنشاء blueprint للمصادقة
-bp = Blueprint('auth', __name__, url_prefix='/auth')
-
-@bp.route('/register', methods=['GET', 'POST'])
+@auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     """صفحة التسجيل"""
     if request.method == 'POST':
-        # الحصول على بيانات النموذج
         email = request.form.get('email')
         password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
         name = request.form.get('name')
         
         # التحقق من صحة البيانات
-        error = None
-        if not email:
-            error = 'البريد الإلكتروني مطلوب'
-        elif not password:
-            error = 'كلمة المرور مطلوبة'
+        if not email or not password or not confirm_password or not name:
+            flash('جميع الحقول مطلوبة', 'error')
+            return render_template('auth/register.html')
         
-        # التحقق من وجود المستخدم
-        user = User.get_by_email(email)
-        if user:
-            error = 'البريد الإلكتروني مستخدم بالفعل'
+        if password != confirm_password:
+            flash('كلمات المرور غير متطابقة', 'error')
+            return render_template('auth/register.html')
         
-        if error is None:
-            # إنشاء مستخدم جديد
-            new_user = User()
-            new_user.email = email
-            new_user.set_password(password)
-            new_user.name = name
-            new_user.role = 'student'  # الدور الافتراضي
-            
-            # حفظ المستخدم
-            if new_user.save():
-                logger.info(f"تم تسجيل مستخدم جديد: {email}")
-                flash('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.', 'success')
-                return redirect(url_for('auth.login'))
-            else:
-                error = 'حدث خطأ أثناء إنشاء الحساب'
+        # التحقق مما إذا كان البريد الإلكتروني مستخدمًا بالفعل
+        existing_user = User.get_by_email(email)
+        if existing_user:
+            flash('البريد الإلكتروني مستخدم بالفعل', 'error')
+            return render_template('auth/register.html')
         
-        flash(error, 'error')
+        # إنشاء مستخدم جديد
+        user = User(email=email, name=name, role='student')
+        user.set_password(password)
+        if user.save():
+            flash('تم التسجيل بنجاح. يمكنك الآن تسجيل الدخول.', 'success')
+            return redirect(url_for('auth.login'))
+        else:
+            flash('حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.', 'error')
     
     return render_template('auth/register.html')
 
-@bp.route('/login', methods=['GET', 'POST'])
+@auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """صفحة تسجيل الدخول"""
     if request.method == 'POST':
-        # الحصول على بيانات النموذج
         email = request.form.get('email')
         password = request.form.get('password')
-        remember = request.form.get('remember', 'false') == 'true'
         
         # التحقق من صحة البيانات
-        error = None
-        if not email:
-            error = 'البريد الإلكتروني مطلوب'
-        elif not password:
-            error = 'كلمة المرور مطلوبة'
+        if not email or not password:
+            flash('البريد الإلكتروني وكلمة المرور مطلوبين', 'error')
+            return render_template('auth/login.html')
         
-        # التحقق من المستخدم وكلمة المرور
+        # التحقق من صحة بيانات المستخدم
         user = User.get_by_email(email)
-        if user is None:
-            error = 'بريد إلكتروني غير صحيح'
-        elif not user.check_password(password):
-            error = 'كلمة مرور غير صحيحة'
-        elif not user.is_active:
-            error = 'هذا الحساب معطل'
+        if not user or not user.check_password(password):
+            flash('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error')
+            return render_template('auth/login.html')
         
-        if error is None:
-            # تسجيل الدخول
-            login_user(user, remember=remember)
-            logger.info(f"تم تسجيل دخول المستخدم: {email}")
-            
-            next_page = request.args.get('next')
-            if not next_page or not next_page.startswith('/'):
-                next_page = url_for('index')
-            
-            flash('تم تسجيل الدخول بنجاح!', 'success')
-            return redirect(next_page)
+        # التحقق من حالة المستخدم
+        if not user.is_active:
+            flash('حسابك غير نشط. يرجى الاتصال بالمسؤول.', 'error')
+            return render_template('auth/login.html')
         
-        flash(error, 'error')
+        # تسجيل الدخول
+        session['user_id'] = user.id
+        session['user_role'] = user.role
+        session['user_name'] = user.name
+        
+        # توجيه المستخدم حسب الدور
+        if user.role == 'admin':
+            return redirect(url_for('admin.index'))
+        else:
+            return redirect(url_for('evaluation.index'))
     
     return render_template('auth/login.html')
 
-@bp.route('/logout')
-@login_required
+@auth_bp.route('/logout')
 def logout():
     """تسجيل الخروج"""
-    logout_user()
-    flash('تم تسجيل الخروج بنجاح!', 'success')
-    return redirect(url_for('index'))
+    session.clear()
+    flash('تم تسجيل الخروج بنجاح', 'success')
+    return redirect(url_for('main.index'))
 
-@bp.route('/profile')
-@login_required
+@auth_bp.route('/profile', methods=['GET', 'POST'])
 def profile():
     """صفحة الملف الشخصي"""
-    return render_template('auth/profile.html')
-
-@bp.route('/api/login', methods=['POST'])
-def api_login():
-    """واجهة API لتسجيل الدخول"""
-    data = request.get_json() or {}
-    
-    if not data.get('email') or not data.get('password'):
-        return jsonify({'error': 'البريد الإلكتروني وكلمة المرور مطلوبين'}), 400
-    
-    user = User.get_by_email(data['email'])
-    if user is None or not user.check_password(data['password']):
-        return jsonify({'error': 'بيانات تسجيل الدخول غير صحيحة'}), 401
-    
-    if not user.is_active:
-        return jsonify({'error': 'هذا الحساب معطل'}), 403
-    
-    # إنشاء توكن
-    access_token = create_access_token(identity=user.id)
-    refresh_token = create_refresh_token(identity=user.id)
-    
-    logger.info(f"تم تسجيل دخول API للمستخدم: {user.email}")
-    
-    # إعادة البيانات
-    return jsonify({
-        'access_token': access_token,
-        'refresh_token': refresh_token,
-        'user': user.to_dict()
-    }), 200
-
-@bp.route('/api/register', methods=['POST'])
-def api_register():
-    """واجهة API للتسجيل"""
-    data = request.get_json() or {}
-    
-    # التحقق من البيانات المطلوبة
-    if not data.get('email') or not data.get('password'):
-        return jsonify({'error': 'البريد الإلكتروني وكلمة المرور مطلوبين'}), 400
-    
-    # التحقق من وجود المستخدم
-    user = User.get_by_email(data['email'])
-    if user:
-        return jsonify({'error': 'البريد الإلكتروني مستخدم بالفعل'}), 400
-    
-    # إنشاء مستخدم جديد
-    new_user = User()
-    new_user.email = data['email']
-    new_user.set_password(data['password'])
-    new_user.name = data.get('name', '')
-    new_user.role = 'student'  # الدور الافتراضي
-    
-    # حفظ المستخدم
-    if not new_user.save():
-        return jsonify({'error': 'حدث خطأ أثناء إنشاء الحساب'}), 500
-    
-    logger.info(f"تم تسجيل مستخدم جديد عبر API: {new_user.email}")
-    
-    # إنشاء توكن
-    access_token = create_access_token(identity=new_user.id)
-    refresh_token = create_refresh_token(identity=new_user.id)
-    
-    # إعادة البيانات
-    return jsonify({
-        'message': 'تم إنشاء الحساب بنجاح',
-        'access_token': access_token,
-        'refresh_token': refresh_token,
-        'user': new_user.to_dict()
-    }), 201
-
-@bp.route('/reset-password', methods=['GET', 'POST'])
-def reset_password_request():
-    """طلب إعادة تعيين كلمة المرور"""
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    if request.method == 'POST':
-        email = request.form.get('email')
-        if not email:
-            flash('البريد الإلكتروني مطلوب', 'error')
-            return render_template('auth/reset_password_request.html')
-        
-        user = User.get_by_email(email)
-        if user:
-            # في حالة التنفيذ الفعلي، هنا يتم إرسال بريد إلكتروني
-            # مع رابط لإعادة تعيين كلمة المرور
-            # TODO: تنفيذ إرسال البريد الإلكتروني
-            logger.info(f"تم طلب إعادة تعيين كلمة المرور للمستخدم: {email}")
-        
-        flash('تم إرسال تعليمات إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.', 'info')
+    # التحقق من تسجيل الدخول
+    if 'user_id' not in session:
+        flash('يجب تسجيل الدخول للوصول إلى هذه الصفحة', 'error')
         return redirect(url_for('auth.login'))
     
-    return render_template('auth/reset_password_request.html')
+    user = User.get_by_id(session['user_id'])
+    if not user:
+        session.clear()
+        flash('حدث خطأ في جلستك. يرجى تسجيل الدخول مرة أخرى.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # تحديث الاسم
+        if name and name != user.name:
+            user.name = name
+            session['user_name'] = name
+        
+        # تحديث كلمة المرور إذا تم تقديمها
+        if current_password and new_password and confirm_password:
+            if not user.check_password(current_password):
+                flash('كلمة المرور الحالية غير صحيحة', 'error')
+                return render_template('auth/profile.html', user=user)
+            
+            if new_password != confirm_password:
+                flash('كلمات المرور الجديدة غير متطابقة', 'error')
+                return render_template('auth/profile.html', user=user)
+            
+            user.set_password(new_password)
+        
+        # حفظ التغييرات
+        if user.save():
+            flash('تم تحديث الملف الشخصي بنجاح', 'success')
+        else:
+            flash('حدث خطأ أثناء تحديث الملف الشخصي', 'error')
+    
+    return render_template('auth/profile.html', user=user)
+
+@auth_bp.route('/api/login', methods=['POST'])
+def api_login():
+    """واجهة API لتسجيل الدخول"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+    
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not email or not password:
+        return jsonify({'error': 'البريد الإلكتروني وكلمة المرور مطلوبين'}), 400
+    
+    user = User.get_by_email(email)
+    if not user or not user.check_password(password):
+        return jsonify({'error': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'}), 401
+    
+    if not user.is_active:
+        return jsonify({'error': 'حسابك غير نشط'}), 403
+    
+    # إنشاء رمز جلسة أو JWT هنا إذا لزم الأمر
+    
+    return jsonify({
+        'message': 'تم تسجيل الدخول بنجاح',
+        'user': user.to_dict()
+    })
