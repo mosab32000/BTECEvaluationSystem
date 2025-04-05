@@ -1,51 +1,103 @@
-/* نظام تقييم BTEC - ملف JavaScript الرئيسي */
+/**
+ * نظام تقييم BTEC - الوظائف JavaScript الرئيسية
+ */
 
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("تم تحميل نظام تقييم BTEC");
-    
-    // إظهار ورسائل الخطأ والنجاح
-    const flashMessages = document.querySelectorAll(".alert");
-    if (flashMessages.length > 0) {
-        flashMessages.forEach(message => {
-            setTimeout(() => {
-                message.classList.add("fade-out");
-                setTimeout(() => {
-                    message.style.display = "none";
+document.addEventListener('DOMContentLoaded', function() {
+    // إظهار الرسائل التنبيهية لمدة محددة ثم إخفاؤها
+    const alerts = document.querySelectorAll('.alert');
+    if (alerts.length > 0) {
+        setTimeout(function() {
+            alerts.forEach(function(alert) {
+                // إزالة التنبيه بأسلوب متدرج
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.remove();
                 }, 500);
-            }, 5000);
-        });
-    }
-    
-    // تفعيل التلميحات
-    const tooltips = document.querySelectorAll("[data-toggle=\"tooltip\"]");
-    if (tooltips.length > 0) {
-        tooltips.forEach(tooltip => {
-            new bootstrap.Tooltip(tooltip);
-        });
-    }
-    
-    // مربع البحث
-    const searchInput = document.getElementById("search-input");
-    if (searchInput) {
-        searchInput.addEventListener("input", function() {
-            const searchTerm = this.value.toLowerCase();
-            const items = document.querySelectorAll(".searchable-item");
-            
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
             });
-        });
+        }, 5000);
     }
+
+    // تنشيط مؤشرات الشرح (Tooltips)
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // التحقق من صحة كلمة المرور في صفحة التسجيل
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    
+    if (passwordField && confirmPasswordField) {
+        function validatePassword() {
+            if (passwordField.value != confirmPasswordField.value) {
+                confirmPasswordField.setCustomValidity('كلمات المرور غير متطابقة');
+            } else {
+                confirmPasswordField.setCustomValidity('');
+            }
+        }
+
+        passwordField.addEventListener('change', validatePassword);
+        confirmPasswordField.addEventListener('keyup', validatePassword);
+    }
+
+    // إضافة تأثيرات بصرية لعناصر القائمة عند التمرير
+    document.addEventListener('scroll', function() {
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            if (window.scrollY > 50) {
+                navbar.classList.add('navbar-scrolled');
+            } else {
+                navbar.classList.remove('navbar-scrolled');
+            }
+        }
+    });
+
+    // تتبع نقرات الزر بهدف تحليل السلوك (Analytics)
+    const trackButtons = document.querySelectorAll('[data-track]');
+    trackButtons.forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            const action = button.getAttribute('data-track');
+            // يمكن إضافة كود تتبع هنا (مثل Google Analytics)
+            console.log('تتبع الحدث:', action);
+        });
+    });
 });
 
-// تأكيد الحذف
-function confirmDelete(event, message) {
-    if (!confirm(message || "هل أنت متأكد من أنك تريد الحذف؟")) {
-        event.preventDefault();
-    }
+/**
+ * وظيفة للتأكد من موافقة المستخدم على عملية مهمة
+ * 
+ * @param {string} message رسالة التأكيد
+ * @returns {boolean} نتيجة التأكيد
+ */
+function confirmAction(message) {
+    return confirm(message || 'هل أنت متأكد من هذا الإجراء؟');
+}
+
+/**
+ * وظيفة لعرض تنبيه للمستخدم
+ * 
+ * @param {string} message الرسالة المراد عرضها
+ * @param {string} type نوع التنبيه (success, error, warning)
+ */
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // إزالة التنبيه تلقائيًا بعد 5 ثوانٍ
+    setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 150);
+    }, 5000);
 }

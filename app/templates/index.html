@@ -4,86 +4,413 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام تقييم BTEC</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-rtl.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <!-- تضمين Fontawesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- تضمين خط Cairo من Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1e88e5;
+            --secondary-color: #ff8f00;
+            --accent-color: #00c853;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #424242;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-left: 10px;
+            color: var(--secondary-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-right: 20px;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-menu a:hover {
+            color: var(--secondary-color);
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        .hero {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: #1565c0;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f57c00;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-card i {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        @media (max-width: 768px) {
+            .header-content, .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .nav-menu, .footer-links {
+                margin-top: 1rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* إضافة أنماط خاصة بالواجهة غير المثيلة */
+        .floating-element {
+            position: relative;
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shine-effect:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 100%);
+            transform: skewX(-25deg);
+            animation: shine 6s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        .gradient-text {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: bold;
+        }
+
+        .modern-shadow {
+            box-shadow: 
+                0 10px 20px rgba(0,0,0,0.1),
+                0 6px 6px rgba(0,0,0,0.1);
+        }
+
+        .hero-visual {
+            position: relative;
+            width: 80%;
+            max-width: 500px;
+            height: 200px;
+            margin: 2rem auto;
+            background: linear-gradient(135deg, #1e88e5 0%, #64b5f6 50%, #bbdefb 100%);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .hero-visual::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 100%
+            );
+            transform: rotate(45deg);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .gradient-border {
+            position: relative;
+            border-radius: var(--border-radius);
+        }
+
+        .gradient-border::after {
+            content: "";
+            position: absolute;
+            top: -2px; right: -2px; bottom: -2px; left: -2px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+            border-radius: calc(var(--border-radius) + 2px);
+            z-index: -1;
+        }
+    </style>
 </head>
 <body>
-    <header class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <header>
         <div class="container">
-            <a class="navbar-brand" href="/">نظام تقييم BTEC</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">الرئيسية</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/evaluation">التقييمات</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/about">حول النظام</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/auth/login">تسجيل الدخول</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/auth/register">تسجيل حساب جديد</a>
-                    </li>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>نظام تقييم BTEC</span>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#"><i class="fas fa-home"></i> الرئيسية</a></li>
+                    <li><a href="#"><i class="fas fa-tasks"></i> التقييمات</a></li>
+                    <li><a href="#"><i class="fas fa-user-graduate"></i> الطلاب</a></li>
+                    <li><a href="#"><i class="fas fa-chart-bar"></i> التقارير</a></li>
+                    <li><a href="#"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</a></li>
                 </ul>
             </div>
         </div>
     </header>
 
-    <main class="container mt-4">
-        <div class="jumbotron">
-            <h1 class="display-4">مرحباً بك في نظام تقييم BTEC</h1>
-            <p class="lead">نظام متقدم لتقييم المهام والمشاريع باستخدام الذكاء الاصطناعي وتقنيات البلوكتشين.</p>
-            <hr class="my-4">
-            <p>سجل دخولك للوصول إلى لوحة التحكم والبدء في استخدام النظام.</p>
-            <a class="btn btn-primary btn-lg" href="/auth/login" role="button">تسجيل الدخول</a>
-            <a class="btn btn-outline-primary btn-lg" href="/auth/register" role="button">تسجيل حساب جديد</a>
-        </div>
+    <main>
+        <div class="container">
+            <section class="hero fade-in modern-shadow">
+                <h1 class="gradient-text floating-element">مرحبًا بك في نظام تقييم BTEC المتطور</h1>
+                <p>نظام تقييم ذكي مدعوم بالذكاء الاصطناعي لتقييم مهام الطلاب وفق معايير BTEC</p>
+                
+                <div class="hero-visual shine-effect"></div>
+                
+                <a href="#" class="btn pulse">ابدأ الآن</a>
+                <a href="#" class="btn btn-secondary">تعرف على المزيد</a>
+            </section>
 
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">تقييم ذكي</h5>
-                        <p class="card-text">استخدام الذكاء الاصطناعي لتقييم المهام بدقة وسرعة عالية.</p>
-                    </div>
+            <section class="features">
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-robot floating-element"></i>
+                    <h3>تقييم ذكي</h3>
+                    <p>تقييم المهام باستخدام تقنيات الذكاء الاصطناعي المتقدمة وفق معايير BTEC الدقيقة</p>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">تقارير مفصلة</h5>
-                        <p class="card-text">الحصول على تقارير تفصيلية ورؤى متعمقة حول أداء الطلاب.</p>
-                    </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-shield-alt floating-element"></i>
+                    <h3>توثيق آمن</h3>
+                    <p>توثيق التقييمات باستخدام تقنية البلوكتشين لضمان النزاهة والشفافية</p>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">التحقق من البلوكتشين</h5>
-                        <p class="card-text">ضمان سلامة ومصداقية التقييمات باستخدام تقنيات البلوكتشين.</p>
-                    </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-chart-line floating-element"></i>
+                    <h3>تقارير تفصيلية</h3>
+                    <p>تحليلات وتقارير مفصلة لمتابعة تقدم الطلاب وتحسين عملية التعليم</p>
                 </div>
-            </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-language floating-element"></i>
+                    <h3>دعم متعدد اللغات</h3>
+                    <p>دعم كامل للغة العربية والإنجليزية مع إمكانية التقييم بأكثر من لغة</p>
+                </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-users floating-element"></i>
+                    <h3>تعاون فعال</h3>
+                    <p>منصة تعاونية تتيح للمعلمين والطلاب التفاعل وتبادل الملاحظات بكفاءة</p>
+                </div>
+                <div class="feature-card gradient-border">
+                    <i class="fas fa-mobile-alt floating-element"></i>
+                    <h3>تصميم متجاوب</h3>
+                    <p>واجهة سهلة الاستخدام تعمل على جميع الأجهزة من الهواتف الذكية إلى أجهزة الكمبيوتر</p>
+                </div>
+            </section>
         </div>
     </main>
 
-    <footer class="bg-light p-3 mt-5">
-        <div class="container text-center">
-            <p>جميع الحقوق محفوظة &copy; 2025 - نظام تقييم BTEC</p>
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="copyright">
+                    &copy; 2025 نظام تقييم BTEC. جميع الحقوق محفوظة.
+                </div>
+                <div class="footer-links">
+                    <a href="#">سياسة الخصوصية</a>
+                    <a href="#">شروط الاستخدام</a>
+                    <a href="#">المساعدة</a>
+                    <a href="#">التواصل معنا</a>
+                </div>
+            </div>
         </div>
     </footer>
-
-    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

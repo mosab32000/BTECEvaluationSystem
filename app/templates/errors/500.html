@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خطأ في الخادم - نظام تقييم BTEC</title>
+    <title>500 - خطأ في الخادم</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-rtl.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
 <body>
     <div class="container mt-5 text-center">
-        <h1 class="display-1">500</h1>
-        <h2>خطأ في الخادم</h2>
-        <p class="lead">عذراً، حدث خطأ في الخادم. الرجاء المحاولة مرة أخرى في وقت لاحق.</p>
-        <a href="/" class="btn btn-primary mt-3">العودة إلى الصفحة الرئيسية</a>
+        <div class="error-container">
+            <h1 class="display-1">500</h1>
+            <h2>خطأ في الخادم</h2>
+            <p class="lead">عذراً، حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary mt-3">العودة إلى الصفحة الرئيسية</a>
+        </div>
     </div>
 </body>
 </html>
