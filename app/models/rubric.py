@@ -21,65 +21,95 @@ class Rubric(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # العلاقات
-    evaluations = db.relationship('Evaluation', backref='rubric', lazy='dynamic')
+    creator = db.relationship('User', backref='created_rubrics')
     
     def __repr__(self):
-        return f'<Rubric {self.name}>'
+        return f'<Rubric {self.id} - {self.name}>'
     
-    def get_criteria_normalized(self):
-        """الحصول على معايير التقييم مع تطبيع الأوزان.
-        
-        Returns:
-            dict: معايير التقييم بعد تطبيع الأوزان
+    def add_criterion(self, name, description, weight, levels):
         """
-        if not self.criteria:
-            return {}
-        
-        total_weight = sum(criterion.get('weight', 0) for criterion in self.criteria.values())
-        
-        if total_weight == 0:
-            return self.criteria
-        
-        normalized_criteria = {}
-        for key, criterion in self.criteria.items():
-            normalized_criteria[key] = criterion.copy()
-            normalized_criteria[key]['normalized_weight'] = criterion.get('weight', 0) / total_weight
-            
-        return normalized_criteria
-    
-    def calculate_score(self, criteria_scores):
-        """حساب الدرجة الإجمالية بناءً على درجات المعايير.
+        إضافة معيار جديد إلى معيار التقييم
         
         Args:
-            criteria_scores (dict): درجات المعايير (الاسم: الدرجة)
-            
+            name (str): اسم المعيار
+            description (str): وصف المعيار
+            weight (float): وزن المعيار من إجمالي التقييم (0-100)
+            levels (dict): مستويات التقييم للمعيار (مثال: {"مستوى 1": "وصف"، "مستوى 2": "وصف"})
+        
         Returns:
-            float: الدرجة الإجمالية
+            bool: True إذا تمت الإضافة بنجاح، False خلاف ذلك
         """
-        if not self.criteria or not criteria_scores:
-            return 0
+        if not self.criteria:
+            self.criteria = {}
         
-        normalized_criteria = self.get_criteria_normalized()
+        # التحقق من عدم وجود معيار بنفس الاسم
+        if name in self.criteria:
+            return False
         
-        total_score = 0
-        for key, criterion in normalized_criteria.items():
-            if key in criteria_scores:
-                # حساب النسبة المئوية من الدرجة القصوى للمعيار
-                max_criterion_score = criterion.get('max_score', 100)
-                criterion_score = criteria_scores[key]
-                
-                if max_criterion_score > 0:
-                    score_percentage = criterion_score / max_criterion_score
-                else:
-                    score_percentage = 0
-                
-                # إضافة الدرجة المرجحة إلى المجموع
-                total_score += score_percentage * criterion.get('normalized_weight', 0) * self.max_score
+        self.criteria[name] = {
+            'description': description,
+            'weight': weight,
+            'levels': levels
+        }
         
-        return round(total_score, 2)
+        return True
+    
+    def update_criterion(self, name, **kwargs):
+        """
+        تحديث معيار موجود
+        
+        Args:
+            name (str): اسم المعيار
+            **kwargs: القيم المراد تحديثها (description, weight, levels)
+        
+        Returns:
+            bool: True إذا تم التحديث بنجاح، False خلاف ذلك
+        """
+        if not self.criteria or name not in self.criteria:
+            return False
+        
+        for key, value in kwargs.items():
+            if key in ['description', 'weight', 'levels']:
+                self.criteria[name][key] = value
+        
+        return True
+    
+    def remove_criterion(self, name):
+        """
+        إزالة معيار من معيار التقييم
+        
+        Args:
+            name (str): اسم المعيار
+        
+        Returns:
+            bool: True إذا تمت الإزالة بنجاح، False خلاف ذلك
+        """
+        if not self.criteria or name not in self.criteria:
+            return False
+        
+        del self.criteria[name]
+        return True
+    
+    def get_criteria_list(self):
+        """
+        الحصول على قائمة بجميع المعايير
+        
+        Returns:
+            list: قائمة بجميع المعايير
+        """
+        if not self.criteria:
+            return []
+        
+        return [{
+            'name': name,
+            'description': data['description'],
+            'weight': data['weight'],
+            'levels': data['levels']
+        } for name, data in self.criteria.items()]
     
     def to_dict(self):
-        """تحويل بيانات معيار التقييم إلى قاموس.
+        """
+        تحويل بيانات معيار التقييم إلى قاموس
         
         Returns:
             dict: بيانات معيار التقييم
@@ -92,5 +122,5 @@ class Rubric(db.Model):
             'max_score': self.max_score,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

@@ -1,317 +1,220 @@
 """
-واجهات API في نظام تقييم BTEC
+وحدة مسارات واجهة برمجة التطبيقات (API) لنظام تقييم BTEC
 """
 
-import logging
+from datetime import datetime, timedelta
 import json
-from flask import request, jsonify, abort, session
 
-from app.routes import api_bp
+from flask import Blueprint, jsonify, request, current_app
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token, 
+    jwt_required, get_jwt_identity, get_jwt
+)
+from werkzeug.security import check_password_hash
+
+from app.extensions import db, jwt, limiter
 from app.models.user import User
 from app.models.evaluation import Evaluation
 from app.models.rubric import Rubric
 
-logger = logging.getLogger(__name__)
+api_blueprint = Blueprint('api', __name__)
 
-@api_bp.route('/health')
-def health():
-    """
-    نقطة نهاية للتحقق من صحة واجهة API
-    """
-    from datetime import datetime
-    return jsonify({
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "api_version": "1.0.0"
-    })
 
-@api_bp.route('/login', methods=['POST'])
-def login():
-    """
-    واجهة API لتسجيل الدخول
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+# قائمة الرموز المحظورة
+blacklist = set()
+
+
+@jwt.token_in_blocklist_loader
+def check_if_token_in_blacklist(jwt_header, jwt_payload):
+    """التحقق مما إذا كان الرمز في القائمة السوداء"""
+    jti = jwt_payload['jti']
+    return jti in blacklist
+
+
+@api_blueprint.route('/auth/login', methods=['POST'])
+@limiter.limit("10/minute")
+def api_login():
+    """تسجيل الدخول عبر API"""
+    if not request.is_json:
+        return jsonify({"error": "Missing JSON in request"}), 400
     
-    email = data.get('email')
-    password = data.get('password')
+    email = request.json.get('email', None)
+    password = request.json.get('password', None)
     
     if not email or not password:
-        return jsonify({'error': 'البريد الإلكتروني وكلمة المرور مطلوبين'}), 400
+        return jsonify({"error": "Missing email or password"}), 400
     
-    user = User.get_by_email(email)
-    if not user or not user.check_password(password):
-        return jsonify({'error': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'}), 401
+    user = User.query.filter_by(email=email).first()
+    
+    if not user or not check_password_hash(user.password_hash, password):
+        return jsonify({"error": "Invalid credentials"}), 401
     
     if not user.is_active:
-        return jsonify({'error': 'حسابك غير نشط'}), 403
+        return jsonify({"error": "Account is disabled"}), 403
     
-    # إنشاء رمز جلسة أو JWT هنا إذا لزم الأمر
+    # تحديث وقت آخر تسجيل دخول
+    user.last_login = datetime.utcnow()
+    db.session.commit()
     
-    return jsonify({
-        'success': True,
-        'message': 'تم تسجيل الدخول بنجاح',
-        'user': user.to_dict(exclude=['password_hash'])
-    })
-
-@api_bp.route('/register', methods=['POST'])
-def register():
-    """
-    واجهة API لتسجيل حساب جديد
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
-    
-    email = data.get('email')
-    password = data.get('password')
-    name = data.get('name')
-    
-    if not email or not password or not name:
-        return jsonify({'error': 'جميع الحقول مطلوبة'}), 400
-    
-    # التحقق مما إذا كان البريد الإلكتروني مستخدمًا بالفعل
-    existing_user = User.get_by_email(email)
-    if existing_user:
-        return jsonify({'error': 'البريد الإلكتروني مستخدم بالفعل'}), 400
-    
-    # إنشاء مستخدم جديد
-    user = User(email=email, name=name, role='student')
-    user.set_password(password)
-    if user.save():
-        return jsonify({
-            'success': True,
-            'message': 'تم التسجيل بنجاح',
-            'user': user.to_dict(exclude=['password_hash'])
-        })
-    else:
-        return jsonify({'error': 'حدث خطأ أثناء التسجيل'}), 500
-
-@api_bp.route('/users', methods=['GET'])
-def get_users():
-    """
-    واجهة API للحصول على قائمة المستخدمين
-    """
-    # التحقق من تسجيل الدخول ودور المستخدم
-    if 'user_id' not in session or session.get('user_role') != 'admin':
-        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذه البيانات'}), 403
-    
-    users = User.get_all()
-    return jsonify({
-        'success': True,
-        'users': [user.to_dict(exclude=['password_hash']) for user in users]
-    })
-
-@api_bp.route('/users/<int:user_id>', methods=['GET'])
-def get_user(user_id):
-    """
-    واجهة API للحصول على بيانات مستخدم معين
-    """
-    # التحقق من تسجيل الدخول
-    if 'user_id' not in session:
-        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
-    
-    # التحقق من صلاحية الوصول (المستخدم نفسه أو المسؤول)
-    if session['user_id'] != user_id and session.get('user_role') != 'admin':
-        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذه البيانات'}), 403
-    
-    user = User.get_by_id(user_id)
-    if not user:
-        return jsonify({'error': 'المستخدم غير موجود'}), 404
+    # إنشاء رموز الوصول والتحديث
+    access_token = create_access_token(identity=user.id)
+    refresh_token = create_refresh_token(identity=user.id)
     
     return jsonify({
-        'success': True,
-        'user': user.to_dict(exclude=['password_hash'])
-    })
+        "message": "Login successful",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role
+        }
+    }), 200
 
-@api_bp.route('/rubrics', methods=['GET'])
-def get_rubrics():
-    """
-    واجهة API للحصول على قائمة معايير التقييم
-    """
-    # التحقق من تسجيل الدخول
-    if 'user_id' not in session:
-        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
-    
-    rubrics = Rubric.get_all()
-    return jsonify({
-        'success': True,
-        'rubrics': [rubric.to_dict() for rubric in rubrics]
-    })
 
-@api_bp.route('/rubrics/<int:rubric_id>', methods=['GET'])
-def get_rubric(rubric_id):
-    """
-    واجهة API للحصول على معيار تقييم معين
-    """
-    # التحقق من تسجيل الدخول
-    if 'user_id' not in session:
-        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
-    
-    rubric = Rubric.get_by_id(rubric_id)
-    if not rubric:
-        return jsonify({'error': 'معيار التقييم غير موجود'}), 404
+@api_blueprint.route('/auth/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """تحديث رمز الوصول"""
+    current_user_id = get_jwt_identity()
+    new_access_token = create_access_token(identity=current_user_id)
     
     return jsonify({
-        'success': True,
-        'rubric': rubric.to_dict()
-    })
+        "access_token": new_access_token
+    }), 200
 
-@api_bp.route('/evaluations', methods=['GET'])
+
+@api_blueprint.route('/auth/logout', methods=['POST'])
+@jwt_required()
+def api_logout():
+    """تسجيل الخروج عبر API"""
+    jti = get_jwt()['jti']
+    blacklist.add(jti)
+    
+    return jsonify({"message": "Successfully logged out"}), 200
+
+
+@api_blueprint.route('/user', methods=['GET'])
+@jwt_required()
+def get_user():
+    """الحصول على معلومات المستخدم الحالي"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get_or_404(current_user_id)
+    
+    return jsonify({
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "role": user.role,
+        "is_active": user.is_active,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "last_login": user.last_login.isoformat() if user.last_login else None
+    }), 200
+
+
+@api_blueprint.route('/evaluations', methods=['GET'])
+@jwt_required()
 def get_evaluations():
-    """
-    واجهة API للحصول على قائمة التقييمات
-    """
-    # التحقق من تسجيل الدخول
-    if 'user_id' not in session:
-        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
+    """الحصول على قائمة التقييمات للمستخدم الحالي"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get_or_404(current_user_id)
     
-    # الحصول على التقييمات حسب دور المستخدم
-    user = User.get_by_id(session['user_id'])
-    if not user:
-        return jsonify({'error': 'حدث خطأ في جلستك'}), 401
-    
-    if user.role == 'admin':
-        # المسؤول يرى جميع التقييمات
-        evaluations = Evaluation.get_all()
-    elif user.role == 'teacher':
-        # المدرس يرى التقييمات التي قام بتقييمها وغير المقيمة
-        evaluations = Evaluation.get_by_evaluator(user.id) + Evaluation.get_pending()
+    if user.role == 'student':
+        evaluations = Evaluation.query.filter_by(student_id=user.id).all()
+    elif user.role in ['teacher', 'admin']:
+        evaluations = Evaluation.query.filter_by(evaluator_id=user.id).all()
     else:
-        # الطالب يرى التقييمات الخاصة به فقط
-        evaluations = Evaluation.get_by_student(user.id)
+        return jsonify({"error": "Unauthorized access"}), 403
     
-    return jsonify({
-        'success': True,
-        'evaluations': [evaluation.to_dict() for evaluation in evaluations]
-    })
+    result = []
+    for evaluation in evaluations:
+        result.append({
+            "id": evaluation.id,
+            "student_id": evaluation.student_id,
+            "assignment_id": evaluation.assignment_id,
+            "rubric_id": evaluation.rubric_id,
+            "score": evaluation.score,
+            "ai_score": evaluation.ai_score,
+            "status": evaluation.status,
+            "created_at": evaluation.created_at.isoformat() if evaluation.created_at else None,
+            "updated_at": evaluation.updated_at.isoformat() if evaluation.updated_at else None
+        })
+    
+    return jsonify(result), 200
 
-@api_bp.route('/evaluations/<int:evaluation_id>', methods=['GET'])
-def get_evaluation(evaluation_id):
-    """
-    واجهة API للحصول على تقييم معين
-    """
-    # التحقق من تسجيل الدخول
-    if 'user_id' not in session:
-        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه البيانات'}), 401
-    
-    # الحصول على التقييم
-    evaluation = Evaluation.get_by_id(evaluation_id)
-    if not evaluation:
-        return jsonify({'error': 'التقييم غير موجود'}), 404
-    
-    # التحقق من صلاحية الوصول
-    user = User.get_by_id(session['user_id'])
-    if not user:
-        return jsonify({'error': 'حدث خطأ في جلستك'}), 401
-    
-    # السماح بالوصول فقط للمسؤول أو المدرس أو الطالب صاحب التقييم
-    if user.role not in ['admin', 'teacher'] and evaluation.student_id != user.id:
-        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذا التقييم'}), 403
-    
-    return jsonify({
-        'success': True,
-        'evaluation': evaluation.to_dict(),
-        'student': User.get_by_id(evaluation.student_id).to_dict() if evaluation.student_id else None,
-        'rubric': Rubric.get_by_id(evaluation.rubric_id).to_dict() if evaluation.rubric_id else None,
-        'evaluator': User.get_by_id(evaluation.evaluator_id).to_dict() if evaluation.evaluator_id else None
-    })
 
-@api_bp.route('/evaluations', methods=['POST'])
+@api_blueprint.route('/rubrics', methods=['GET'])
+@jwt_required()
+def get_rubrics():
+    """الحصول على قائمة معايير التقييم"""
+    rubrics = Rubric.query.all()
+    
+    result = []
+    for rubric in rubrics:
+        result.append({
+            "id": rubric.id,
+            "name": rubric.name,
+            "description": rubric.description,
+            "max_score": rubric.max_score,
+            "created_by": rubric.created_by,
+            "created_at": rubric.created_at.isoformat() if rubric.created_at else None,
+            "updated_at": rubric.updated_at.isoformat() if rubric.updated_at else None
+        })
+    
+    return jsonify(result), 200
+
+
+@api_blueprint.route('/evaluate', methods=['POST'])
+@jwt_required()
 def create_evaluation():
-    """
-    واجهة API لإنشاء تقييم جديد
-    """
-    # التحقق من تسجيل الدخول
-    if 'user_id' not in session:
-        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه الوظيفة'}), 401
+    """إنشاء تقييم جديد"""
+    if not request.is_json:
+        return jsonify({"error": "Missing JSON in request"}), 400
     
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
+    current_user_id = get_jwt_identity()
+    user = User.query.get_or_404(current_user_id)
     
-    # الحصول على البيانات من الطلب
-    student_id = session['user_id']  # الطالب هو المستخدم الحالي
+    # التحقق من صلاحيات المستخدم
+    if user.role not in ['teacher', 'admin']:
+        return jsonify({"error": "Unauthorized access"}), 403
+    
+    data = request.json
+    student_id = data.get('student_id')
     assignment_id = data.get('assignment_id')
     rubric_id = data.get('rubric_id')
     submission_text = data.get('submission_text')
     
-    # التحقق من صحة البيانات
-    if not assignment_id or not rubric_id or not submission_text:
-        return jsonify({'error': 'جميع الحقول مطلوبة'}), 400
+    # التحقق من وجود البيانات المطلوبة
+    if not all([student_id, assignment_id, rubric_id, submission_text]):
+        return jsonify({"error": "Missing required fields"}), 400
     
-    # التحقق من وجود معيار التقييم
-    rubric = Rubric.get_by_id(rubric_id)
+    # التحقق من وجود الطالب ومعيار التقييم
+    student = User.query.get(student_id)
+    rubric = Rubric.query.get(rubric_id)
+    
+    if not student or student.role != 'student':
+        return jsonify({"error": "Invalid student ID"}), 400
+    
     if not rubric:
-        return jsonify({'error': 'معيار التقييم غير موجود'}), 400
+        return jsonify({"error": "Invalid rubric ID"}), 400
     
-    # إنشاء تقييم جديد
+    # إنشاء التقييم الجديد
     evaluation = Evaluation(
         student_id=student_id,
         assignment_id=assignment_id,
         rubric_id=rubric_id,
         submission_text=submission_text,
+        evaluator_id=current_user_id,
         status='pending'
     )
     
-    if evaluation.save():
-        return jsonify({
-            'success': True,
-            'message': 'تم إنشاء التقييم بنجاح',
-            'evaluation': evaluation.to_dict()
-        })
-    else:
-        return jsonify({'error': 'حدث خطأ أثناء إنشاء التقييم'}), 500
-
-@api_bp.route('/evaluations/<int:evaluation_id>/evaluate', methods=['POST'])
-def evaluate_submission(evaluation_id):
-    """
-    واجهة API لتقييم مهمة
-    """
-    # التحقق من تسجيل الدخول ودور المستخدم
-    if 'user_id' not in session:
-        return jsonify({'error': 'يجب تسجيل الدخول للوصول إلى هذه الوظيفة'}), 401
+    db.session.add(evaluation)
+    db.session.commit()
     
-    user = User.get_by_id(session['user_id'])
-    if not user or user.role not in ['admin', 'teacher']:
-        return jsonify({'error': 'ليس لديك صلاحية الوصول إلى هذه الوظيفة'}), 403
+    # TODO: استدعاء خدمة التقييم الآلي هنا
     
-    # الحصول على التقييم
-    evaluation = Evaluation.get_by_id(evaluation_id)
-    if not evaluation:
-        return jsonify({'error': 'التقييم غير موجود'}), 404
-    
-    # التحقق من حالة التقييم
-    if evaluation.status != 'pending':
-        return jsonify({'error': 'لا يمكن تقييم مهمة تم تقييمها مسبقًا'}), 400
-    
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'البيانات المطلوبة غير موجودة'}), 400
-    
-    # الحصول على البيانات من الطلب
-    score = data.get('score')
-    evaluator_comments = data.get('evaluator_comments')
-    evaluation_result = data.get('evaluation_result')
-    
-    # التحقق من صحة البيانات
-    if not score or not evaluator_comments:
-        return jsonify({'error': 'الدرجة والتعليقات مطلوبة'}), 400
-    
-    # تحديث التقييم
-    evaluation.evaluator_id = user.id
-    evaluation.score = float(score)
-    evaluation.evaluator_comments = evaluator_comments
-    if evaluation_result:
-        evaluation.evaluation_result = evaluation_result
-    evaluation.status = 'completed'
-    
-    if evaluation.save():
-        return jsonify({
-            'success': True,
-            'message': 'تم تقييم المهمة بنجاح',
-            'evaluation': evaluation.to_dict()
-        })
-    else:
-        return jsonify({'error': 'حدث خطأ أثناء تقييم المهمة'}), 500
+    return jsonify({
+        "message": "Evaluation created successfully",
+        "evaluation_id": evaluation.id
+    }), 201

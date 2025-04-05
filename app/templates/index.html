@@ -1,373 +1,172 @@
-{% extends 'base.html' %}
-
-{% block title %}الرئيسية - نظام تقييم BTEC{% endblock %}
-
-{% block hero %}
-<section class="hero">
-    <div class="container">
-        <div class="hero-content">
-            <h1 class="hero-title neon-text">نظام تقييم BTEC</h1>
-            <p class="hero-subtitle">منصة تقييم أكاديمي متطورة تعتمد على الذكاء الاصطناعي لتقديم تجربة تعليمية شخصية وذكية تمكّن المعلمين والطلاب من تحقيق أقصى إمكاناتهم.</p>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تقييم BTEC - الصفحة الرئيسية</title>
+    
+    <!-- الخطوط -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- أيقونات Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- أنماط CSS الخاصة بنا -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/btec-style.css') }}">
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="{{ url_for('main.index') }}" class="navbar-brand">نظام تقييم BTEC</a>
             
-            <div class="hero-actions">
-                {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-lg btn-primary magical-glow">
-                        <i class="fas fa-tachometer-alt"></i> لوحة التحكم
-                    </a>
-                {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-lg btn-primary magical-glow">
-                        <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
-                    </a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-outline magical-border">
-                        <i class="fas fa-user-plus"></i> إنشاء حساب
-                    </a>
-                {% endif %}
-            </div>
+            <ul class="navbar-nav">
+                <li><a href="{{ url_for('main.index') }}" class="nav-link active">الرئيسية</a></li>
+                <li><a href="{{ url_for('main.features') }}" class="nav-link">الميزات</a></li>
+                <li><a href="{{ url_for('main.about') }}" class="nav-link">حول النظام</a></li>
+                <li><a href="{{ url_for('main.contact') }}" class="nav-link">اتصل بنا</a></li>
+                
+                <!-- روابط للمستخدمين غير المسجلين فقط -->
+                <li class="guest-only"><a href="{{ url_for('auth.login') }}" class="nav-link">تسجيل الدخول</a></li>
+                <li class="guest-only"><a href="{{ url_for('auth.register') }}" class="nav-link">إنشاء حساب</a></li>
+                
+                <!-- روابط للمستخدمين المسجلين فقط -->
+                <li class="auth-only"><a href="{{ url_for('main.dashboard_redirect') }}" class="nav-link">لوحة التحكم</a></li>
+                <li class="auth-only">
+                    <a href="#" id="logout-btn" class="nav-link">تسجيل الخروج</a>
+                </li>
+            </ul>
         </div>
-    </div>
-</section>
-{% endblock %}
-
-{% block content %}
-<section class="features">
-    <h2 class="section-title">ميزات النظام</h2>
+    </nav>
     
-    <div class="dashboard-grid">
-        <div class="card magical-float">
-            <div class="card-title">
-                <span class="icon"><i class="fas fa-robot"></i></span>
-                تقييم ذكي
-            </div>
-            <div class="card-body">
-                <p>استخدم الذكاء الاصطناعي لتقييم أعمال الطلاب بشكل موضوعي وسريع، مع تقديم ملاحظات مفصلة تساعد على التحسين.</p>
-            </div>
-        </div>
-        
-        <div class="card magical-float">
-            <div class="card-title">
-                <span class="icon"><i class="fas fa-language"></i></span>
-                دعم اللغة العربية
-            </div>
-            <div class="card-body">
-                <p>تصميم كامل للنظام باللغة العربية، مع دعم ممتاز للمحتوى العربي والتقييم الذكي للنصوص العربية.</p>
-            </div>
-        </div>
-        
-        <div class="card magical-float">
-            <div class="card-title">
-                <span class="icon"><i class="fas fa-shield-alt"></i></span>
-                بلوكشين للتحقق
-            </div>
-            <div class="card-body">
-                <p>استخدام تقنية البلوكشين لضمان موثوقية وصحة نتائج التقييم، مما يمنع التلاعب ويزيد من مصداقية الشهادات.</p>
-            </div>
-        </div>
-        
-        <div class="card magical-float">
-            <div class="card-title">
-                <span class="icon"><i class="fas fa-chart-bar"></i></span>
-                تحليلات متقدمة
-            </div>
-            <div class="card-body">
-                <p>تحليلات مفصلة لأداء الطلاب والمعلمين، مع لوحات تحكم ذكية وتقارير تساعد على اتخاذ القرارات التعليمية.</p>
-            </div>
-        </div>
-        
-        <div class="card magical-float">
-            <div class="card-title">
-                <span class="icon"><i class="fas fa-clipboard-list"></i></span>
-                معايير تقييم مرنة
-            </div>
-            <div class="card-body">
-                <p>إنشاء وتخصيص معايير التقييم بمرونة كاملة لتناسب مختلف المواد والمستويات التعليمية.</p>
-            </div>
-        </div>
-        
-        <div class="card magical-float">
-            <div class="card-title">
-                <span class="icon"><i class="fas fa-users"></i></span>
-                إدارة الفصول
-            </div>
-            <div class="card-body">
-                <p>أدوات متكاملة لإدارة الفصول الدراسية، متابعة الحضور، وتقديم التقييمات للطلاب بسهولة وكفاءة.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="how-it-works">
-    <h2 class="section-title">كيف يعمل النظام؟</h2>
+    <!-- حاوية التنبيهات -->
+    <div id="alert-container" class="container my-3"></div>
     
-    <div class="steps-container">
-        <div class="step">
-            <div class="step-number">1</div>
-            <div class="step-content">
-                <h3>إنشاء معايير التقييم</h3>
-                <p>يقوم المعلمون بإنشاء معايير التقييم المناسبة لكل مادة ومهمة، مع تحديد الوزن النسبي لكل معيار ومستويات الأداء.</p>
-            </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-number">2</div>
-            <div class="step-content">
-                <h3>تسليم المهام</h3>
-                <p>يقوم الطلاب بتسليم مهامهم عبر النظام، سواء كانت نصوصًا أو ملفات، ليتم حفظها بشكل آمن.</p>
-            </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-number">3</div>
-            <div class="step-content">
-                <h3>التقييم الذكي</h3>
-                <p>يقوم الذكاء الاصطناعي بتحليل وتقييم أعمال الطلاب وفقًا لمعايير التقييم المحددة، وتقديم درجات وملاحظات تفصيلية.</p>
-            </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-number">4</div>
-            <div class="step-content">
-                <h3>مراجعة المعلم</h3>
-                <p>يراجع المعلم نتائج التقييم الآلي ويعدلها إذا لزم الأمر، ثم يعتمدها لتكون نهائية.</p>
-            </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-number">5</div>
-            <div class="step-content">
-                <h3>توثيق بالبلوكشين</h3>
-                <p>يتم توثيق نتائج التقييم النهائية على البلوكشين لضمان صحتها وموثوقيتها وعدم إمكانية التلاعب بها.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="testimonials">
-    <h2 class="section-title">ماذا يقول مستخدمو النظام؟</h2>
-    
-    <div class="testimonials-slider">
-        <div class="testimonial-card">
-            <div class="testimonial-content">
-                <p>"نظام تقييم BTEC أحدث ثورة في طريقة تقييمي لأعمال الطلاب. أصبح لدي الآن وقت أكثر للتركيز على التدريس بدلاً من قضاء ساعات في التصحيح."</p>
-            </div>
-            <div class="testimonial-author">
-                <img src="{{ url_for('static', filename='img/teachers/ahmed.jpg') }}" alt="أحمد" class="testimonial-avatar">
-                <div class="testimonial-info">
-                    <h4>أحمد محمود</h4>
-                    <p>أستاذ الرياضيات، جامعة القدس</p>
+    <!-- القسم الرئيسي -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">نظام تقييم BTEC المتطور</h1>
+                <p class="hero-subtitle">منصة تقييم ذكية تعتمد على الذكاء الاصطناعي لتحسين تجربة التعلم وتقديم تقييمات دقيقة وموثوقة</p>
+                
+                <div class="hero-buttons">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-lg">إنشاء حساب جديد</a>
+                    <a href="{{ url_for('main.features') }}" class="btn btn-outline btn-lg">استكشاف الميزات</a>
                 </div>
             </div>
         </div>
-        
-        <div class="testimonial-card">
-            <div class="testimonial-content">
-                <p>"كطالبة، أحب أن أحصل على تقييم فوري لعملي. النظام يقدم لي ملاحظات مفصلة تساعدني على التحسن، بدلاً من مجرد درجة نهائية."</p>
+    </section>
+    
+    <!-- قسم الميزات الرئيسية -->
+    <section class="features">
+        <div class="container">
+            <div class="features-header">
+                <h2>ميزات نظام تقييم BTEC</h2>
+                <p>اكتشف كيف يمكن لنظامنا المتقدم تحسين عملية التقييم والتعلم</p>
             </div>
-            <div class="testimonial-author">
-                <img src="{{ url_for('static', filename='img/students/fatima.jpg') }}" alt="فاطمة" class="testimonial-avatar">
-                <div class="testimonial-info">
-                    <h4>فاطمة علي</h4>
-                    <p>طالبة هندسة، الجامعة الإسلامية</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3 class="feature-title">تقييم ذكي</h3>
+                    <p class="feature-description">استفد من قوة الذكاء الاصطناعي لتقييم أعمال الطلاب بدقة وكفاءة عالية.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <h3 class="feature-title">توثيق بالبلوكشين</h3>
+                    <p class="feature-description">ضمان أمان وموثوقية التقييمات من خلال تخزينها في سلسلة الكتل.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-language"></i>
+                    </div>
+                    <h3 class="feature-title">دعم متعدد اللغات</h3>
+                    <p class="feature-description">تقييم في لغات متعددة مع دعم كامل للغة العربية وتنسيق RTL.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h3 class="feature-title">إدارة الفصول</h3>
+                    <p class="feature-description">أدوات متكاملة لإدارة الفصول الدراسية وتتبع حضور الطلاب.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3 class="feature-title">تقارير تحليلية</h3>
+                    <p class="feature-description">تحليلات متقدمة لأداء الطلاب مع رؤى قابلة للتنفيذ.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="feature-title">متوافق مع جميع الأجهزة</h3>
+                    <p class="feature-description">استخدم النظام من أي جهاز بفضل التصميم المتجاوب الكامل.</p>
                 </div>
             </div>
         </div>
-        
-        <div class="testimonial-card">
-            <div class="testimonial-content">
-                <p>"كمدير مدرسة، يساعدني نظام تقييم BTEC على متابعة أداء المعلمين والطلاب بشكل شامل. البيانات والتحليلات التي يقدمها النظام لا تقدر بثمن."</p>
+    </section>
+    
+    <!-- القدم -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-column">
+                <h4 class="footer-heading">نظام تقييم BTEC</h4>
+                <p>منصة تقييم متقدمة تعتمد على الذكاء الاصطناعي والبلوكشين لتوفير تجربة تعليمية استثنائية.</p>
             </div>
-            <div class="testimonial-author">
-                <img src="{{ url_for('static', filename='img/admins/khalid.jpg') }}" alt="خالد" class="testimonial-avatar">
-                <div class="testimonial-info">
-                    <h4>خالد يوسف</h4>
-                    <p>مدير مدرسة التميز الثانوية</p>
-                </div>
+            
+            <div class="footer-column">
+                <h4 class="footer-heading">روابط سريعة</h4>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+                    <li class="footer-link"><a href="{{ url_for('main.features') }}">الميزات</a></li>
+                    <li class="footer-link"><a href="{{ url_for('main.about') }}">حول النظام</a></li>
+                    <li class="footer-link"><a href="{{ url_for('main.contact') }}">اتصل بنا</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-column">
+                <h4 class="footer-heading">الدعم</h4>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="#">الأسئلة الشائعة</a></li>
+                    <li class="footer-link"><a href="#">الدعم الفني</a></li>
+                    <li class="footer-link"><a href="#">سياسة الخصوصية</a></li>
+                    <li class="footer-link"><a href="#">شروط الاستخدام</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-column">
+                <h4 class="footer-heading">تواصل معنا</h4>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="#"><i class="fas fa-envelope"></i> البريد الإلكتروني</a></li>
+                    <li class="footer-link"><a href="#"><i class="fab fa-twitter"></i> تويتر</a></li>
+                    <li class="footer-link"><a href="#"><i class="fab fa-facebook"></i> فيسبوك</a></li>
+                    <li class="footer-link"><a href="#"><i class="fab fa-linkedin"></i> لينكد إن</a></li>
+                </ul>
             </div>
         </div>
-    </div>
-</section>
-
-<section class="cta">
-    <div class="cta-container">
-        <h2 class="cta-title">ابدأ رحلتك مع نظام تقييم BTEC اليوم</h2>
-        <p class="cta-text">انضم إلى مجتمع المعلمين والطلاب الذين يستفيدون من قوة الذكاء الاصطناعي في مجال التعليم. سجل الآن واكتشف كيف يمكن للتكنولوجيا أن تغير تجربتك التعليمية.</p>
         
-        <div class="cta-actions">
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('dashboard') }}" class="btn btn-lg btn-primary magical-glow">
-                    <i class="fas fa-tachometer-alt"></i> الذهاب إلى لوحة التحكم
-                </a>
-            {% else %}
-                <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-primary magical-glow">
-                    <i class="fas fa-user-plus"></i> إنشاء حساب مجاني
-                </a>
-                <a href="{{ url_for('about') }}" class="btn btn-lg btn-outline magical-border">
-                    <i class="fas fa-info-circle"></i> اكتشف المزيد
-                </a>
-            {% endif %}
+        <div class="container footer-bottom">
+            <p>&copy; {{ now.year }} نظام تقييم BTEC. جميع الحقوق محفوظة.</p>
         </div>
-    </div>
-</section>
-{% endblock %}
-
-{% block styles %}
-<style>
-    .step {
-        display: flex;
-        margin-bottom: var(--space-xl);
-        align-items: flex-start;
-    }
+    </footer>
     
-    .step-number {
-        background: var(--primary-gradient);
-        color: white;
-        width: 40px;
-        height: 40px;
-        border-radius: var(--radius-circle);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: var(--font-size-lg);
-        font-weight: bold;
-        margin-left: var(--space-md);
-        flex-shrink: 0;
-    }
+    <!-- مكتبة Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     
-    .step-content {
-        flex: 1;
-    }
-    
-    .step-content h3 {
-        margin-top: 0;
-        margin-bottom: var(--space-xs);
-    }
-    
-    .testimonials-slider {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: var(--space-lg);
-        margin-top: var(--space-xl);
-    }
-    
-    .testimonial-card {
-        background-color: white;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--soft-shadow);
-        padding: var(--space-lg);
-        transition: var(--transition-medium);
-    }
-    
-    .testimonial-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--medium-shadow);
-    }
-    
-    .testimonial-content {
-        margin-bottom: var(--space-md);
-        position: relative;
-    }
-    
-    .testimonial-content::before {
-        content: '\201C';
-        font-size: 4em;
-        font-family: serif;
-        color: rgba(74, 62, 144, 0.1);
-        position: absolute;
-        top: -20px;
-        right: -10px;
-    }
-    
-    .testimonial-author {
-        display: flex;
-        align-items: center;
-    }
-    
-    .testimonial-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: var(--radius-circle);
-        margin-left: var(--space-sm);
-        object-fit: cover;
-    }
-    
-    .testimonial-info h4 {
-        margin: 0;
-        font-size: var(--font-size-md);
-    }
-    
-    .testimonial-info p {
-        margin: 0;
-        font-size: var(--font-size-sm);
-        color: rgba(0, 0, 0, 0.6);
-    }
-    
-    .cta-container {
-        background: var(--dark-gradient);
-        color: white;
-        border-radius: var(--radius-lg);
-        padding: var(--space-xl);
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .cta-container::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-image: url('/static/img/hero-pattern.svg');
-        background-size: 600px;
-        opacity: 0.1;
-    }
-    
-    .cta-title {
-        color: white;
-        margin-bottom: var(--space-md);
-        position: relative;
-    }
-    
-    .cta-text {
-        max-width: 800px;
-        margin: 0 auto var(--space-lg);
-        position: relative;
-    }
-    
-    .cta-actions {
-        position: relative;
-        display: flex;
-        justify-content: center;
-        gap: var(--space-md);
-    }
-    
-    @media (max-width: 768px) {
-        .cta-actions {
-            flex-direction: column;
-            align-items: center;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // تأثير الكتابة على العنوان الرئيسي
-        const heroTitle = document.querySelector('.hero-title');
-        if (heroTitle) {
-            setTimeout(() => {
-                heroTitle.classList.add('pulse');
-            }, 1000);
-        }
-        
-        // تأثير ظهور العناصر بالتدريج
-        const cards = document.querySelectorAll('.card');
-        cards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 200 * index);
-        });
-    });
-</script>
-{% endblock %}
+    <!-- JavaScript الخاص بنا -->
+    <script src="{{ url_for('static', filename='js/btec-app.js') }}"></script>
+</body>
+</html>
