@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ session.title }} - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>{{ session.title }}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.list_classrooms') }}">الفصول الدراسية</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.view_classroom', classroom_id=session.classroom_id) }}">{{ session.classroom_name }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.list_sessions', classroom_id=session.classroom_id) }}">الحصص التفاعلية</a></li>
+                <li class="breadcrumb-item active">{{ session.title }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if session.status == 'scheduled' %}
+            <span class="badge bg-warning text-dark p-2 mb-2">مجدولة</span>
+        {% elif session.status == 'active' %}
+            <span class="badge bg-success p-2 mb-2">جارية حالياً</span>
+        {% elif session.status == 'completed' %}
+            <span class="badge bg-secondary p-2 mb-2">مكتملة</span>
+        {% elif session.status == 'cancelled' %}
+            <span class="badge bg-danger p-2 mb-2">ملغاة</span>
+        {% endif %}
+        
+        {% if session.status == 'active' %}
+            <a href="{{ url_for('main.join_session', session_id=session.id) }}" class="btn btn-success">
+                <i class="fas fa-sign-in-alt ms-1"></i> انضمام للحصة
+            </a>
+        {% elif session.status == 'scheduled' and session.can_edit %}
+            <a href="{{ url_for('main.edit_session', session_id=session.id) }}" class="btn btn-secondary me-2">
+                <i class="fas fa-edit ms-1"></i> تعديل
+            </a>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelSessionModal">
+                <i class="fas fa-times ms-1"></i> إلغاء
+            </button>
+        {% elif session.status == 'completed' and session.has_recording %}
+            <a href="{{ url_for('main.view_recording', session_id=session.id) }}" class="btn btn-info">
+                <i class="fas fa-play ms-1"></i> مشاهدة التسجيل
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle ms-2"></i> معلومات الحصة
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-calendar-alt ms-2"></i> التاريخ:</strong>
+                        <span>{{ session.start_time|date_format }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-clock ms-2"></i> وقت البدء:</strong>
+                        <span>{{ session.start_time|time_format }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-hourglass-half ms-2"></i> المدة:</strong>
+                        <span>{{ session.duration }} دقيقة</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-chalkboard-teacher ms-2"></i> الفصل:</strong>
+                        <span>{{ session.classroom_name }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-user-tie ms-2"></i> المدرس:</strong>
+                        <span>{{ session.teacher_name }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-tag ms-2"></i> النوع:</strong>
+                        {% if session.session_type == 'live' %}
+                            <span class="badge bg-success">مباشرة</span>
+                        {% elif session.session_type == 'recorded' %}
+                            <span class="badge bg-info">مسجلة</span>
+                        {% else %}
+                            <span class="badge bg-secondary">مختلطة</span>
+                        {% endif %}
+                    </li>
+                    {% if session.status == 'scheduled' %}
+                    <li class="list-group-item">
+                        <strong><i class="fas fa-stopwatch ms-2"></i> الوقت المتبقي:</strong>
+                        <div class="countdown-timer" data-start-time="{{ session.start_time }}">
+                            --:--:--
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clipboard-list ms-2"></i> الأهداف التعليمية
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if session.objectives %}
+                    <ul class="mb-0">
+                        {% for objective in session.objectives.split('\n') %}
+                            {% if objective.strip() %}
+                                <li class="mb-2">{{ objective }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">لا توجد أهداف محددة لهذه الحصة.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-paperclip ms-2"></i> الملفات المرفقة
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if session.materials %}
+                    <ul class="list-group list-group-flush">
+                        {% for material in session.materials %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    {% if material.type == 'pdf' %}
+                                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    {% elif material.type == 'doc' %}
+                                        <i class="fas fa-file-word text-primary me-2"></i>
+                                    {% elif material.type == 'ppt' %}
+                                        <i class="fas fa-file-powerpoint text-warning me-2"></i>
+                                    {% elif material.type == 'img' %}
+                                        <i class="fas fa-file-image text-success me-2"></i>
+                                    {% else %}
+                                        <i class="fas fa-file me-2"></i>
+                                    {% endif %}
+                                    {{ material.name }}
+                                </span>
+                                <a href="{{ url_for('main.download_material', material_id=material.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">لا توجد ملفات مرفقة لهذه الحصة.</p>
+                {% endif %}
+
+                {% if session.can_edit and (session.status == 'scheduled' or session.status == 'active') %}
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#addMaterialModal">
+                            <i class="fas fa-plus ms-1"></i> إضافة ملف
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        {% if session.description %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-align-right ms-2"></i> وصف الحصة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ session.description|safe }}</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users ms-2"></i> المشاركون
+                </h5>
+                <span class="badge bg-primary p-2">{{ session.participant_count }} مشارك</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>وقت الانضمام</th>
+                                <th>وقت المغادرة</th>
+                                <th>الحضور</th>
+                                <th>المشاركة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participants-list">
+                            {% if session.participants %}
+                                {% for participant in session.participants %}
+                                <tr>
+                                    <td>{{ participant.user_name }}</td>
+                                    <td>{{ participant.join_time|time_format if participant.join_time else '-' }}</td>
+                                    <td>{{ participant.leave_time|time_format if participant.leave_time else '-' }}</td>
+                                    <td>
+                                        {% if participant.attendance_status == 'present' %}
+                                            <span class="badge bg-success">حاضر</span>
+                                        {% elif participant.attendance_status == 'absent' %}
+                                            <span class="badge bg-danger">غائب</span>
+                                        {% elif participant.attendance_status == 'late' %}
+                                            <span class="badge bg-warning">متأخر</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">معلق</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if participant.participation_score is not none %}
+                                            <div class="progress">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ participant.participation_score * 10 }}%;" 
+                                                     aria-valuenow="{{ participant.participation_score }}" 
+                                                     aria-valuemin="0" aria-valuemax="10">
+                                                    {{ participant.participation_score }}/10
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">غير مقيم</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">لا يوجد مشاركون في هذه الحصة حتى الآن.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if session.status == 'completed' %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar ms-2"></i> إحصائيات الحصة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-3">
+                                    <h3 class="text-primary mb-0">{{ session.stats.attendance_rate }}%</h3>
+                                    <p class="mb-0">نسبة الحضور</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-3">
+                                    <h3 class="text-success mb-0">{{ session.stats.avg_participation }}/10</h3>
+                                    <p class="mb-0">متوسط المشاركة</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-3">
+                                    <h3 class="text-info mb-0">{{ session.stats.actual_duration }}</h3>
+                                    <p class="mb-0">المدة الفعلية (د)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-3">
+                                    <h3 class="text-warning mb-0">{{ session.stats.questions_count }}</h3>
+                                    <p class="mb-0">عدد الأسئلة</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <h6>توزيع تقييمات المشاركة</h6>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ session.stats.participation_high }}%;" 
+                                 aria-valuenow="{{ session.stats.participation_high }}" aria-valuemin="0" aria-valuemax="100" 
+                                 data-bs-toggle="tooltip" title="ممتاز (8-10)">
+                                {{ session.stats.participation_high }}%
+                            </div>
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ session.stats.participation_medium }}%;" 
+                                 aria-valuenow="{{ session.stats.participation_medium }}" aria-valuemin="0" aria-valuemax="100"
+                                 data-bs-toggle="tooltip" title="جيد (5-7)">
+                                {{ session.stats.participation_medium }}%
+                            </div>
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ session.stats.participation_low }}%;" 
+                                 aria-valuenow="{{ session.stats.participation_low }}" aria-valuemin="0" aria-valuemax="100"
+                                 data-bs-toggle="tooltip" title="متوسط (1-4)">
+                                {{ session.stats.participation_low }}%
+                            </div>
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ session.stats.participation_none }}%;" 
+                                 aria-valuenow="{{ session.stats.participation_none }}" aria-valuemin="0" aria-valuemax="100"
+                                 data-bs-toggle="tooltip" title="غير مقيم (0)">
+                                {{ session.stats.participation_none }}%
+                            </div>
+                        </div>
+                        <div class="row text-center mt-2">
+                            <div class="col-3">
+                                <small><span class="badge bg-success">ممتاز</span> 8-10</small>
+                            </div>
+                            <div class="col-3">
+                                <small><span class="badge bg-info">جيد</span> 5-7</small>
+                            </div>
+                            <div class="col-3">
+                                <small><span class="badge bg-warning">متوسط</span> 1-4</small>
+                            </div>
+                            <div class="col-3">
+                                <small><span class="badge bg-danger">غير مقيم</span> 0</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if session.can_edit %}
+                        <div class="text-center mt-4">
+                            <a href="{{ url_for('main.session_report', session_id=session.id) }}" class="btn btn-primary">
+                                <i class="fas fa-file-alt ms-1"></i> عرض التقرير الكامل
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal: إلغاء الحصة -->
+{% if session.can_edit and session.status == 'scheduled' %}
+<div class="modal fade" id="cancelSessionModal" tabindex="-1" aria-labelledby="cancelSessionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelSessionModalLabel">إلغاء الحصة التفاعلية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <form method="post" action="{{ url_for('main.cancel_session') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="session_id" value="{{ session.id }}">
+                    <p>هل أنت متأكد من رغبتك في إلغاء الحصة <strong>{{ session.title }}</strong>؟</p>
+                    <p class="text-danger">سيتم إشعار جميع المشاركين المسجلين في هذه الحصة بإلغائها.</p>
+                    <div class="mb-3">
+                        <label for="cancelReason" class="form-label">سبب الإلغاء (اختياري)</label>
+                        <textarea class="form-control" id="cancelReason" name="cancel_reason" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="submit" class="btn btn-danger">إلغاء الحصة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal: إضافة ملف -->
+{% if session.can_edit and (session.status == 'scheduled' or session.status == 'active') %}
+<div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMaterialModalLabel">إضافة ملف للحصة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <form method="post" action="{{ url_for('main.add_session_material', session_id=session.id) }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="materialName" class="form-label">اسم الملف</label>
+                        <input type="text" class="form-control" id="materialName" name="material_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="materialFile" class="form-label">الملف</label>
+                        <input type="file" class="form-control" id="materialFile" name="material_file" required>
+                        <div class="form-text">الحد الأقصى لحجم الملف: 10 ميجابايت. الأنواع المسموحة: PDF، DOC، DOCX، PPT، PPTX، JPG، PNG.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="materialDescription" class="form-label">وصف الملف (اختياري)</label>
+                        <textarea class="form-control" id="materialDescription" name="material_description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if session.status == 'active' %}
+        // تحديث قائمة المشاركين للحصص النشطة
+        setInterval(function() {
+            loadParticipants('{{ session.id }}');
+        }, 30000); // تحديث كل 30 ثانية
+        {% endif %}
+    });
+</script>
+{% endblock %}

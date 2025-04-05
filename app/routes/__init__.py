@@ -27,6 +27,8 @@ def register_blueprints(app):
     from app.routes import evaluation
     from app.routes import admin
     from app.routes import api
+    from app.routes import classroom
+    from app.routes import session
     
     # تسجيل Blueprints
     app.register_blueprint(main_bp)

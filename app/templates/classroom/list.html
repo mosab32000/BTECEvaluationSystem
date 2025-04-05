@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}الفصول الدراسية - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="fas fa-chalkboard-teacher ms-2"></i> الفصول الدراسية</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                <li class="breadcrumb-item active">الفصول الدراسية</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+        <a href="{{ url_for('main.create_classroom') }}" class="btn btn-primary">
+            <i class="fas fa-plus ms-1"></i> إنشاء فصل جديد
+        </a>
+    </div>
+</div>
+
+{% if classrooms %}
+    <div class="row">
+        {% for classroom in classrooms %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card classroom-card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">{{ classroom.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong><i class="fas fa-tag ms-2"></i> الرمز:</strong> 
+                            <span class="badge bg-secondary">{{ classroom.code }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong><i class="fas fa-info-circle ms-2"></i> الوصف:</strong>
+                            <p class="card-text">{{ classroom.description or 'لا يوجد وصف' }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <strong><i class="fas fa-user-tie ms-2"></i> المدرس:</strong>
+                            <p class="card-text">{{ classroom.teacher_name }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <strong><i class="fas fa-users ms-2"></i> الطلاب:</strong>
+                            <p class="card-text">{{ classroom.student_count }} طالب</p>
+                        </div>
+                        <div>
+                            <strong><i class="fas fa-calendar-alt ms-2"></i> الحصص:</strong>
+                            <p class="card-text">{{ classroom.session_count }} حصة</p>
+                        </div>
+                    </div>
+                    <div class="card-footer text-center">
+                        <a href="{{ url_for('main.view_classroom', classroom_id=classroom.id) }}" class="btn btn-primary btn-sm me-2">
+                            <i class="fas fa-eye ms-1"></i> عرض
+                        </a>
+                        {% if classroom.is_teacher %}
+                            <a href="{{ url_for('main.edit_classroom', classroom_id=classroom.id) }}" class="btn btn-secondary btn-sm me-2">
+                                <i class="fas fa-edit ms-1"></i> تعديل
+                            </a>
+                            <a href="{{ url_for('main.create_session', classroom_id=classroom.id) }}" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus ms-1"></i> حصة جديدة
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info text-center" role="alert">
+        <i class="fas fa-info-circle fa-lg me-2"></i>
+        لا توجد فصول دراسية حالياً. يمكنك إنشاء فصل جديد من خلال النقر على زر "إنشاء فصل جديد".
+    </div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-question-circle ms-2"></i> كيفية الانضمام لفصل دراسي
+                </h5>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li class="mb-2">اطلب من المدرس رمز الفصل الدراسي.</li>
+                    <li class="mb-2">انقر على زر "انضمام لفصل" أدناه.</li>
+                    <li class="mb-2">أدخل رمز الفصل في النموذج.</li>
+                    <li>ستتم إضافتك إلى الفصل وستظهر في قائمة الفصول الخاصة بك.</li>
+                </ol>
+            </div>
+            <div class="card-footer text-center">
+                <a href="{{ url_for('main.join_classroom') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-sign-in-alt ms-1"></i> انضمام لفصل
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line ms-2"></i> إحصائيات
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="rounded-circle bg-primary text-white mx-auto d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                            <h3 class="mb-0">{{ total_classrooms }}</h3>
+                        </div>
+                        <p class="mt-2">الفصول الكلية</p>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="rounded-circle bg-success text-white mx-auto d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                            <h3 class="mb-0">{{ active_classrooms }}</h3>
+                        </div>
+                        <p class="mt-2">الفصول النشطة</p>
+                    </div>
+                    <div class="col-6">
+                        <div class="rounded-circle bg-info text-white mx-auto d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                            <h3 class="mb-0">{{ total_sessions }}</h3>
+                        </div>
+                        <p class="mt-2">الحصص التفاعلية</p>
+                    </div>
+                    <div class="col-6">
+                        <div class="rounded-circle bg-warning text-dark mx-auto d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                            <h3 class="mb-0">{{ upcoming_sessions }}</h3>
+                        </div>
+                        <p class="mt-2">الحصص القادمة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

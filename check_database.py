@@ -1,49 +1,95 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
-Simple script to check the database connection and tables for the BTEC Evaluation System.
+سكريبت بسيط للتحقق من اتصال قاعدة البيانات وعرض جداول نظام تقييم BTEC
 """
 
 import os
-from sqlalchemy import create_engine, inspect
+import sys
+import logging
+import psycopg2
+from dotenv import load_dotenv
+
+# تهيئة السجلات
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('database_check')
+
+# تحميل متغيرات البيئة
+load_dotenv()
 
 def test_db_connection():
-    """Test the database connection"""
-    db_url = os.environ.get("DATABASE_URL")
+    """اختبار الاتصال بقاعدة البيانات"""
+    logger.info("جاري التحقق من اتصال قاعدة البيانات...")
     
+    db_url = os.environ.get('DATABASE_URL')
     if not db_url:
-        print("No DATABASE_URL found in environment variables")
+        logger.error("خطأ: متغير البيئة DATABASE_URL غير موجود")
         return False
     
     try:
-        engine = create_engine(db_url)
-        conn = engine.connect()
+        # محاولة اتصال بقاعدة البيانات
+        conn = psycopg2.connect(db_url)
         conn.close()
-        print("✅ Database connection successful!")
-        return engine
+        logger.info("تم الاتصال بقاعدة البيانات بنجاح!")
+        return True
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        logger.error(f"فشل الاتصال بقاعدة البيانات: {str(e)}")
         return False
 
 def list_tables():
-    """List all tables in the database"""
-    engine = test_db_connection()
-    if not engine:
-        return
+    """عرض قائمة بجداول قاعدة البيانات"""
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url:
+        logger.error("خطأ: متغير البيئة DATABASE_URL غير موجود")
+        return []
     
-    inspector = inspect(engine)
-    tables = inspector.get_table_names()
+    try:
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor()
+        
+        # استعلام لعرض جميع الجداول في قاعدة البيانات
+        cursor.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            ORDER BY table_name
+        """)
+        
+        tables = [table[0] for table in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return tables
+    except Exception as e:
+        logger.error(f"فشل في استرجاع قائمة الجداول: {str(e)}")
+        return []
+
+def main():
+    """الدالة الرئيسية"""
+    logger.info("بدء فحص قاعدة بيانات نظام تقييم BTEC...")
     
-    print("\nDatabase Tables:")
-    print("----------------")
+    # التحقق من اتصال قاعدة البيانات
+    if not test_db_connection():
+        logger.error("فشل التحقق من قاعدة البيانات. يرجى التأكد من إعدادات الاتصال.")
+        sys.exit(1)
     
+    # عرض جداول قاعدة البيانات
+    tables = list_tables()
     if not tables:
-        print("No tables found in the database.")
+        logger.warning("لم يتم العثور على أي جداول في قاعدة البيانات.")
+        logger.info("قد تحتاج إلى تشغيل 'python init_db.py' لإنشاء الجداول.")
     else:
+        logger.info(f"تم العثور على {len(tables)} جدول:")
         for table in tables:
-            print(f"- {table}")
-            columns = inspector.get_columns(table)
-            for column in columns:
-                print(f"  • {column['name']} ({column['type']})")
-            print()
+            logger.info(f"  - {table}")
+    
+    logger.info("اكتمل فحص قاعدة البيانات.")
+    return 0
 
 if __name__ == "__main__":
-    list_tables()
+    sys.exit(main())

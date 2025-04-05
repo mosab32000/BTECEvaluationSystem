@@ -6,8 +6,12 @@ import os
 import logging
 from flask import Flask
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 
 logger = logging.getLogger(__name__)
+
+# إنشاء كائن قاعدة البيانات
+db = SQLAlchemy()
 
 def create_app():
     """
@@ -36,8 +40,8 @@ def create_app():
     CORS(app)
     
     # تهيئة قاعدة البيانات
-    from flask_sqlalchemy import SQLAlchemy
-    db = SQLAlchemy(app)
+    from app import db
+    db.init_app(app)
     
     from app.database import init_app
     init_app(app)
@@ -46,6 +50,10 @@ def create_app():
     from app.models.user import User
     from app.models.rubric import Rubric
     from app.models.evaluation import Evaluation
+    from app.models.classroom import Classroom
+    from app.models.session import Session
+    from app.models.participant import Participant
+    from app.models.attendance import Attendance
     
     with app.app_context():
         db.create_all()
