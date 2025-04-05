@@ -6,30 +6,23 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+import json
 
-from flask import Flask, request, jsonify, g, render_template
-from flask_cors import CORS
+from flask import Flask, request, g, jsonify, render_template
+from flask import redirect, url_for, session, flash
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_talisman import Talisman
 from flask_caching import Cache
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 
-from app.config import config, default_config
-from app.database import close_db, init_db, check_database_connection
+from app.database import init_db, close_db, check_database_connection
 
 # تهيئة السجل
 logger = logging.getLogger(__name__)
-
-# إعداد الكائنات العالمية
-login_manager = LoginManager()
-jwt = JWTManager()
-limiter = Limiter(key_func=get_remote_address)
-talisman = Talisman()
-cache = Cache()
 
 def create_app(config_name=None):
     """
@@ -41,44 +34,51 @@ def create_app(config_name=None):
     Returns:
         Flask: تطبيق Flask المُهيأ
     """
+    # تحميل متغيرات البيئة
+    load_dotenv()
+    
     # إنشاء تطبيق Flask
     app = Flask(__name__)
     
     # تحديد الإعدادات
     if config_name is None:
-        config_name = os.environ.get('FLASK_CONFIG', default_config)
+        config_name = os.environ.get('FLASK_ENV', 'development')
     
-    # تطبيق الإعدادات
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    # تحميل الإعدادات
+    if config_name == 'production':
+        app.config.from_object('app.config.ProductionConfig')
+    elif config_name == 'testing':
+        app.config.from_object('app.config.TestingConfig')
+    else:
+        app.config.from_object('app.config.DevelopmentConfig')
     
-    # تسجيل دوال تنظيف الحالة
-    app.teardown_appcontext(close_db)
+    # تهيئة تطبيق الإعدادات
+    config_class = app.config.pop('CONFIG_CLASS', None)
+    if config_class:
+        config_class.init_app(app)
     
-    # تهيئة الإضافات
-    login_manager.init_app(app)
-    jwt.init_app(app)
-    limiter.init_app(app)
-    cache.init_app(app)
+    # تهيئة السجل
+    setup_logging(app)
     
-    # تهيئة Talisman (أمان HTTP)
+    # تهيئة معايير أمان الويب
     if app.config.get('TALISMAN_ENABLED', True):
-        csp = app.config.get('TALISMAN_CONTENT_SECURITY_POLICY')
-        talisman.init_app(
+        talisman = Talisman(
             app,
             force_https=app.config.get('TALISMAN_FORCE_HTTPS', False),
-            content_security_policy=csp,
-            content_security_policy_nonce_in=['script-src', 'style-src']
+            strict_transport_security=app.config.get('TALISMAN_STRICT_TRANSPORT_SECURITY', True),
+            content_security_policy=app.config.get('TALISMAN_CONTENT_SECURITY_POLICY', None)
         )
     
-    # تهيئة CORS
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    # تهيئة JWT
+    jwt = JWTManager(app)
     
-    # إعداد مدير تسجيل الدخول
+    # تهيئة LoginManager
+    login_manager = LoginManager(app)
     login_manager.login_view = 'auth.login'
-    login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة.'
+    login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة'
     login_manager.login_message_category = 'info'
     
+    # دالة تحميل المستخدم
     @login_manager.user_loader
     def load_user(user_id):
         """
@@ -93,64 +93,124 @@ def create_app(config_name=None):
         from app.models.user import User
         return User.get_by_id(user_id)
     
-    # تسجيل البلوبرنت (Blueprints)
-    from app.routes.auth import bp as auth_bp
-    from app.routes.admin import bp as admin_bp
-    from app.routes.evaluation import bp as evaluation_bp
-    # from app.routes.api import bp as api_bp
+    # تهيئة محدد معدل الطلبات
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=app.config.get('RATELIMIT_DEFAULT', ["300/hour"]),
+        storage_uri=app.config.get('RATELIMIT_STORAGE_URL', "memory://"),
+        enabled=app.config.get('RATELIMIT_ENABLED', True)
+    )
     
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(admin_bp)
-    app.register_blueprint(evaluation_bp)
-    # app.register_blueprint(api_bp)
+    # تهيئة التخزين المؤقت
+    cache = Cache(app)
     
-    # معالجات الأخطاء
+    # تسجيل دالة إغلاق قاعدة البيانات
+    app.teardown_appcontext(close_db)
+    
+    # تهيئة قاعدة البيانات
+    with app.app_context():
+        init_db()
+    
+    # تسجيل مسارات التطبيق
+    from app.routes import auth, evaluation, admin
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(evaluation.bp)
+    app.register_blueprint(admin.bp)
+    
+    # معالجات الخطأ
     @app.errorhandler(404)
     def page_not_found(e):
         """معالج الخطأ 404 - الصفحة غير موجودة"""
-        if request.path.startswith('/api/'):
-            return jsonify({"error": "المورد غير موجود"}), 404
+        if request.is_json:
+            return jsonify({"error": "الصفحة غير موجودة"}), 404
+        
         return render_template('errors/404.html'), 404
     
     @app.errorhandler(500)
     def internal_server_error(e):
         """معالج الخطأ 500 - خطأ في الخادم"""
         logger.error(f"خطأ في الخادم: {e}")
-        if request.path.startswith('/api/'):
+        
+        if request.is_json:
             return jsonify({"error": "حدث خطأ في الخادم"}), 500
+        
         return render_template('errors/500.html'), 500
     
-    # طرق التطبيق الرئيسية
-    @app.route('/health')
+    # تسجيل مسارات API
+    @app.route('/api/health')
     def health():
         """نقطة نهاية للتحقق من صحة النظام"""
-        status = {
-            'status': 'up',
-            'services': {
-                'database': check_database_connection(),
-                'app': True
-            }
-        }
-        
-        # فحص حالة النظام
-        if not status['services']['database']:
-            status['status'] = 'degraded'
-        
-        # تحديد كود الاستجابة
-        status_code = 200 if status['status'] == 'up' else 503
-        
-        return jsonify(status), status_code
+        return jsonify({
+            "status": "up",
+            "database": check_database_connection()
+        })
     
+    # تسجيل الصفحة الرئيسية
     @app.route('/')
     def index():
         """الصفحة الرئيسية"""
         return render_template('index.html')
     
-    # تهيئة قاعدة البيانات
-    with app.app_context():
-        try:
-            init_db()
-        except Exception as e:
-            logger.error(f"خطأ في تهيئة قاعدة البيانات: {e}")
+    # تسجيل معالجات السياق
+    @app.context_processor
+    def utility_processor():
+        """
+        إضافة دوال ومتغيرات مفيدة للقوالب
+        
+        Returns:
+            dict: قاموس الدوال والمتغيرات
+        """
+        return {
+            'app_name': 'نظام تقييم BTEC',
+            'current_year': 2025,
+            'version': '1.0.0',
+        }
+    
+    logger.info(f"تم تهيئة التطبيق بنجاح في بيئة: {config_name}")
     
     return app
+
+def setup_logging(app):
+    """
+    إعداد نظام السجلات للتطبيق
+    
+    Args:
+        app: تطبيق Flask
+    """
+    # تعيين مستوى السجل
+    log_level = app.config.get('LOG_LEVEL', 'INFO')
+    
+    # إنشاء مجلد السجلات إذا لم يكن موجودًا
+    log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # تهيئة سجل الملف
+    log_file = app.config.get('LOG_FILE', os.path.join(log_dir, 'app.log'))
+    file_handler = RotatingFileHandler(log_file, maxBytes=10485760, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    file_handler.setLevel(getattr(logging, log_level))
+    
+    # تهيئة سجل وحدة التحكم
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+    console_handler.setLevel(getattr(logging, log_level))
+    
+    # إعداد السجل الرئيسي
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, log_level))
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    
+    # إضافة معالجات إلى سجل التطبيق
+    app.logger.addHandler(file_handler)
+    app.logger.addHandler(console_handler)
+    app.logger.setLevel(getattr(logging, log_level))
+    
+    # تعيين مستوى سجل Werkzeug
+    logging.getLogger('werkzeug').setLevel(getattr(logging, app.config.get('WERKZEUG_LOG_LEVEL', 'WARNING')))
+    
+    logger.info(f"تم إعداد السجلات بمستوى: {log_level}")
