@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة التحكم - نظام تقييم BTEC{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1 class="text-gradient">مرحباً، {{ current_user.name }}!</h1>
+    <p class="dashboard-subtitle">مرحباً بك في لوحة تحكم نظام تقييم BTEC. هنا يمكنك إدارة التقييمات، معايير التقييم، والفصول الدراسية.</p>
+</div>
+
+<div class="stats-container">
+    <div class="stats-header">
+        <h2><i class="fas fa-chart-line"></i> إحصائياتك</h2>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card magical-border">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-check"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="evaluations-count">0</span>
+                <span class="stat-label">التقييمات</span>
+            </div>
+        </div>
+        
+        <div class="stat-card magical-border">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="classes-count">0</span>
+                <span class="stat-label">الفصول</span>
+            </div>
+        </div>
+        
+        <div class="stat-card magical-border">
+            <div class="stat-icon">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="students-count">0</span>
+                <span class="stat-label">الطلاب</span>
+            </div>
+        </div>
+        
+        <div class="stat-card magical-border">
+            <div class="stat-icon">
+                <i class="fas fa-award"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="avg-score">0</span>
+                <span class="stat-label">متوسط الدرجات</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="dashboard-column">
+        <div class="card magical-border">
+            <div class="card-title">
+                <span class="icon"><i class="fas fa-clipboard-check"></i></span>
+                أحدث التقييمات
+            </div>
+            <div class="card-body">
+                <div id="recent-evaluations" class="recent-items-list">
+                    <div class="loading">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        <span>جاري تحميل التقييمات...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('evaluations.index') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-list"></i> عرض جميع التقييمات
+                </a>
+                {% if current_user.has_role('admin') or current_user.has_role('teacher') %}
+                <a href="{{ url_for('evaluations.create') }}" class="btn btn-accent btn-sm">
+                    <i class="fas fa-plus"></i> إنشاء تقييم جديد
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if current_user.has_role('admin') or current_user.has_role('teacher') %}
+        <div class="card magical-border">
+            <div class="card-title">
+                <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                معايير التقييم
+            </div>
+            <div class="card-body">
+                <div id="recent-rubrics" class="recent-items-list">
+                    <div class="loading">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        <span>جاري تحميل معايير التقييم...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('rubrics.index') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-list"></i> عرض جميع المعايير
+                </a>
+                <a href="{{ url_for('rubrics.create') }}" class="btn btn-accent btn-sm">
+                    <i class="fas fa-plus"></i> إنشاء معيار جديد
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="dashboard-column">
+        <div class="card magical-border">
+            <div class="card-title">
+                <span class="icon"><i class="fas fa-users"></i></span>
+                الفصول الدراسية
+            </div>
+            <div class="card-body">
+                <div id="recent-classes" class="recent-items-list">
+                    <div class="loading">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        <span>جاري تحميل الفصول...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('classes.index') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-list"></i> عرض جميع الفصول
+                </a>
+                {% if current_user.has_role('admin') or current_user.has_role('teacher') %}
+                <a href="{{ url_for('classes.create') }}" class="btn btn-accent btn-sm">
+                    <i class="fas fa-plus"></i> إنشاء فصل جديد
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card magical-border">
+            <div class="card-title">
+                <span class="icon"><i class="fas fa-bell"></i></span>
+                الإشعارات
+            </div>
+            <div class="card-body">
+                <div id="notifications" class="notifications-list">
+                    <div class="notification">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="notification-content">
+                            <p>مرحباً بك في نظام تقييم BTEC! استكشف المميزات المختلفة للنظام.</p>
+                            <span class="notification-time">الآن</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button id="mark-all-read" class="btn btn-outline btn-sm">
+                    <i class="fas fa-check-double"></i> تعليم الكل كمقروء
+                </button>
+                <a href="{{ url_for('notifications.index') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-bell"></i> جميع الإشعارات
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.has_role('admin') %}
+<div class="card magical-border">
+    <div class="card-title">
+        <span class="icon"><i class="fas fa-tachometer-alt"></i></span>
+        إحصائيات النظام
+    </div>
+    <div class="card-body">
+        <div class="admin-stats">
+            <div class="admin-stat">
+                <div class="admin-stat-value" id="total-users">0</div>
+                <div class="admin-stat-label">إجمالي المستخدمين</div>
+            </div>
+            <div class="admin-stat">
+                <div class="admin-stat-value" id="total-evaluations">0</div>
+                <div class="admin-stat-label">إجمالي التقييمات</div>
+            </div>
+            <div class="admin-stat">
+                <div class="admin-stat-value" id="total-classes">0</div>
+                <div class="admin-stat-label">إجمالي الفصول</div>
+            </div>
+            <div class="admin-stat">
+                <div class="admin-stat-value" id="ai-evaluations">0</div>
+                <div class="admin-stat-label">تقييمات الذكاء الاصطناعي</div>
+            </div>
+        </div>
+    </div>
+    <div class="card-actions">
+        <a href="{{ url_for('admin.index') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-cog"></i> لوحة الإدارة
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block styles %}
+<style>
+    .dashboard-header {
+        margin-bottom: var(--space-xl);
+    }
+    
+    .dashboard-subtitle {
+        color: rgba(0, 0, 0, 0.6);
+        max-width: 800px;
+    }
+    
+    .stats-container {
+        margin-bottom: var(--space-xl);
+    }
+    
+    .stats-header {
+        margin-bottom: var(--space-md);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: var(--space-md);
+    }
+    
+    .stat-card {
+        background-color: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
+        box-shadow: var(--soft-shadow);
+        display: flex;
+        align-items: center;
+        transition: var(--transition-medium);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--medium-shadow);
+    }
+    
+    .stat-icon {
+        background: var(--primary-gradient);
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-circle);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-left: var(--space-md);
+    }
+    
+    .stat-info {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .stat-value {
+        font-size: var(--font-size-xxl);
+        font-weight: bold;
+        color: var(--primary-color);
+        line-height: 1;
+    }
+    
+    .stat-label {
+        font-size: var(--font-size-sm);
+        color: rgba(0, 0, 0, 0.6);
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: var(--space-lg);
+        margin-bottom: var(--space-xl);
+    }
+    
+    .dashboard-column {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-lg);
+    }
+    
+    .recent-items-list {
+        margin-bottom: var(--space-md);
+    }
+    
+    .loading {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        color: rgba(0, 0, 0, 0.4);
+        padding: var(--space-lg) 0;
+        justify-content: center;
+    }
+    
+    .notifications-list {
+        margin-bottom: var(--space-md);
+    }
+    
+    .notification {
+        display: flex;
+        padding: var(--space-sm) 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .notification:last-child {
+        border-bottom: none;
+    }
+    
+    .notification i {
+        color: var(--primary-color);
+        margin-left: var(--space-sm);
+        margin-top: var(--space-xs);
+    }
+    
+    .notification-content {
+        flex: 1;
+    }
+    
+    .notification-content p {
+        margin: 0;
+    }
+    
+    .notification-time {
+        font-size: var(--font-size-xs);
+        color: rgba(0, 0, 0, 0.4);
+    }
+    
+    .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: var(--space-lg);
+    }
+    
+    .admin-stat {
+        text-align: center;
+    }
+    
+    .admin-stat-value {
+        font-size: var(--font-size-xxl);
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+    
+    .admin-stat-label {
+        font-size: var(--font-size-sm);
+        color: rgba(0, 0, 0, 0.6);
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تحميل البيانات الأولية
+        loadDashboardData();
+        
+        // تهيئة الأحداث
+        const markAllReadButton = document.getElementById('mark-all-read');
+        if (markAllReadButton) {
+            markAllReadButton.addEventListener('click', function() {
+                markAllNotificationsAsRead();
+            });
+        }
+        
+        // تأثيرات بصرية
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100 * index);
+        });
+    });
+</script>
+{% endblock %}

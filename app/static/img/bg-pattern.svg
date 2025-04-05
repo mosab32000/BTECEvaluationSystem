@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <defs>
+    <pattern id="pattern" patternUnits="userSpaceOnUse" width="100" height="100">
+      <path d="M0 0h100v100H0z" fill="#f0f6ff"/>
+      <path d="M25 25a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm50 50a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="#e6efff"/>
+      <path d="M25 75a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm50-50a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="#e6efff"/>
+      <path d="M50 25a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 50a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" fill="#d1e3ff"/>
+      <path d="M75 25a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-50 50a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="#d1e3ff"/>
+      <path d="M75 75a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-50-50a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="#d1e3ff"/>
+      <path d="M0 50h100M50 0v100" stroke="#e6efff" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="600" height="600" fill="url(#pattern)"/>
+</svg>
