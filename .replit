@@ -4,7 +4,7 @@ run = ["sh", "-c", "python backend/wsgi.py"]
 build = ["sh", "-c", "pip install -r backend/requirements.txt"]
 
 [workflows]
-runButton = "Task Audit App"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Flask"
@@ -33,6 +33,29 @@ mode = "sequential"
 task = "shell.exec"
 args = "python run_flask_server.py"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "btec_server.sh"
+
+[[workflows.workflow]]
+name = "btec_server.sh"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "curl -s http://localhost:5000/ | head -n 30"
+
 [nix]
 channel = "stable-24_05"
 
@@ -42,7 +65,7 @@ externalPort = 3000
 
 [[ports]]
 localPort = 5000
-externalPort = 8080
+externalPort = 5000
 
 [[ports]]
 localPort = 8000

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تقييم BTEC الأسطوري</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/btec-mystical.css">
+    <style>
+        :root {
+            --primary-color: #4a32a7;
+            --secondary-color: #9c6fe6;
+            --accent-color: #ff9240;
+            --bg-dark: #1a103d;
+            --text-light: #f5f3ff;
+            --mystical-gold: #ffdc73;
+            --mystical-blue: #3b8eea;
+            --castle-stone: #72757e;
+        }
+        
+        body {
+            font-family: 'Amiri', 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(74, 50, 167, 0.4) 0%, rgba(26, 16, 61, 0) 70%),
+                radial-gradient(circle at 80% 70%, rgba(156, 111, 230, 0.4) 0%, rgba(26, 16, 61, 0) 70%);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .mystical-container {
+            position: relative;
+            padding-top: 2rem;
+            z-index: 1;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--mystical-gold);
+            text-shadow: 0 0 10px rgba(255, 220, 115, 0.5),
+                         0 0 20px rgba(255, 220, 115, 0.3);
+            margin-bottom: 1rem;
+        }
+        
+        .header p {
+            font-size: 1.5rem;
+            color: var(--text-light);
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .feature-card {
+            background: linear-gradient(145deg, rgba(74, 50, 167, 0.2), rgba(26, 16, 61, 0.8));
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(156, 111, 230, 0.2);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            border-color: var(--mystical-gold);
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(156, 111, 230, 0.1), transparent 70%);
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            color: var(--mystical-gold);
+            background: linear-gradient(135deg, var(--mystical-gold), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .feature-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--mystical-blue);
+        }
+        
+        .feature-description {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            opacity: 0.8;
+        }
+        
+        .castle-section {
+            padding: 5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .castle-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(26, 16, 61, 0.7), rgba(26, 16, 61, 0.9)),
+                        url('/static/images/castle-bg.svg');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            filter: brightness(0.7);
+        }
+        
+        .castle-content {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .castle-title {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--mystical-gold);
+            text-shadow: 0 0 10px rgba(255, 220, 115, 0.5);
+            margin-bottom: 1rem;
+        }
+        
+        .castle-description {
+            font-size: 1.3rem;
+            color: var(--text-light);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+        
+        .btn-mystical {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-light);
+            border: none;
+            border-radius: 30px;
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(74, 50, 167, 0.5);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn-mystical::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s ease;
+            z-index: -1;
+        }
+        
+        .btn-mystical:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(74, 50, 167, 0.6);
+            color: white;
+        }
+        
+        .btn-mystical:hover::before {
+            left: 100%;
+        }
+        
+        .mudaqqiq-section {
+            padding: 5rem 0;
+            background: linear-gradient(180deg, var(--bg-dark), #2a1a57);
+            position: relative;
+        }
+        
+        .mudaqqiq-orbs {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .mudaqqiq-orb {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 142, 234, 0.3), transparent);
+            filter: blur(5px);
+            animation: float 15s infinite ease-in-out;
+        }
+        
+        .mudaqqiq-orb:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: 10%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+        
+        .mudaqqiq-orb:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            top: 60%;
+            left: 15%;
+            animation-delay: -5s;
+            background: radial-gradient(circle, rgba(156, 111, 230, 0.3), transparent);
+        }
+        
+        .mudaqqiq-orb:nth-child(3) {
+            width: 350px;
+            height: 350px;
+            top: 30%;
+            right: 5%;
+            animation-delay: -8s;
+            background: radial-gradient(circle, rgba(255, 146, 64, 0.2), transparent);
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+            }
+            25% {
+                transform: translateY(-20px) translateX(10px);
+            }
+            50% {
+                transform: translateY(0) translateX(20px);
+            }
+            75% {
+                transform: translateY(20px) translateX(10px);
+            }
+        }
+        
+        .footer {
+            padding: 3rem 0;
+            background-color: rgba(26, 16, 61, 0.9);
+            text-align: center;
+        }
+        
+        .footer p {
+            color: var(--text-light);
+            opacity: 0.7;
+        }
+        
+        /* Responsive Tweaks */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .header p {
+                font-size: 1.2rem;
+            }
+            
+            .castle-title {
+                font-size: 2.2rem;
+            }
+            
+            .feature-card {
+                margin-bottom: 2rem;
+            }
+        }
+        
+        /* Magical stars animation */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: starAnimation 5s infinite;
+        }
+        
+        @keyframes starAnimation {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- النجوم السحرية في الخلفية -->
+    <div class="stars" id="stars"></div>
+
+    <!-- القائمة الرئيسية -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: rgba(26, 16, 61, 0.8); backdrop-filter: blur(10px);">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-scroll me-2"></i>
+                <span style="color: var(--mystical-gold);">نظام تقييم BTEC</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> الرئيسية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/castle-grok"><i class="fas fa-castle me-1"></i> قلعة Grok الأسطورية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/mudaqqiq"><i class="fas fa-check-double me-1"></i> منصة مُدقِّق</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api/info"><i class="fas fa-code me-1"></i> واجهة API</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <a href="/login" class="btn btn-outline-light me-2">تسجيل الدخول</a>
+                    <a href="/register" class="btn btn-mystical">إنشاء حساب</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="mystical-container container">
+        <header class="header">
+            <h1>نظام تقييم BTEC الأسطوري</h1>
+            <p>منصة تقييم ذكية تعتمد على الذكاء الاصطناعي لتسهيل عملية تقييم مهام BTEC بشكل دقيق وفعّال. نقدم لك تجربة فريدة من نوعها مع واجهة مستخدم مذهلة وتقنيات متطورة.</p>
+        </header>
+
+        <div class="row mb-5 g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3 class="feature-title">الذكاء الاصطناعي</h3>
+                    <p class="feature-description">استفد من قوة نماذج الذكاء الاصطناعي المتقدمة في تقييم المهام بشكل دقيق وموضوعي وفق معايير BTEC.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Blockchain</h3>
+                    <p class="feature-description">نضمن سلامة وموثوقية التقييمات باستخدام تقنية Blockchain لتوثيق النتائج بشكل غير قابل للتغيير.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-language"></i>
+                    </div>
+                    <h3 class="feature-title">متعدد اللغات</h3>
+                    <p class="feature-description">دعم كامل للغة العربية واللغات الأخرى مع اتجاه RTL والترجمة الآلية للمحتوى.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قسم قلعة Grok -->
+    <section class="castle-section">
+        <div class="castle-backdrop"></div>
+        <div class="container">
+            <div class="castle-content">
+                <h2 class="castle-title">قلعة Grok الأسطورية</h2>
+                <p class="castle-description">منصة تفاعلية تتيح لك التواصل مع مساعد الذكاء الاصطناعي المتطور Grok. استفد من قدراته الهائلة في فهم وحل المشكلات المعقدة.</p>
+                <a href="/castle-grok" class="btn btn-mystical btn-lg">
+                    <i class="fas fa-castle me-2"></i>زيارة القلعة
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- قسم منصة مُدقِّق -->
+    <section class="mudaqqiq-section">
+        <div class="mudaqqiq-orbs">
+            <div class="mudaqqiq-orb"></div>
+            <div class="mudaqqiq-orb"></div>
+            <div class="mudaqqiq-orb"></div>
+        </div>
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <h2 style="font-size: 2.5rem; color: var(--mystical-blue); margin-bottom: 1.5rem;">منصة مُدقِّق</h2>
+                    <p style="font-size: 1.2rem; margin-bottom: 2rem;">أداة متطورة لتدقيق ومراجعة المشاريع البرمجية، تتكامل بسلاسة مع نظام تقييم BTEC لتوفير تقييمات دقيقة ومفصلة للمهارات البرمجية.</p>
+                    <a href="/mudaqqiq" class="btn btn-mystical">
+                        <i class="fas fa-check-double me-2"></i>استخدام المنصة
+                    </a>
+                </div>
+                <div class="col-lg-6">
+                    <div style="background: rgba(26, 16, 61, 0.7); border-radius: 15px; padding: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); border: 1px solid rgba(156, 111, 230, 0.2);">
+                        <h3 style="color: var(--mystical-gold); margin-bottom: 1.5rem; font-size: 1.8rem;">مميزات منصة مُدقِّق</h3>
+                        <ul style="list-style-type: none; padding: 0;">
+                            <li style="margin-bottom: 1rem; padding-right: 2rem; position: relative;">
+                                <i class="fas fa-check-circle" style="color: var(--mystical-blue); position: absolute; right: 0; top: 5px;"></i>
+                                <span style="color: var(--text-light); font-size: 1.1rem;">تدقيق تلقائي للكود المصدري</span>
+                            </li>
+                            <li style="margin-bottom: 1rem; padding-right: 2rem; position: relative;">
+                                <i class="fas fa-check-circle" style="color: var(--mystical-blue); position: absolute; right: 0; top: 5px;"></i>
+                                <span style="color: var(--text-light); font-size: 1.1rem;">اكتشاف الأخطاء البرمجية وتقديم الاقتراحات</span>
+                            </li>
+                            <li style="margin-bottom: 1rem; padding-right: 2rem; position: relative;">
+                                <i class="fas fa-check-circle" style="color: var(--mystical-blue); position: absolute; right: 0; top: 5px;"></i>
+                                <span style="color: var(--text-light); font-size: 1.1rem;">تقييم جودة الكود وفق معايير BTEC</span>
+                            </li>
+                            <li style="margin-bottom: 1rem; padding-right: 2rem; position: relative;">
+                                <i class="fas fa-check-circle" style="color: var(--mystical-blue); position: absolute; right: 0; top: 5px;"></i>
+                                <span style="color: var(--text-light); font-size: 1.1rem;">تحليل شامل للمشاريع وتوثيق النتائج</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- الفوتر -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2025 نظام تقييم BTEC. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+
+    <!-- سكريبتات جافاسكريبت -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // إنشاء النجوم المتلألئة في الخلفية
+        document.addEventListener('DOMContentLoaded', function() {
+            const starsContainer = document.getElementById('stars');
+            const starsCount = 100;
+            
+            for (let i = 0; i < starsCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // الحجم العشوائي
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                // الموقع العشوائي
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                star.style.left = `${posX}%`;
+                star.style.top = `${posY}%`;
+                
+                // التأخير العشوائي
+                const delay = Math.random() * 5;
+                star.style.animationDelay = `${delay}s`;
+                
+                starsContainer.appendChild(star);
+            }
+            
+            // إضافة أيقونة القلعة بالفونت أوسم إذا لم تكن موجودة
+            if (!document.querySelector('.fa-castle')) {
+                const castleIcon = document.querySelectorAll('.fa-castle');
+                castleIcon.forEach(icon => {
+                    icon.classList.remove('fa-castle');
+                    icon.classList.add('fa-chess-rook');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

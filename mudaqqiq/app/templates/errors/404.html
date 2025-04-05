@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}404 - الصفحة غير موجودة{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h1 class="display-1 text-muted">404</h1>
+            <h2 class="mb-4">عذراً، الصفحة غير موجودة</h2>
+            <p class="lead mb-5">الصفحة التي تبحث عنها غير موجودة أو تم نقلها أو تغييرها.</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary">العودة للصفحة الرئيسية</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

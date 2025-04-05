@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قلعة Grok الأسطورية - نظام تقييم BTEC</title>
+
+    <!-- تضمين Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- تضمين Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <!-- تضمين PDF.js (مهم لعرض PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <!-- تحميل العامل بشكل منفصل (مطلوب لبعض المتصفحات/الإعدادات) -->
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';</script>
+
+    <link rel="stylesheet" href="{{ url_for('castle_grok.static', filename='css/castle_grok.css') }}">
+</head>
+<body>
+    <header class="castle-gate">
+        <h1>قلعة Grok الأسطورية</h1>
+        <p>بوابتك السحرية للتقييم والتعلم في مملكة BTEC</p>
+        <nav class="main-nav">
+            <a href="#task-hall"><i class="fas fa-tasks"></i> قاعة المهام</a>
+            <a href="#wisdom-tower"><i class="fas fa-lightbulb"></i> برج الحكمة</a>
+            <a href="#aether-hall"><i class="fas fa-cloud"></i> قاعة الأثير</a>
+            <a href="#hero-chronicle"><i class="fas fa-user-graduate"></i> سجل الأبطال</a>
+            <a href="#scroll-library"><i class="fas fa-scroll"></i> مكتبة المخطوطات</a>
+            <a href="#prophecy-room"><i class="fas fa-comment-dots"></i> غرفة النبوءات</a>
+            <a href="#magic-gallery"><i class="fas fa-images"></i> معرض السحر</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- قاعة المهام - لتقديم وتقييم المهام -->
+        <section id="task-hall">
+            <h2>قاعة المهام</h2>
+            <p class="section-intro">قدم مهامك هنا واحصل على تقييم سحري من مستشاري القلعة الحكماء.</p>
+            
+            <form id="task-form">
+                <div class="form-group">
+                    <label for="task-title">عنوان المهمة:</label>
+                    <input type="text" id="task-title" placeholder="اكتب عنواناً وصفياً لمهمتك...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="task-description">وصف المهمة:</label>
+                    <textarea id="task-description" placeholder="صف المهمة بالتفصيل..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="task-file">ملفات مرفقة:</label>
+                    <input type="file" id="task-file" multiple>
+                </div>
+                
+                <div class="form-group">
+                    <label for="criteria-select">معايير التقييم:</label>
+                    <select id="criteria-select">
+                        <option value="basic">المعايير الأساسية</option>
+                        <option value="advanced">المعايير المتقدمة</option>
+                        <option value="expert">معايير الخبراء</option>
+                        <option value="custom">معايير مخصصة</option>
+                    </select>
+                </div>
+                
+                <button type="submit"><i class="fas fa-magic"></i> أرسل للتقييم</button>
+            </form>
+            
+            <h3>المهام المقدمة</h3>
+            <div id="tasks-container">
+                <!-- سيتم إضافة المهام ديناميكياً هنا -->
+                <div class="task-item">
+                    <h4>مهمة البرمجة الأسبوعية</h4>
+                    <p class="task-meta">تم التقديم في: <span>2023-01-15</span> | الحالة: <span class="status-pending">قيد التقييم</span></p>
+                    <p class="task-excerpt">تطوير واجهة مستخدم لنظام إدارة المشاريع باستخدام React...</p>
+                    <div class="task-actions">
+                        <button class="view-btn"><i class="fas fa-eye"></i> عرض</button>
+                        <button class="edit-btn"><i class="fas fa-edit"></i> تعديل</button>
+                    </div>
+                </div>
+                
+                <div class="task-item">
+                    <h4>تقرير تحليل البيانات</h4>
+                    <p class="task-meta">تم التقديم في: <span>2023-01-10</span> | الحالة: <span class="status-completed">تم التقييم</span></p>
+                    <p class="task-excerpt">تحليل مجموعة بيانات المبيعات وتقديم توصيات لتحسين الأداء...</p>
+                    <div class="task-actions">
+                        <button class="view-btn"><i class="fas fa-eye"></i> عرض</button>
+                        <button class="result-btn"><i class="fas fa-star"></i> نتيجة التقييم</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- برج الحكمة - لعرض الدروس والمحتوى التعليمي -->
+        <section id="wisdom-tower">
+            <h2>برج الحكمة</h2>
+            <p class="section-intro">اكتشف كنوز المعرفة وتعلم المهارات الجديدة مع خبراء القلعة.</p>
+            
+            <div class="lessons-container">
+                <div class="lesson-card">
+                    <div class="lesson-image">
+                        <img src="https://via.placeholder.com/300x200.png?text=Web+Development" alt="تطوير الويب">
+                    </div>
+                    <div class="lesson-content">
+                        <h3>أساسيات تطوير الويب</h3>
+                        <p>تعلم HTML، CSS وJavaScript من الصفر وابنِ مواقع ويب متكاملة.</p>
+                        <p class="lesson-meta">المدة: <span>12 ساعة</span> | المستوى: <span>مبتدئ</span></p>
+                        <button class="enter-btn"><i class="fas fa-door-open"></i> دخول</button>
+                    </div>
+                </div>
+                
+                <div class="lesson-card">
+                    <div class="lesson-image">
+                        <img src="https://via.placeholder.com/300x200.png?text=Data+Analysis" alt="تحليل البيانات">
+                    </div>
+                    <div class="lesson-content">
+                        <h3>تحليل البيانات وعلم البيانات</h3>
+                        <p>تعلم كيفية جمع وتنظيف وتحليل وتصور البيانات لاستخراج الرؤى القيمة.</p>
+                        <p class="lesson-meta">المدة: <span>15 ساعة</span> | المستوى: <span>متوسط</span></p>
+                        <button class="enter-btn"><i class="fas fa-door-open"></i> دخول</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pdf-viewer-container">
+                <h3>عارض المخطوطات <i class="fas fa-book-open"></i></h3>
+                <div class="pdf-controls">
+                    <button id="prev-page"><i class="fas fa-arrow-left"></i> الصفحة السابقة</button>
+                    <span id="page-num">صفحة <span id="page-current">1</span> من <span id="page-total">?</span></span>
+                    <button id="next-page">الصفحة التالية <i class="fas fa-arrow-right"></i></button>
+                    <button id="zoom-in"><i class="fas fa-search-plus"></i></button>
+                    <button id="zoom-out"><i class="fas fa-search-minus"></i></button>
+                </div>
+                <canvas id="pdf-canvas"></canvas>
+            </div>
+        </section>
+        
+        <!-- قاعة الأثير - لحضور المحاضرات وتسجيل الحضور -->
+        <section id="aether-hall">
+            <h2>قاعة الأثير</h2>
+            <p class="section-intro">احضر الحصص والمحاضرات وشارك في الحوارات والنقاشات العلمية.</p>
+            
+            <div class="attendance-section">
+                <h3>سجل الحضور <i class="fas fa-clipboard-list"></i></h3>
+                <div id="attendance-log">
+                    <!-- سيتم إضافة سجلات الحضور ديناميكياً هنا -->
+                    <div class="attendance-record">
+                        <p class="attendance-date">الأحد، 15 يناير 2023</p>
+                        <p class="attendance-course">تطوير تطبيقات الويب المتقدمة</p>
+                        <p class="attendance-time">
+                            <span class="check-in"><i class="fas fa-sign-in-alt"></i> الحضور: 09:00 صباحاً</span>
+                            <span class="check-out"><i class="fas fa-sign-out-alt"></i> الانصراف: 11:30 صباحاً</span>
+                        </p>
+                        <p class="attendance-status completed"><i class="fas fa-check-circle"></i> مكتمل</p>
+                    </div>
+                    
+                    <div class="attendance-record">
+                        <p class="attendance-date">الثلاثاء، 17 يناير 2023</p>
+                        <p class="attendance-course">تحليل البيانات والإحصاء</p>
+                        <p class="attendance-time">
+                            <span class="check-in"><i class="fas fa-sign-in-alt"></i> الحضور: 01:30 مساءً</span>
+                            <span class="check-out pending"><i class="fas fa-hourglass-half"></i> الانصراف: لم يسجل بعد</span>
+                        </p>
+                        <p class="attendance-status in-progress"><i class="fas fa-spinner fa-spin"></i> جاري</p>
+                    </div>
+                </div>
+                
+                <div class="attendance-actions">
+                    <button id="check-in-btn"><i class="fas fa-sign-in-alt"></i> تسجيل الحضور</button>
+                    <button id="check-out-btn"><i class="fas fa-sign-out-alt"></i> تسجيل الانصراف</button>
+                </div>
+            </div>
+            
+            <div class="class-schedule">
+                <h3>جدول الحصص القادمة <i class="fas fa-calendar-alt"></i></h3>
+                <div class="schedule-container">
+                    <div class="schedule-item">
+                        <div class="schedule-time">الخميس، 09:00 - 11:00</div>
+                        <div class="schedule-details">
+                            <h4>أساسيات الذكاء الاصطناعي</h4>
+                            <p>المدرس: د. أحمد الرازي | القاعة: برج الحكمة (201)</p>
+                        </div>
+                        <button class="reminder-btn"><i class="fas fa-bell"></i> تذكير</button>
+                    </div>
+                    
+                    <div class="schedule-item">
+                        <div class="schedule-time">الأحد، 13:00 - 15:30</div>
+                        <div class="schedule-details">
+                            <h4>تطوير تطبيقات الهاتف المحمول</h4>
+                            <p>المدرس: م. سارة الخالدي | القاعة: قاعة التطبيقات (305)</p>
+                        </div>
+                        <button class="reminder-btn"><i class="fas fa-bell"></i> تذكير</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- سجل الأبطال - لعرض تقدم الطالب والإنجازات -->
+        <section id="hero-chronicle">
+            <h2>سجل الأبطال</h2>
+            <p class="section-intro">تتبع رحلتك في عالم المعرفة وشاهد إنجازاتك وتقدمك.</p>
+            
+            <div class="progress-overview">
+                <div class="progress-card">
+                    <div class="progress-icon"><i class="fas fa-trophy"></i></div>
+                    <div class="progress-stat">84%</div>
+                    <div class="progress-title">نسبة إكمال المقرر</div>
+                </div>
+                
+                <div class="progress-card">
+                    <div class="progress-icon"><i class="fas fa-award"></i></div>
+                    <div class="progress-stat">12</div>
+                    <div class="progress-title">شارات مكتسبة</div>
+                </div>
+                
+                <div class="progress-card">
+                    <div class="progress-icon"><i class="fas fa-star"></i></div>
+                    <div class="progress-stat">4.8</div>
+                    <div class="progress-title">متوسط التقييم</div>
+                </div>
+            </div>
+            
+            <div class="achievements-gallery">
+                <h3>شارات الإنجاز <i class="fas fa-award"></i></h3>
+                <div class="badges-container">
+                    <div class="badge-item">
+                        <img src="https://via.placeholder.com/80x80.png?text=Badge" alt="شارة المبرمج الماهر">
+                        <p>المبرمج الماهر</p>
+                    </div>
+                    <div class="badge-item">
+                        <img src="https://via.placeholder.com/80x80.png?text=Badge" alt="محلل البيانات">
+                        <p>محلل البيانات</p>
+                    </div>
+                    <div class="badge-item">
+                        <img src="https://via.placeholder.com/80x80.png?text=Badge" alt="عالم الذكاء الاصطناعي">
+                        <p>عالم الذكاء الاصطناعي</p>
+                    </div>
+                    <div class="badge-item locked">
+                        <img src="https://via.placeholder.com/80x80.png?text=Badge" alt="مهندس الشبكات - مغلق">
+                        <p>مهندس الشبكات</p>
+                        <div class="lock-overlay"><i class="fas fa-lock"></i></div>
+                    </div>
+                    <div class="badge-item locked">
+                        <img src="https://via.placeholder.com/80x80.png?text=Badge" alt="خبير أمن المعلومات - مغلق">
+                        <p>خبير أمن المعلومات</p>
+                        <div class="lock-overlay"><i class="fas fa-lock"></i></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="skills-chart">
+                <h3>مخطط المهارات <i class="fas fa-chart-radar"></i></h3>
+                <div class="chart-container">
+                    <canvas id="skills-radar-chart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <!-- مكتبة المخطوطات - لعرض المصادر والكتب -->
+        <section id="scroll-library">
+            <h2>مكتبة المخطوطات</h2>
+            <p class="section-intro">استكشف مجموعة من الكتب والمراجع والمصادر التعليمية النادرة.</p>
+            
+            <div class="library-filter">
+                <input type="text" id="book-search" placeholder="ابحث عن كتاب...">
+                <select id="book-category">
+                    <option value="all">جميع الفئات</option>
+                    <option value="programming">البرمجة</option>
+                    <option value="data">علوم البيانات</option>
+                    <option value="ai">الذكاء الاصطناعي</option>
+                    <option value="security">أمن المعلومات</option>
+                </select>
+                <button id="filter-btn"><i class="fas fa-filter"></i> تصفية</button>
+            </div>
+            
+            <div id="books-list">
+                <!-- سيتم إضافة الكتب ديناميكياً هنا -->
+                <div class="book-item">
+                    <button class="open-scroll-btn"><i class="fas fa-book-open"></i></button>
+                    <div class="book-info">
+                        <h4>مقدمة في علوم الحاسب</h4>
+                        <p class="book-meta">المؤلف: <span>د. علي الحسيني</span> | السنة: <span>2021</span></p>
+                        <p class="book-excerpt">كتاب شامل يغطي المفاهيم الأساسية لعلوم الحاسب والبرمجة وأنظمة التشغيل.</p>
+                        <div class="book-tags">
+                            <span class="tag">أساسيات</span>
+                            <span class="tag">علوم الحاسب</span>
+                            <span class="tag">برمجة</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="book-item">
+                    <button class="open-scroll-btn"><i class="fas fa-book-open"></i></button>
+                    <div class="book-info">
+                        <h4>مبادئ الذكاء الاصطناعي</h4>
+                        <p class="book-meta">المؤلف: <span>د. سمير الخطيب</span> | السنة: <span>2022</span></p>
+                        <p class="book-excerpt">مدخل شامل إلى عالم الذكاء الاصطناعي وتعلم الآلة ومعالجة اللغة الطبيعية.</p>
+                        <div class="book-tags">
+                            <span class="tag">ذكاء اصطناعي</span>
+                            <span class="tag">تعلم آلة</span>
+                            <span class="tag">متقدم</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- غرفة النبوءات - للدردشة مع المساعد الذكي -->
+        <section id="prophecy-room">
+            <h2>غرفة النبوءات</h2>
+            <p class="section-intro">تحدث مع مستشار القلعة الحكيم Grok واحصل على إجابات لأسئلتك.</p>
+            
+            <div id="chat-container">
+                <!-- سيتم إضافة الرسائل ديناميكياً هنا -->
+                <p><strong>Grok:</strong> مرحباً بك في غرفة النبوءات! أنا Grok، مستشار القلعة الحكيم. كيف يمكنني مساعدتك اليوم؟</p>
+                <p><strong>أنت:</strong> مرحباً! أحتاج مساعدة في فهم خوارزميات تعلم الآلة.</p>
+                <p><strong>Grok:</strong> بالتأكيد! تعلم الآلة هو فرع من الذكاء الاصطناعي يركز على بناء أنظمة تتعلم من البيانات. هناك ثلاثة أنواع رئيسية: التعلم الخاضع للإشراف، التعلم غير الخاضع للإشراف، وتعلم التعزيز. بأي نوع أنت مهتم تحديداً؟</p>
+            </div>
+            
+            <div class="chat-input">
+                <textarea id="chat-message" placeholder="اكتب رسالتك هنا..."></textarea>
+                <div class="chat-buttons">
+                    <button id="voice-btn"><i class="fas fa-microphone"></i></button>
+                    <button id="send-btn"><i class="fas fa-paper-plane"></i> إرسال</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- معرض السحر - لعرض الوسائط والمشاريع -->
+        <section id="magic-gallery">
+            <h2>معرض السحر</h2>
+            <p class="section-intro">استعرض أعمال ومشاريع الطلاب المميزة والوسائط التعليمية.</p>
+            
+            <div class="gallery-filter">
+                <button class="filter-btn active" data-filter="all">الكل</button>
+                <button class="filter-btn" data-filter="projects">المشاريع</button>
+                <button class="filter-btn" data-filter="media">الوسائط</button>
+                <button class="filter-btn" data-filter="awards">الجوائز</button>
+            </div>
+            
+            <div class="gallery-container">
+                <div class="gallery-item projects">
+                    <img src="https://via.placeholder.com/300x200.png?text=Project" alt="مشروع تطبيق ويب">
+                    <div class="gallery-overlay">
+                        <h3>تطبيق إدارة المهام</h3>
+                        <p>تطبيق ويب متكامل لإدارة المهام والمشاريع بتقنية React</p>
+                        <button><i class="fas fa-eye"></i> عرض</button>
+                    </div>
+                </div>
+                
+                <div class="gallery-item media">
+                    <img src="https://via.placeholder.com/300x200.png?text=Video" alt="فيديو تعليمي">
+                    <div class="gallery-overlay">
+                        <h3>أساسيات JavaScript</h3>
+                        <p>سلسلة فيديوهات تعليمية لتعلم JavaScript من الصفر</p>
+                        <button><i class="fas fa-play"></i> تشغيل</button>
+                    </div>
+                </div>
+                
+                <div class="gallery-item awards">
+                    <img src="https://via.placeholder.com/300x200.png?text=Award" alt="جائزة أفضل مشروع">
+                    <div class="gallery-overlay">
+                        <h3>جائزة أفضل مشروع تخرج</h3>
+                        <p>مشروع نظام توصية ذكي باستخدام تقنيات الذكاء الاصطناعي</p>
+                        <button><i class="fas fa-certificate"></i> التفاصيل</button>
+                    </div>
+                </div>
+                
+                <div class="gallery-item projects">
+                    <img src="https://via.placeholder.com/300x200.png?text=Project" alt="تطبيق هاتف ذكي">
+                    <div class="gallery-overlay">
+                        <h3>تطبيق الواقع المعزز</h3>
+                        <p>تطبيق للهاتف الذكي يستخدم تقنيات الواقع المعزز في التعليم</p>
+                        <button><i class="fas fa-eye"></i> عرض</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="castle-footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <h3>قلعة Grok الأسطورية</h3>
+                <p>نظام تقييم BTEC المتكامل</p>
+            </div>
+            <div class="footer-links">
+                <h4>روابط سريعة</h4>
+                <ul>
+                    <li><a href="#task-hall">قاعة المهام</a></li>
+                    <li><a href="#wisdom-tower">برج الحكمة</a></li>
+                    <li><a href="#prophecy-room">غرفة النبوءات</a></li>
+                    <li><a href="#hero-chronicle">سجل الأبطال</a></li>
+                </ul>
+            </div>
+            <div class="footer-contact">
+                <h4>تواصل معنا</h4>
+                <p><i class="fas fa-envelope"></i> support@btec-grok.edu</p>
+                <p><i class="fas fa-phone"></i> +1234567890</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2023 قلعة Grok الأسطورية - جميع الحقوق محفوظة</p>
+        </div>
+    </footer>
+
+    <!-- سكريبت الصفحة -->
+    <script src="{{ url_for('castle_grok.static', filename='js/castle_grok.js') }}"></script>
+</body>
+</html>

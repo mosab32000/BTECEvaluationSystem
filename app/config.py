@@ -73,6 +73,10 @@ class Config:
     AI_API_URL = os.environ.get('AI_API_URL', 'https://api.openai.com/v1')
     AI_MODEL = os.environ.get('AI_MODEL', 'gpt-4-turbo')
     
+    # إعدادات Google API
+    GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+    GOOGLE_SERVICES_ENABLED = os.environ.get('GOOGLE_SERVICES_ENABLED', 'False').lower() == 'true'
+    
     # إعدادات Redis (للتخزين المؤقت والمهام الخلفية)
     REDIS_URL = os.environ.get('REDIS_URL')
     

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - خطأ في الخادم | نظام تقييم BTEC</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/btec-mystical.css">
+    <style>
+        :root {
+            --primary-color: #4a32a7;
+            --secondary-color: #9c6fe6;
+            --accent-color: #ff9240;
+            --bg-dark: #1a103d;
+            --text-light: #f5f3ff;
+            --mystical-gold: #ffdc73;
+            --error-red: #e83e8c;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(232, 62, 140, 0.2) 0%, rgba(26, 16, 61, 0) 70%),
+                radial-gradient(circle at 80% 70%, rgba(156, 111, 230, 0.2) 0%, rgba(26, 16, 61, 0) 70%);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-family: 'Amiri', 'Segoe UI', Tahoma, sans-serif;
+        }
+        
+        .error-container {
+            max-width: 700px;
+            padding: 3rem 1rem;
+        }
+        
+        .error-code {
+            font-size: 8rem;
+            font-weight: bold;
+            color: var(--error-red);
+            text-shadow: 0 0 20px rgba(232, 62, 140, 0.3);
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+        
+        .error-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+        
+        .error-image {
+            max-width: 300px;
+            margin-bottom: 2rem;
+        }
+        
+        .home-button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-light);
+            border: none;
+            border-radius: 30px;
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(74, 50, 167, 0.5);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .home-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(74, 50, 167, 0.6);
+            color: white;
+        }
+        
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: starAnimation 5s infinite;
+        }
+        
+        @keyframes starAnimation {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+        }
+        
+        .magic-sparks {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .spark {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: var(--error-red);
+            border-radius: 50%;
+            filter: blur(1px);
+            opacity: 0;
+            animation: sparkAnimation 2s ease-out infinite;
+        }
+        
+        @keyframes sparkAnimation {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- النجوم المتلألئة في الخلفية -->
+    <div class="stars" id="stars"></div>
+    
+    <!-- الشرارات السحرية -->
+    <div class="magic-sparks" id="sparks"></div>
+    
+    <div class="error-container">
+        <div class="error-code">500</div>
+        <h1 class="error-title">خطأ في الخادم</h1>
+        <p class="error-message">حدث خطأ غير متوقع في تعويذة السحر لدينا. فريق السحرة لدينا يعمل بجد لإصلاح المشكلة. يرجى المحاولة مرة أخرى لاحقًا.</p>
+        
+        <svg class="error-image" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="potionGlow" cx="50%" cy="60%" r="50%" fx="50%" fy="60%">
+                    <stop offset="0%" stop-color="#e83e8c" stop-opacity="0.3" />
+                    <stop offset="100%" stop-color="#e83e8c" stop-opacity="0" />
+                </radialGradient>
+            </defs>
+            
+            <!-- Potion Glow -->
+            <circle cx="100" cy="120" r="70" fill="url(#potionGlow)" />
+            
+            <!-- Cauldron -->
+            <ellipse cx="100" cy="150" rx="50" ry="15" fill="#4a32a7" />
+            <path d="M60,150 Q60,100 100,100 Q140,100 140,150" fill="none" stroke="#4a32a7" stroke-width="10" />
+            
+            <!-- Potion Liquid -->
+            <path d="M65,145 Q65,110 100,110 Q135,110 135,145" fill="#e83e8c" opacity="0.7" />
+            
+            <!-- Bubbles -->
+            <circle cx="80" cy="130" r="5" fill="#9c6fe6" opacity="0.6" />
+            <circle cx="100" cy="125" r="8" fill="#9c6fe6" opacity="0.6" />
+            <circle cx="115" cy="135" r="4" fill="#9c6fe6" opacity="0.6" />
+            
+            <!-- Steam/Error -->
+            <path d="M70,100 Q75,80 85,85 Q95,90 90,75 Q85,60 95,55" fill="none" stroke="#e83e8c" stroke-width="2" stroke-dasharray="5,3" />
+            <path d="M100,100 Q110,80 105,65 Q100,50 110,45" fill="none" stroke="#e83e8c" stroke-width="2" stroke-dasharray="5,3" />
+            <path d="M130,100 Q125,80 130,70 Q135,60 125,50" fill="none" stroke="#e83e8c" stroke-width="2" stroke-dasharray="5,3" />
+            
+            <!-- Error Symbol -->
+            <circle cx="100" cy="50" r="20" fill="none" stroke="#e83e8c" stroke-width="2" />
+            <line x1="90" y1="40" x2="110" y2="60" stroke="#e83e8c" stroke-width="2" />
+            <line x1="110" y1="40" x2="90" y2="60" stroke="#e83e8c" stroke-width="2" />
+        </svg>
+        
+        <div>
+            <a href="/" class="home-button">
+                <i class="fas fa-home me-2"></i>العودة إلى الصفحة الرئيسية
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // النجوم المتلألئة
+            const starsContainer = document.getElementById('stars');
+            const starsCount = 100;
+            
+            for (let i = 0; i < starsCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // الحجم العشوائي
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                // الموقع العشوائي
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                star.style.left = `${posX}%`;
+                star.style.top = `${posY}%`;
+                
+                // التأخير العشوائي
+                const delay = Math.random() * 5;
+                star.style.animationDelay = `${delay}s`;
+                
+                starsContainer.appendChild(star);
+            }
+            
+            // الشرارات السحرية
+            const sparksContainer = document.getElementById('sparks');
+            const sparksCount = 30;
+            
+            for (let i = 0; i < sparksCount; i++) {
+                const spark = document.createElement('div');
+                spark.classList.add('spark');
+                
+                // نقطة البداية - وسط الصفحة
+                const startX = 50;
+                const startY = 50;
+                spark.style.left = `${startX}%`;
+                spark.style.top = `${startY}%`;
+                
+                // الاتجاه العشوائي
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 100;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                spark.style.setProperty('--tx', `${tx}px`);
+                spark.style.setProperty('--ty', `${ty}px`);
+                
+                // التأخير العشوائي
+                const delay = Math.random() * 2;
+                spark.style.animationDelay = `${delay}s`;
+                
+                sparksContainer.appendChild(spark);
+            }
+        });
+    </script>
+</body>
+</html>

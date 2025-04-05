@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قلعة Grok الأسطورية - نظام تقييم BTEC</title>
+    
+    <!-- تضمين Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- تضمين Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* الإعدادات العامة والخطوط */
+        body {
+            font-family: 'Amiri', 'Cairo', serif;
+            background: url('https://images.unsplash.com/photo-1633616750936-55d0c19aeaf1?q=80&w=1974&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Cairo', 'Cinzel Decorative', cursive;
+            color: gold;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+        }
+        
+        /* بوابة القلعة */
+        .castle-gate {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1473163928189-364b2c4e1135?q=80&w=1974&auto=format&fit=crop');
+            background-size: cover;
+            border-bottom: 5px solid #b8860b;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .castle-gate h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .castle-gate p {
+            font-size: 1.2em;
+            color: #f0e68c;
+            margin-bottom: 20px;
+        }
+        
+        /* شريط التنقل */
+        .main-nav {
+            margin-top: 20px;
+            padding-bottom: 10px;
+        }
+        
+        .main-nav a {
+            color: #ffd700;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 1.1em;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+        
+        .main-nav a:hover {
+            color: #fff;
+            text-shadow: 0 0 8px gold;
+        }
+        
+        /* الأقسام الرئيسية */
+        section {
+            margin: 30px auto;
+            max-width: 850px;
+            padding: 25px 30px;
+            background: rgba(10, 25, 40, 0.92);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            scroll-margin-top: 20px;
+        }
+        
+        section h2 {
+            font-size: 2.2em;
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid gold;
+            padding-bottom: 10px;
+            display: inline-block;
+            position: relative;
+            padding-right: 40px;
+        }
+        
+        /* إضافة أيقونات للعناوين */
+        section h2::before {
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: gold;
+            opacity: 0.9;
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+        }
+        
+        /* تخصيص أيقونة لكل قسم */
+        #task-hall h2::before { content: "\f0ae"; }
+        #wisdom-tower h2::before { content: "\f0eb"; }
+        #hero-chronicle h2::before { content: "\f02d"; }
+        #scroll-library h2::before { content: "\f518"; }
+        #prophecy-room h2::before { content: "\f70c"; }
+        
+        /* النماذج والمدخلات */
+        form { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+        }
+        
+        input[type="text"],
+        input[type="file"],
+        textarea,
+        select {
+            padding: 12px 15px;
+            border: 2px solid #b8860b;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 1em;
+            font-family: 'Cairo', 'Amiri', serif;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: gold;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        textarea { 
+            min-height: 100px; 
+            resize: vertical; 
+        }
+        
+        /* الأزرار */
+        button {
+            padding: 12px 20px;
+            font-family: 'Cairo', 'Cinzel Decorative', cursive;
+            font-size: 1.1em;
+            font-weight: 700;
+            background: linear-gradient(to bottom, #cd5c5c, #8b0000);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+        }
+        
+        button:hover {
+            background: linear-gradient(to bottom, #d87070, #a50000);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* الحاويات والمحتوى */
+        #tasks-container, #chat-container, #attendance-log, #books-list {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 20px;
+        }
+        
+        /* تنسيق محتوى الدردشة */
+        #chat-container p { 
+            margin: 8px 0; 
+            padding: 12px 15px; 
+            border-radius: 18px; 
+            max-width: 85%; 
+            line-height: 1.5; 
+        }
+        
+        #chat-container p strong { 
+            color: gold; 
+            font-family: 'Cairo', 'Cinzel Decorative', cursive;
+        }
+        
+        #chat-container p:nth-child(even) {
+            background-color: #0056b3;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        
+        #chat-container p:nth-child(odd) {
+            background-color: #383838;
+            color: #eee;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        #chat-container { 
+            display: flex; 
+            flex-direction: column-reverse; 
+        }
+        
+        /* تذييل الصفحة */
+        footer {
+            text-align: center;
+            padding: 25px 20px;
+            margin-top: 60px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #aaa;
+            border-top: 4px solid #b8860b;
+            font-size: 0.9em;
+        }
+        
+        footer p { 
+            margin: 0; 
+        }
+        
+        /* صناديق الرسائل */
+        .message-box {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        .message-box.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .message-box.success {
+            background-color: rgba(40, 167, 69, 0.9);
+        }
+        
+        .message-box.error {
+            background-color: rgba(220, 53, 69, 0.9);
+        }
+        
+        /* تخصيص التصميم المتجاوب */
+        @media screen and (max-width: 768px) {
+            .castle-gate h1 {
+                font-size: 2em;
+            }
+            
+            section {
+                padding: 15px;
+            }
+            
+            section h2 {
+                font-size: 1.5em;
+            }
+            
+            .main-nav a {
+                margin: 0 8px;
+                font-size: 0.9em;
+            }
+        }
+        
+        /* تأثيرات إضافية */
+        .magic-glow {
+            animation: magicGlow 3s infinite alternate;
+        }
+        
+        @keyframes magicGlow {
+            0% { box-shadow: 0 0 5px gold; }
+            100% { box-shadow: 0 0 25px gold, 0 0 50px rgba(255, 215, 0, 0.5); }
+        }
+        
+        .task-item {
+            border-right: 3px solid gold;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .task-item:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .task-item h4 {
+            color: gold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- بوابة القلعة (الرأس) -->
+    <header class="castle-gate">
+        <h1>قلعة Grok الأسطورية</h1>
+        <p>مركز الحكمة والمعرفة في نظام تقييم BTEC</p>
+        
+        <!-- شريط التنقل -->
+        <nav class="main-nav">
+            <a href="#task-hall"><i class="fas fa-clipboard-list"></i> قاعة المهام</a>
+            <a href="#wisdom-tower"><i class="fas fa-brain"></i> برج الحكمة</a>
+            <a href="#hero-chronicle"><i class="fas fa-user-graduate"></i> سجل الأبطال</a>
+            <a href="#scroll-library"><i class="fas fa-scroll"></i> مكتبة المخطوطات</a>
+            <a href="#prophecy-room"><i class="fas fa-magic"></i> غرفة التنبؤات</a>
+        </nav>
+    </header>
+
+    <!-- محتوى رئيسي -->
+    <main>
+        <!-- قاعة المهام -->
+        <section id="task-hall">
+            <h2>قاعة المهام</h2>
+            <p>هنا تُعرض مهام BTEC وتقييماتها بواسطة الذكاء الاصطناعي.</p>
+            
+            <form id="task-form">
+                <input type="text" id="task-title" placeholder="عنوان المهمة" required>
+                <textarea id="task-description" placeholder="وصف المهمة التي تريد تقييمها..." required></textarea>
+                <button type="submit"><i class="fas fa-wand-magic-sparkles"></i> إرسال للتقييم</button>
+            </form>
+            
+            <h3>المهام الحالية:</h3>
+            <div id="tasks-container">
+                <div class="task-item">
+                    <h4>تطوير تطبيق ويب (P1)</h4>
+                    <p>تم تقييم التطبيق بدرجة 85% - إبداع ممتاز ولكن يحتاج إلى تحسين في التوثيق</p>
+                </div>
+                <div class="task-item">
+                    <h4>تصميم قاعدة بيانات (P2)</h4>
+                    <p>تم تقييم التصميم بدرجة 92% - نموذج ERD متكامل مع تطبيق ممتاز للعلاقات</p>
+                </div>
+                <div class="task-item">
+                    <h4>دراسة حالة لنظام أمان (P3)</h4>
+                    <p>تم تقييم الدراسة بدرجة 78% - تحليل جيد ولكن يحتاج إلى عمق أكبر في المقترحات</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- برج الحكمة -->
+        <section id="wisdom-tower">
+            <h2>برج الحكمة</h2>
+            <p>هنا يمكنك التواصل مع مستشار Grok الحكيم للحصول على المساعدة والإرشاد.</p>
+            
+            <div id="chat-container">
+                <p><strong>أنت:</strong> كيف يمكنني تحسين تقييم مهمة BTEC الخاصة بي؟</p>
+                <p><strong>Grok:</strong> أيها البطل، لتحسين تقييمك أنصحك بالتركيز على ربط عملك بمعايير التقييم بوضوح، وتضمين أمثلة عملية، وإظهار التفكير النقدي في كل قسم من المهمة.</p>
+                <p><strong>أنت:</strong> ما هي أفضل طريقة لتوثيق مشروع برمجي؟</p>
+                <p><strong>Grok:</strong> التوثيق الممتاز يتضمن: رسوم تخطيطية للهيكل، شرح المكونات الرئيسية، تعليقات داخل الكود، دليل استخدام واضح، وسجل للتغييرات. تأكد من أن يكون التوثيق مفهوماً لمستويات مختلفة من المستخدمين.</p>
+            </div>
+            
+            <form id="chat-form">
+                <textarea id="chat-input" placeholder="اكتب رسالتك لـ Grok..." required></textarea>
+                <div style="display: flex; gap: 10px;">
+                    <button id="voice-btn" type="button"><i class="fas fa-microphone"></i> تحدث</button>
+                    <button type="submit"><i class="fas fa-paper-plane"></i> إرسال</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- سجل الأبطال (الحضور) -->
+        <section id="hero-chronicle">
+            <h2>سجل الأبطال</h2>
+            <p>سجل حضور المتعلمين الأبطال في مهام وحصص BTEC.</p>
+            
+            <h3>قائمة الحضور الأخيرة:</h3>
+            <div id="attendance-log">
+                <p>أحمد سعيد <span class="hero-present">حاضر</span> <small>09:15 - 2025/03/20</small></p>
+                <p>سارة محمد <span class="hero-present">حاضرة</span> <small>09:10 - 2025/03/20</small></p>
+                <p>عمر خالد <span class="hero-absent">غائب</span> <small>--:-- - 2025/03/20</small></p>
+                <p>نورا علي <span class="hero-present">حاضرة</span> <small>09:05 - 2025/03/20</small></p>
+                <p>فهد عبدالله <span class="hero-present">حاضر</span> <small>09:22 - 2025/03/20</small></p>
+                <p>ليلى أحمد <span class="hero-absent">غائبة</span> <small>--:-- - 2025/03/20</small></p>
+                <p>حسن محمود <span class="hero-present">حاضر</span> <small>09:18 - 2025/03/20</small></p>
+            </div>
+            
+            <form id="attendance-form">
+                <h3>تسجيل حضور جديد:</h3>
+                <select id="student-select" required>
+                    <option value="" disabled selected>اختر المتعلم...</option>
+                    <option value="1">أحمد سعيد</option>
+                    <option value="2">سارة محمد</option>
+                    <option value="3">عمر خالد</option>
+                    <option value="4">نورا علي</option>
+                    <option value="5">فهد عبدالله</option>
+                    <option value="6">ليلى أحمد</option>
+                    <option value="7">حسن محمود</option>
+                </select>
+                <select id="status-select" required>
+                    <option value="present" selected>حاضر</option>
+                    <option value="absent">غائب</option>
+                    <option value="excused">مبرر</option>
+                </select>
+                <button type="submit"><i class="fas fa-user-check"></i> تسجيل الحضور</button>
+            </form>
+        </section>
+
+        <!-- مكتبة المخطوطات -->
+        <section id="scroll-library">
+            <h2>مكتبة المخطوطات</h2>
+            <p>استعرض مخطوطات BTEC وموارد التعلم المتقدمة.</p>
+            
+            <div id="books-list">
+                <p><button onclick="openScroll('guide.pdf')"><i class="fas fa-book-open"></i> فتح</button> دليل تقييم BTEC الشامل <small>(تحديث 2025)</small></p>
+                <p><button onclick="openScroll('rubrics.pdf')"><i class="fas fa-book-open"></i> فتح</button> معايير التقييم المفصلة <small>(P1-P8)</small></p>
+                <p><button onclick="openScroll('examples.pdf')"><i class="fas fa-book-open"></i> فتح</button> نماذج لمهام متميزة <small>(مستوى التميز)</small></p>
+                <p><button onclick="openScroll('techniques.pdf')"><i class="fas fa-book-open"></i> فتح</button> تقنيات التقييم الذكي <small>(مع الذكاء الاصطناعي)</small></p>
+                <p><button onclick="openScroll('projects.pdf')"><i class="fas fa-book-open"></i> فتح</button> أفكار لمشاريع عملية <small>(قائمة 2025)</small></p>
+            </div>
+            
+            <form id="upload-form">
+                <h3>إضافة مخطوطة جديدة:</h3>
+                <input type="text" id="book-title" placeholder="عنوان المخطوطة" required>
+                <input type="file" id="book-file" accept=".pdf,.docx,.pptx" required>
+                <button type="submit"><i class="fas fa-cloud-upload-alt"></i> رفع المخطوطة</button>
+            </form>
+        </section>
+
+        <!-- غرفة التنبؤات -->
+        <section id="prophecy-room">
+            <h2>غرفة التنبؤات</h2>
+            <p>استخدم قوى Grok للتنبؤ بنتائج تقييمك وتحليل مهاراتك المستقبلية.</p>
+            
+            <form id="prophecy-form">
+                <textarea id="prophecy-text" placeholder="اكتب وصفاً للمهارات التي تتدرب عليها وأهدافك المستقبلية..." required></textarea>
+                <button type="submit" class="magic-glow"><i class="fas fa-magic"></i> إظهار التنبؤ</button>
+            </form>
+            
+            <div id="prophecy-result" style="display: none;">
+                <h3>تنبؤ Grok:</h3>
+                <p style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; font-style: italic;">
+                    مع استمرارك في مسار التعلم هذا، أرى مستقبلاً واعداً في تطوير تطبيقات الويب. ستتميز بمهارات استثنائية في واجهات المستخدم وهيكلة قواعد البيانات. أنصحك بالتركيز على تعلم تقنيات الحوسبة السحابية وأمن المعلومات لتحقيق أقصى إمكاناتك المهنية.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- تذييل الصفحة -->
+    <footer>
+        <p>نظام تقييم BTEC &copy; 2025 | قلعة Grok الأسطورية | تمت البرمجة بواسطة مُصمم القلاع مصعب</p>
+    </footer>
+
+    <!-- صندوق الرسائل -->
+    <div class="message-box success" id="success-message">تمت العملية بنجاح!</div>
+    <div class="message-box error" id="error-message">حدث خطأ ما، يرجى المحاولة مرة أخرى.</div>
+
+    <script>
+        // وظائف مرتبطة بقاعة المهام
+        document.getElementById('task-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            showMessage('success', 'تم إرسال المهمة للتقييم بنجاح!');
+            
+            // إضافة مهمة جديدة بشكل مختصر للعرض
+            const tasksContainer = document.getElementById('tasks-container');
+            const newTask = document.createElement('div');
+            newTask.className = 'task-item';
+            newTask.innerHTML = `
+                <h4>${document.getElementById('task-title').value}</h4>
+                <p>تم إرسال المهمة للتقييم - في انتظار النتائج...</p>
+            `;
+            tasksContainer.prepend(newTask);
+            
+            // إعادة تعيين النموذج
+            this.reset();
+        });
+
+        // وظائف مرتبطة ببرج الحكمة
+        document.getElementById('chat-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userMessage = document.getElementById('chat-input').value;
+            
+            if (userMessage.trim() === '') return;
+            
+            // إضافة رسالة المستخدم
+            addChatMessage('أنت', userMessage);
+            
+            // محاكاة رد Grok (في تطبيق حقيقي، هذا سيكون طلب API)
+            setTimeout(() => {
+                let response = "أيها البطل، شكراً لرسالتك. سأعمل على مساعدتك في مسار BTEC الخاص بك. تذكر أن مفتاح النجاح هو التطبيق العملي للمفاهيم، والتوثيق الجيد، وربط عملك بمعايير التقييم.";
+                addChatMessage('Grok', response);
+            }, 1000);
+            
+            // إعادة تعيين النموذج
+            this.reset();
+        });
+
+        function addChatMessage(sender, message) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageElem = document.createElement('p');
+            messageElem.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            chatContainer.prepend(messageElem);
+        }
+
+        // زر التحدث
+        let isRecording = false;
+        document.getElementById('voice-btn').addEventListener('click', function() {
+            isRecording = !isRecording;
+            
+            if (isRecording) {
+                this.innerHTML = '<i class="fas fa-stop"></i> توقف';
+                this.classList.add('active');
+                // هنا سيكون رمز بدء التسجيل الصوتي
+                showMessage('success', 'بدأ التسجيل الصوتي...');
+            } else {
+                this.innerHTML = '<i class="fas fa-microphone"></i> تحدث';
+                this.classList.remove('active');
+                // هنا سيكون رمز إيقاف التسجيل
+                showMessage('success', 'تم إيقاف التسجيل وتحويله لنص');
+                
+                // محاكاة إضافة نص من الصوت
+                setTimeout(() => {
+                    document.getElementById('chat-input').value = "أريد معرفة كيفية تحسين تقييم P3 في BTEC";
+                }, 500);
+            }
+        });
+
+        // وظائف مرتبطة بسجل الأبطال
+        document.getElementById('attendance-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // الحصول على القيم المختارة
+            const studentSelect = document.getElementById('student-select');
+            const statusSelect = document.getElementById('status-select');
+            const studentName = studentSelect.options[studentSelect.selectedIndex].text;
+            const status = statusSelect.value;
+            
+            // تحديد وقت الحضور والتاريخ
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                           now.getMinutes().toString().padStart(2, '0');
+            const dateStr = now.getFullYear() + '/' + 
+                           (now.getMonth() + 1).toString().padStart(2, '0') + '/' + 
+                           now.getDate().toString().padStart(2, '0');
+            
+            // إنشاء عنصر الحضور الجديد
+            const attendanceLog = document.getElementById('attendance-log');
+            const newEntry = document.createElement('p');
+            
+            let statusHTML = '';
+            if (status === 'present') {
+                statusHTML = '<span class="hero-present">حاضر</span>';
+            } else if (status === 'absent') {
+                statusHTML = '<span class="hero-absent">غائب</span>';
+            } else {
+                statusHTML = '<span class="hero-absent">مبرر</span>';
+            }
+            
+            newEntry.innerHTML = `${studentName} ${statusHTML} <small>${timeStr} - ${dateStr}</small>`;
+            attendanceLog.prepend(newEntry);
+            
+            showMessage('success', 'تم تسجيل الحضور بنجاح!');
+            this.reset();
+        });
+
+        // وظائف مرتبطة بمكتبة المخطوطات
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            showMessage('success', 'تم رفع المخطوطة بنجاح!');
+            
+            // إضافة مخطوطة جديدة للقائمة
+            const booksList = document.getElementById('books-list');
+            const newBook = document.createElement('p');
+            const bookTitle = document.getElementById('book-title').value;
+            
+            newBook.innerHTML = `<button onclick="openScroll('new.pdf')"><i class="fas fa-book-open"></i> فتح</button> ${bookTitle} <small>(جديد)</small>`;
+            booksList.prepend(newBook);
+            
+            this.reset();
+        });
+
+        function openScroll(pdfName) {
+            showMessage('success', 'جاري فتح المخطوطة: ' + pdfName);
+        }
+
+        // وظائف مرتبطة بغرفة التنبؤات
+        document.getElementById('prophecy-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // إظهار رسالة تحميل
+            showMessage('success', 'جاري استحضار تنبؤات Grok...');
+            
+            // محاكاة وقت المعالجة
+            setTimeout(() => {
+                document.getElementById('prophecy-result').style.display = 'block';
+            }, 1500);
+            
+            this.reset();
+        });
+
+        // وظائف عامة للرسائل
+        function showMessage(type, text) {
+            const messageBox = document.getElementById(type + '-message');
+            messageBox.textContent = text;
+            messageBox.classList.add('show');
+            
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // إخفاء صناديق الرسائل عند التحميل
+            document.querySelectorAll('.message-box').forEach(box => {
+                box.classList.remove('show');
+            });
+        });
+    </script>
+</body>
+</html>

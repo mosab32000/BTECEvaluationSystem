@@ -4,14 +4,20 @@
 
 import os
 import logging
-from datetime import datetime
+from logging.handlers import RotatingFileHandler
+from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
+from flask_cors import CORS
+from flask_talisman import Talisman
 
-from flask import Flask, render_template, request, jsonify
-
-from app.extensions import (
-    db, login_manager, jwt, limiter, cache, talisman, cors
-)
-from app.config import config
+# إنشاء مثيلات ملحقات التطبيق
+db = SQLAlchemy()
+login_manager = LoginManager()
+csrf = CSRFProtect()
+cors = CORS()
+talisman = Talisman()
 
 def create_app(config_name=None):
     """
@@ -23,36 +29,54 @@ def create_app(config_name=None):
     Returns:
         Flask: تطبيق Flask
     """
-    if not config_name:
-        config_name = os.environ.get('FLASK_ENV', 'development')
-    
-    # إنشاء التطبيق
+    # إنشاء تطبيق Flask
     app = Flask(__name__)
     
-    # تهيئة الإعدادات
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    # تعيين التكوين
+    if config_name is None:
+        config_name = os.environ.get('FLASK_ENV', 'development')
     
-    # إنشاء مجلدات التطبيق إذا لم تكن موجودة
+    # تطبيق إعدادات التكوين
+    if config_name == 'production':
+        app.config.from_object('app.config.ProductionConfig')
+    elif config_name == 'testing':
+        app.config.from_object('app.config.TestingConfig')
+    else:
+        app.config.from_object('app.config.DevelopmentConfig')
+    
+    # التأكد من وجود مجلدات التطبيق
     _ensure_app_folders(app)
     
     # تهيئة التسجيل
     _init_logging(app)
     
-    # تهيئة الملحقات
+    # تهيئة ملحقات التطبيق
     _init_extensions(app)
     
     # تهيئة إدارة المستخدمين
     _init_user_management(app)
     
-    # تسجيل المسارات
-    _register_blueprints(app)
+    # تسجيل مخططات المسارات
+    from app.routes import register_blueprints
+    register_blueprints(app)
     
     # تهيئة معالجات الأخطاء
     _init_error_handlers(app)
     
     # تهيئة وحدة التشفير
     _init_encryption(app)
+    
+    # جعل متغيرات معينة متاحة لجميع قوالب Jinja
+    @app.context_processor
+    def inject_globals():
+        """
+        حقن متغيرات عامة في جميع قوالب Jinja
+        
+        Returns:
+            dict: قاموس المتغيرات العامة
+        """
+        from datetime import datetime
+        return dict(now=datetime.utcnow())
     
     return app
 
@@ -63,18 +87,8 @@ def _ensure_app_folders(app):
     Args:
         app (Flask): تطبيق Flask
     """
-    # إنشاء مجلد التحميل
-    upload_folder = app.config.get('UPLOAD_FOLDER')
-    if upload_folder:
-        os.makedirs(upload_folder, exist_ok=True)
-    
-    # إنشاء مجلد التصدير
-    export_folder = os.path.join('static', 'exports')
-    os.makedirs(export_folder, exist_ok=True)
-    
-    # إنشاء مجلد السجلات
-    log_folder = 'logs'
-    os.makedirs(log_folder, exist_ok=True)
+    for folder in ['logs', 'data', 'uploads']:
+        os.makedirs(os.path.join(app.root_path, folder), exist_ok=True)
 
 def _init_logging(app):
     """
@@ -83,18 +97,33 @@ def _init_logging(app):
     Args:
         app (Flask): تطبيق Flask
     """
-    # إعداد مستوى التسجيل
-    app.logger.setLevel(getattr(logging, app.config.get('LOG_LEVEL', 'INFO')))
+    log_level = getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper())
+    log_file = os.environ.get('LOG_FILE', 'app.log')
     
-    # إضافة معالج ملف السجل
-    log_file = app.config.get('LOG_FILE', 'app.log')
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(logging.Formatter(
+    # إعداد مكتبة التسجيل
+    formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    ))
-    app.logger.addHandler(file_handler)
+    )
     
-    app.logger.info('تم بدء التطبيق في %s', datetime.now().isoformat())
+    # إعداد مقبض تدوير الملفات
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=1024 * 1024 * 10, backupCount=3
+    )
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(log_level)
+    
+    # إضافة مقبض لتسجيل المخرجات إلى وحدة التحكم أيضًا
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(log_level)
+    
+    # تعيين مستوى التسجيل العام والمقابض
+    app.logger.setLevel(log_level)
+    app.logger.addHandler(file_handler)
+    app.logger.addHandler(console_handler)
+    
+    # إزالة المقبض الافتراضي من Flask
+    app.logger.removeHandler(logging.default_handler) if hasattr(logging, 'default_handler') else None
 
 def _init_extensions(app):
     """
@@ -103,24 +132,23 @@ def _init_extensions(app):
     Args:
         app (Flask): تطبيق Flask
     """
-    # قاعدة البيانات
+    # تهيئة SQLAlchemy
     db.init_app(app)
     
-    # تهيئة JWT
-    jwt.init_app(app)
+    # تهيئة Flask-Login
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة.'
+    login_manager.login_message_category = 'info'
     
-    # تهيئة محدد معدل الطلبات
-    limiter.init_app(app)
+    # تهيئة CSRF Protection
+    csrf.init_app(app)
     
-    # تهيئة ذاكرة التخزين المؤقت
-    cache.init_app(app)
+    # تهيئة CORS
+    cors.init_app(app, resources={r"/api/*": {"origins": app.config.get('CORS_ORIGINS', '*')}})
     
-    # تهيئة الأمان (Talisman)
-    if app.config.get('ENV') == 'production':
-        talisman.init_app(app)
-    
-    # تهيئة مشاركة الموارد عبر الأصول (CORS)
-    cors.init_app(app)
+    # تهيئة Talisman (HTTP Security)
+    talisman.init_app(app, content_security_policy=app.config.get('CONTENT_SECURITY_POLICY', None))
 
 def _init_user_management(app):
     """
@@ -129,7 +157,7 @@ def _init_user_management(app):
     Args:
         app (Flask): تطبيق Flask
     """
-    login_manager.init_app(app)
+    from app.models.user import User
     
     @login_manager.user_loader
     def load_user(user_id):
@@ -142,25 +170,7 @@ def _init_user_management(app):
         Returns:
             User: كائن المستخدم
         """
-        from app.models.user import User
         return User.query.get(int(user_id))
-
-def _register_blueprints(app):
-    """
-    تسجيل مخططات المسارات
-    
-    Args:
-        app (Flask): تطبيق Flask
-    """
-    # استيراد المسارات
-    from app.routes.main import main_bp
-    from app.routes.auth import auth_bp
-    from app.routes.api import api_bp
-    
-    # تسجيل المسارات
-    app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(api_bp)
 
 def _init_error_handlers(app):
     """
@@ -172,40 +182,27 @@ def _init_error_handlers(app):
     @app.errorhandler(404)
     def page_not_found(error):
         """معالجة خطأ 404 - الصفحة غير موجودة"""
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'Resource not found'}), 404
         return render_template('errors/404.html'), 404
     
     @app.errorhandler(500)
     def server_error(error):
         """معالجة خطأ 500 - خطأ في الخادم"""
-        app.logger.error('خطأ في الخادم: %s', str(error))
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'Internal server error'}), 500
+        app.logger.error(f'خطأ في الخادم: {error}')
         return render_template('errors/500.html'), 500
     
     @app.errorhandler(403)
     def forbidden(error):
         """معالجة خطأ 403 - غير مصرح به"""
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'Forbidden'}), 403
         return render_template('errors/403.html'), 403
     
     @app.errorhandler(401)
     def unauthorized(error):
         """معالجة خطأ 401 - غير مصادق عليه"""
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'Unauthorized'}), 401
         return render_template('errors/401.html'), 401
     
-    # معالجة أخطاء محدد معدل الطلبات
-    from flask_limiter.errors import RateLimitExceeded
-    
-    @app.errorhandler(RateLimitExceeded)
+    @app.errorhandler(429)
     def handle_rate_limit_exceeded(error):
         """معالجة خطأ تجاوز حد معدل الطلبات"""
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'Rate limit exceeded'}), 429
         return render_template('errors/429.html'), 429
 
 def _init_encryption(app):
@@ -215,5 +212,8 @@ def _init_encryption(app):
     Args:
         app (Flask): تطبيق Flask
     """
-    from app.security.encryption import init_encryption
-    init_encryption(app.config.get('ENCRYPTION_KEY'))
+    # التأكد من وجود مفتاح التشفير البيئي
+    if 'ENCRYPTION_KEY' not in os.environ:
+        app.logger.warning('ENCRYPTION_KEY غير محدد. سيتم استخدام مفتاح عشوائي لهذه الجلسة.')
+        import secrets
+        os.environ['ENCRYPTION_KEY'] = secrets.token_hex(16)

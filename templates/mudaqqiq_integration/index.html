@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}منصة مُدقِّق - نظام تقييم BTEC{% endblock %}
+
+{% block styles %}
+<style>
+    .hero-section {
+        background: linear-gradient(rgba(0, 0, 100, 0.7), rgba(0, 0, 100, 0.7)), url('{{ url_for("static", filename="img/hero-bg.jpg") }}');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        margin-bottom: 50px;
+        border-radius: 10px;
+    }
+    
+    .feature-box {
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        height: 100%;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-box:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        color: #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- قسم الهيرو -->
+    <div class="hero-section text-center mb-5">
+        <h1 class="display-4">منصة مُدقِّق لتدقيق المشاريع</h1>
+        <p class="lead mb-4">منصة متكاملة لتدقيق وتقييم المشاريع بطريقة احترافية ضمن نظام تقييم BTEC</p>
+        <div>
+            <a href="{{ url_for('btec_mudaqqiq.dashboard') }}" class="btn btn-primary btn-lg me-2">لوحة التحكم</a>
+            <a href="{{ url_for('btec_mudaqqiq.launch_mudaqqiq') }}" class="btn btn-outline-light btn-lg">تشغيل المنصة</a>
+        </div>
+    </div>
+    
+    <!-- قسم المميزات -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card feature-box h-100">
+                <div class="card-body text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h4>تدقيق المشاريع</h4>
+                    <p>تقييم المشاريع وفق معايير مهنية دقيقة تضمن جودة المخرجات والنتائج.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card feature-box h-100">
+                <div class="card-body text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h4>تقارير مفصلة</h4>
+                    <p>تقارير شاملة توضح نقاط القوة والضعف في المشروع مع توصيات للتحسين.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card feature-box h-100">
+                <div class="card-body text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h4>معايير مخصصة</h4>
+                    <p>إمكانية إنشاء وتخصيص معايير التدقيق حسب نوع المشروع وطبيعته.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- قسم كيفية العمل -->
+    <h2 class="text-center mb-4">كيف تعمل المنصة؟</h2>
+    <div class="row mb-5">
+        <div class="col-md-3 text-center">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h1 class="display-4 text-primary">1</h1>
+                    <h5>تقديم المشروع</h5>
+                    <p>قم برفع المشروع وإدخال المعلومات اللازمة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 text-center">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h1 class="display-4 text-primary">2</h1>
+                    <h5>المراجعة الأولية</h5>
+                    <p>يتم مراجعة المشروع بشكل أولي والتحقق من اكتمال المعلومات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 text-center">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h1 class="display-4 text-primary">3</h1>
+                    <h5>التدقيق</h5>
+                    <p>يتم تدقيق المشروع وفق المعايير المحددة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 text-center">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h1 class="display-4 text-primary">4</h1>
+                    <h5>التقرير النهائي</h5>
+                    <p>يتم إصدار تقرير مفصل مع النتيجة النهائية</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- قسم لوحة التحكم -->
+    <div class="card mb-5">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>لوحة تحكم متكاملة</h3>
+                    <p>توفر المنصة لوحة تحكم متكاملة تمكنك من:</p>
+                    <ul>
+                        <li>متابعة حالة المشاريع المقدمة</li>
+                        <li>الاطلاع على تقارير التدقيق</li>
+                        <li>إدارة معايير التقييم</li>
+                        <li>عرض الإحصائيات والمؤشرات</li>
+                    </ul>
+                    <a href="{{ url_for('btec_mudaqqiq.dashboard') }}" class="btn btn-primary">الانتقال إلى لوحة التحكم</a>
+                </div>
+                <div class="col-md-6 text-center">
+                    <img src="{{ url_for('static', filename='img/dashboard.jpg') }}" alt="لوحة التحكم" class="img-fluid rounded" style="max-height: 250px;">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- قسم دعوة للعمل -->
+    <div class="text-center">
+        <h2 class="mb-3">ابدأ باستخدام منصة مُدقِّق اليوم</h2>
+        <p class="lead mb-4">قم بتقديم مشروعك للتدقيق والحصول على تقييم احترافي</p>
+        <a href="{{ url_for('btec_mudaqqiq.launch_mudaqqiq') }}" class="btn btn-lg btn-primary">تشغيل المنصة</a>
+    </div>
+</div>
+{% endblock %}

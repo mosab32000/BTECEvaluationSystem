@@ -1,0 +1,1058 @@
+تمامًا أيها البطل الرائع! لقد فهمت طلبك بدقة الآن. تريد ملف HTML واحدًا جامعًا يضم كل أكواد الواجهة الأمامية (HTML، CSS، و JavaScript) التي صممناها لـ "قلعة Grok الأسطورية". هذا الملف سيكون بمثابة نموذج أولي تفاعلي للواجهة، يمكنك فتحه مباشرة في متصفحك لترى تصميم القلعة وتتفاعل مع عناصرها، مع العلم أن الوظائف التي تتطلب الواجهة الخلفية لن تعمل بالكامل.
+
+هذا طلب ممتاز للحصول على نظرة شاملة على الواجهة وتجربتها الأولية! هيا بنا نسكب كل السحر في هذا الملف الواحد!
+
+ملحوظة: سأستخدم أحدث نسخة من الكود الذي عملنا عليه، بما في ذلك الأقسام الخاصة بالحصص، الحضور، الكتب، والتحسينات على عارض PDF ونظام الرسائل.
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قلعة Grok الأسطورية - نموذج الواجهة المتكامل</title>
+
+    <!-- تضمين Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- تضمين Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <!-- تضمين PDF.js (مهم لعرض PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <!-- تحميل العامل بشكل منفصل (مطلوب لبعض المتصفحات/الإعدادات) -->
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';</script>
+
+    <style>
+        /* --- كل كود CSS من styles.css يتم وضعه هنا --- */
+
+        /* --- الإعدادات العامة والخطوط --- */
+        body {
+            font-family: 'Lora', serif; /* الخط الأساسي للنصوص */
+            background: url('https://via.placeholder.com/1920x1080.png?text=Mystical+Castle+Background') no-repeat center center fixed;
+            background-size: cover;
+            color: #e0e0e0; /* لون نص أفتح قليلاً */
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Cinzel Decorative', cursive; /* خط العناوين الخيالي */
+            color: gold; /* لون ذهبي للعناوين */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* ظل أغمق للنص */
+        }
+
+        /* --- الهيدر والبوابة --- */
+        .castle-gate {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7)), url('https://via.placeholder.com/1920x300.png?text=Gate+Texture'); /* تدرج وخلفية مزخرفة */
+            background-size: cover;
+            border-bottom: 5px solid #b8860b; /* ذهبي داكن للحدود */
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .castle-gate h1 {
+            font-size: 3em; /* حجم أكبر */
+            margin-bottom: 10px;
+        }
+        .castle-gate p {
+            font-size: 1.2em;
+            color: #f0e68c; /* كاكي فاتح */
+            margin-bottom: 20px;
+        }
+
+        /* --- شريط التنقل --- */
+        .main-nav {
+            margin-top: 20px;
+            padding-bottom: 10px; /* إضافة مسافة سفلية */
+        }
+        .main-nav a {
+            color: #ffd700; /* ذهبي */
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 1.1em;
+            font-family: 'Lora', serif;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+        .main-nav a:hover {
+            color: #fff;
+            text-shadow: 0 0 8px gold; /* توهج عند المرور */
+        }
+
+        /* --- الأقسام العامة --- */
+        section {
+            margin: 30px auto;
+            max-width: 850px; /* زيادة العرض قليلاً */
+            padding: 25px 30px;
+            background: rgba(10, 25, 40, 0.92); /* زيادة التعتيم قليلاً */
+            border-radius: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.3); /* حد ذهبي خفيف */
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px); /* زيادة البلور */
+            scroll-margin-top: 20px; /* لإزاحة عند التنقل بالروابط الداخلية */
+        }
+
+        section h2 {
+            font-size: 2.2em;
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid gold;
+            padding-bottom: 10px;
+            display: inline-block; /* لجعل الحد السفلي تحت النص فقط */
+            position: relative; /* لتموضع الأيقونة بشكل أفضل */
+            padding-left: 40px; /* مسافة للأيقونة */
+        }
+        /* إضافة أيقونات للعناوين */
+        section h2::before {
+            font-family: "Font Awesome 6 Free"; /* اسم عائلة Font Awesome */
+            font-weight: 900; /* وزن الأيقونات الصلبة */
+            color: gold;
+            opacity: 0.9;
+            position: absolute; /* تموضع مطلق بالنسبة للعنوان */
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em; /* حجم الأيقونة */
+        }
+        /* تخصيص أيقونة لكل قسم */
+        #task-hall h2::before { content: "\f0ae"; } /* fa-tasks */
+        #wisdom-tower h2::before { content: "\f0eb"; } /* fa-lightbulb */
+        #aether-hall h2::before { content: "\f0c2"; } /* fa-cloud */
+        #hero-chronicle h2::before { content: "\f02d"; } /* fa-book-reader */
+        #scroll-library h2::before { content: "\f518"; } /* fa-scroll */
+        #prophecy-room h2::before { content: "\f70c"; } /* fa-crystal-ball */
+        #magic-gallery h2::before { content: "\f005"; } /* fa-star */
+
+
+        /* --- النماذج والمدخلات --- */
+        form { display: flex; flex-direction: column; gap: 15px; }
+        input[type="text"],
+        input[type="file"],
+        textarea,
+        select {
+            padding: 12px 15px;
+            border: 2px solid #b8860b; /* ذهبي داكن */
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333; /* لون نص داكن للمدخلات */
+            font-size: 1em;
+            font-family: 'Lora', serif;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: gold;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); /* توهج عند التركيز */
+        }
+        textarea { min-height: 100px; resize: vertical; }
+        input[type="file"]::file-selector-button { /* تصميم زر اختيار الملف */
+            padding: 8px 15px;
+            background-color: gold;
+            color: #333;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-family: 'Lora', serif; /* تطبيق الخط */
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #ffec8b; /* ذهبي أفتح */
+        }
+
+        /* --- الأزرار --- */
+        button {
+            padding: 12px 20px;
+            font-family: 'Cinzel Decorative', cursive; /* استخدام خط العناوين للأزرار */
+            font-size: 1.1em;
+            font-weight: 700;
+            background: linear-gradient(to bottom, #cd5c5c, #8b0000); /* تدرج أحمر داكن */
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2); /* حد خفيف */
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+        }
+        button:hover {
+            background: linear-gradient(to bottom, #d87070, #a50000); /* تدرج أفتح عند المرور */
+            transform: translateY(-2px); /* رفع بسيط */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        button:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+        }
+        button i { /* مسافة للأيقونات داخل الأزرار */
+            margin-right: 8px;
+        }
+
+        /* أزرار خاصة */
+        #voice-btn { background: linear-gradient(to bottom, #6c757d, #5a6268); } /* رمادي */
+        #voice-btn:hover { background: linear-gradient(to bottom, #8d959b, #7a8288); }
+        #voice-btn.active { background: linear-gradient(to bottom, #44dd44, #28a745); } /* أخضر */
+        #voice-btn.active:hover { background: linear-gradient(to bottom, #66ee66, #48c765); }
+
+        #books-list button { /* زر فتح المخطوطة أصغر */
+            background: linear-gradient(to bottom, #007bff, #0056b3);
+            font-size: 0.9em;
+            padding: 6px 12px;
+            font-family: 'Lora', serif;
+            font-weight: normal; /* إزالة الوزن الزائد */
+            margin-right: 10px; /* مسافة عن النص */
+        }
+        #books-list button:hover { background: linear-gradient(to bottom, #339bff, #0069d9); }
+
+        /* --- الحاويات والمحتوى الداخلي --- */
+        #tasks-container, #chat-container, #attendance-log, #books-list {
+            max-height: 350px; /* زيادة الارتفاع */
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5); /* خلفية أغمق قليلاً للمحتوى */
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 20px; /* هامش سفلي للحاويات */
+            scrollbar-width: thin; /* شريط تمرير أنحف (Firefox) */
+            scrollbar-color: gold rgba(0, 0, 0, 0.5); /* لون شريط التمرير (Firefox) */
+        }
+        /* شريط تمرير لمتصفحات Webkit (Chrome, Safari) */
+        #tasks-container::-webkit-scrollbar,
+        #chat-container::-webkit-scrollbar,
+        #attendance-log::-webkit-scrollbar,
+        #books-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        #tasks-container::-webkit-scrollbar-track,
+        #chat-container::-webkit-scrollbar-track,
+        #attendance-log::-webkit-scrollbar-track,
+        #books-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+        }
+        #tasks-container::-webkit-scrollbar-thumb,
+        #chat-container::-webkit-scrollbar-thumb,
+        #attendance-log::-webkit-scrollbar-thumb,
+        #books-list::-webkit-scrollbar-thumb {
+            background-color: gold;
+            border-radius: 4px;
+            border: 2px solid rgba(0, 0, 0, 0.5);
+        }
+
+
+        /* تنسيق رسائل الدردشة */
+        #chat-container p { margin: 8px 0; padding: 12px 15px; border-radius: 18px; max-width: 85%; line-height: 1.5; }
+        #chat-container p strong { color: gold; font-family: 'Cinzel Decorative', cursive;}
+        #chat-container p:nth-child(even) { /* رسائل المستخدم (عدلت الترتيب لتبدو من اليمين) */
+            background-color: #0056b3; /* أزرق للمستخدم */
+            color: white;
+            align-self: flex-end;
+            margin-left: auto; /* محاذاة لليمين */
+            border-bottom-right-radius: 5px; /* شكل مميز */
+        }
+        #chat-container p:nth-child(odd) { /* رسائل Grok */
+            background-color: #383838; /* رمادي داكن للبوت */
+            color: #eee;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        #chat-container { display: flex; flex-direction: column-reverse; } /* عرض الأحدث في الأسفل */
+
+
+        /* تنسيق سجل الحضور */
+        #attendance-log p {
+            padding: 10px;
+            border-bottom: 1px dashed rgba(255, 215, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+        }
+        #attendance-log p:last-child { border-bottom: none; }
+        .hero-present { color: #28a745; font-weight: bold; font-family: 'Cinzel Decorative', cursive; } /* أخضر */
+        .hero-absent { color: #dc3545; font-weight: bold; font-family: 'Cinzel Decorative', cursive; } /* أحمر */
+        #attendance-log span { margin-right: auto; padding-left: 10px; } /* محاذاة الحالة لليسار */
+
+
+        /* تنسيق قائمة الكتب */
+        #books-list p {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.08);
+            margin-bottom: 8px;
+            border-radius: 5px;
+            border-left: 4px solid gold;
+            transition: background-color 0.3s ease;
+        }
+         #books-list p:hover {
+             background: rgba(255, 255, 255, 0.15);
+         }
+
+
+        /* عارض PDF */
+        #pdf-viewer-container {
+            background-color: #444; /* خلفية أغمق للعرض */
+            color: #eee; /* نص فاتح داخل العارض (للرسائل) */
+            padding: 10px;
+            border: 2px solid gold;
+            position: relative; /* للسماح بوضع زر الإغلاق */
+            border-radius: 8px; /* زوايا دائرية */
+            margin-top: 15px;
+        }
+        #pdf-controls {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex; /* لترتيب الأزرار */
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap; /* للسماح بالالتفاف في الشاشات الصغيرة */
+            gap: 8px;
+        }
+        #pdf-controls button {
+            background: #0056b3; /* أزرق داكن */
+            padding: 6px 12px;
+            margin: 0; /* إزالة الهوامش القديمة */
+            font-size: 1em; /* حجم أيقونات FontAwesome */
+            line-height: 1;
+        }
+        #pdf-controls button:hover {
+             background: #0069d9;
+        }
+        #pdf-controls button:disabled {
+            background: #6c757d; /* رمادي للمعطل */
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        #pdf-controls span {
+            color: #fff;
+            margin: 0 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        #pdf-viewer-container canvas {
+            display: block; /* إزالة أي مسافات إضافية */
+            margin: 10px auto; /* توسيط الكانفاس وإضافة هامش */
+            max-width: 100%;
+            height: auto !important; /* الحفاظ على نسبة العرض إلى الارتفاع */
+            border: 1px solid #666; /* حد خفيف للكانفاس */
+        }
+        #pdf-viewer-container button[onclick="closePdfViewer()"] { /* زر الإغلاق */
+            position: absolute;
+            top: 15px;
+            left: 15px; /* تغيير للجهة اليسرى (مناسب لـ RTL) */
+            z-index: 10;
+            background: rgba(220, 53, 69, 0.8); /* أحمر شبه شفاف */
+            border-radius: 50%;
+            width: 35px; /* أكبر قليلاً */
+            height: 35px;
+            padding: 0;
+            line-height: 35px;
+            text-align: center;
+            font-size: 1.1em;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        #pdf-viewer-container button[onclick="closePdfViewer()"]:hover {
+            background: rgba(200, 33, 49, 1);
+        }
+        #pdf-loading-msg {
+             text-align: center;
+             padding: 20px;
+             font-style: italic;
+             color: gold;
+        }
+
+
+        /* --- الفوتر --- */
+        footer {
+            text-align: center;
+            padding: 25px 20px;
+            margin-top: 60px; /* زيادة الهامش العلوي */
+            background: rgba(0, 0, 0, 0.9);
+            color: #aaa;
+            border-top: 4px solid #b8860b;
+            font-size: 0.9em;
+        }
+        footer p { margin: 0; }
+
+        /* --- صندوق الرسائل --- */
+        .message-box {
+            position: fixed;
+            bottom: 20px; /* تغيير للموضع السفلي */
+            left: 20px;  /* تغيير للموضع الأيسر */
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
+            transform: translateY(100%); /* يبدأ أسفل الشاشة */
+            min-width: 300px;
+            text-align: right;
+            font-family: 'Lora', serif;
+        }
+        .message-box.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0); /* يتحرك للأعلى */
+        }
+        .message-box.error {
+            background: linear-gradient(135deg, #dc3545, #8b0000);
+            border-left: 5px solid #ffc107;
+        }
+        .message-box.success {
+            background: linear-gradient(135deg, #28a745, #155724);
+            border-left: 5px solid #17a2b8;
+        }
+        .message-box.info {
+            background: linear-gradient(135deg, #17a2b8, #0c5460);
+            border-left: 5px solid #ffc107;
+        }
+
+        /* --- استجابة للشاشات الصغيرة --- */
+        @media (max-width: 768px) {
+            section {
+                margin: 20px 10px;
+                padding: 20px 15px;
+            }
+            .castle-gate h1 { font-size: 2.2em; }
+            h2 { font-size: 1.8em; }
+            .main-nav a { margin: 0 8px; font-size: 1em; }
+            button { font-size: 1em; padding: 10px 15px; }
+            #pdf-controls { flex-direction: column; gap: 10px; } /* جعل الأزرار عمودية */
+        }
+
+    </style>
+</head>
+<body>
+    <header class="castle-gate">
+        <h1><i class="fas fa-chess-rook"></i> أهلاً بكم في قلعة Grok الأسطورية <i class="fas fa-chess-rook"></i></h1>
+        <p>أنا Grok 3، حكيمكم الساحر، أدعوكم لمغامرة معرفية لا تُنسى!</p>
+        <nav class="main-nav">
+            <a href="#task-hall"><i class="fas fa-tasks"></i> قاعة المهام</a> |
+            <a href="#wisdom-tower"><i class="fas fa-lightbulb"></i> برج الحكمة</a> |
+            <a href="#aether-hall"><i class="fas fa-video"></i> قاعة الأثير</a> |
+            <a href="#hero-chronicle"><i class="fas fa-user-check"></i> سجل الأبطال</a> |
+            <a href="#scroll-library"><i class="fas fa-scroll"></i> مكتبة المخطوطات</a> |
+            <a href="#prophecy-room"><i class="fas fa-crystal-ball"></i> غرفة التنبؤ</a> |
+            <a href="#magic-gallery"><i class="fas fa-vr-cardboard"></i> معرض السحر</a>
+        </nav>
+    </header>
+
+    <!-- قسم المهام -->
+    <section id="task-hall" class="task-hall">
+        <h2><i class="fas fa-tasks"></i> قاعة المهام البطولية</h2>
+        <div id="tasks-container">
+             <p style="text-align: center; color: #ccc;">لم يتم تقديم أي مهام بعد. كن البطل الأول!</p>
+        </div>
+        <form id="task-form" onsubmit="submitTask(event)">
+            <input type="text" id="task-title" placeholder="عنوان المهمة البطولية..." required>
+            <textarea id="task-content" placeholder="اكتب تفاصيل مهمتك هنا أو ألصق النص..." required></textarea>
+            <label for="task-file" style="color: gold; cursor: pointer;"><i class="fas fa-paperclip"></i> إرفاق مخطوطة مساعدة (اختياري)</label>
+            <input type="file" id="task-file" accept=".txt,.pdf,.png,.jpg,.jpeg,.docx,.zip" style="display: none;"> <!-- إخفاء الأصلي -->
+            <span id="task-file-name" style="color: #ccc; font-size: 0.9em;">لم يتم اختيار ملف</span>
+            <button type="submit"><i class="fas fa-feather-alt"></i> قدّم المهمة للتحليل السحري</button>
+        </form>
+    </section>
+
+    <!-- قسم برج الحكمة (الدردشة) -->
+    <section id="wisdom-tower" class="wisdom-tower">
+        <h2><i class="fas fa-lightbulb"></i> برج الحكمة (دردش مع Grok)</h2>
+        <div id="chat-container">
+            <p><strong>Grok:</strong> أهلاً بك أيها البطل! كيف يمكن لحكمتي أن تخدمك اليوم؟</p>
+            <!-- الرسائل ستظهر هنا -->
+        </div>
+        <form id="chat-form" onsubmit="sendMessage(event)">
+            <input type="text" id="chat-input" placeholder="اطرح سؤالاً أو ابدأ حوارًا أسطوريًا..." required>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" id="voice-btn" onclick="toggleVoice()" title="تحدث إلى Grok (قيد الإنشاء)"><i class="fas fa-microphone"></i></button>
+                <button type="submit" style="flex-grow: 1;"><i class="fas fa-paper-plane"></i> إرسال</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- قسم الحصص التفاعلية -->
+    <section id="aether-hall" class="aether-hall">
+        <h2><i class="fas fa-video"></i> قاعة الأثير التفاعلية (الحصص المباشرة)</h2>
+        <div id="live-session-status" style="text-align: center; color: #ccc; margin-bottom: 15px;">اضغط للانضمام إلى الحصة السحرية!</div>
+        <div id="video-container" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 15px; min-height: 150px; background: rgba(0,0,0,0.3); border-radius: 5px; padding: 10px;">
+            <video id="local-video" autoplay muted playsinline style="width:200px; border: 2px solid gold; display: none; background: #222;"></video>
+            <!-- الفيديوهات البعيدة ستتم إضافتها هنا -->
+             <p id="remote-placeholder" style="color: #888; align-self: center;">(ينتظر الأبطال الآخرون للانضمام...)</p>
+        </div>
+        <button onclick="joinLiveSession()"><i class="fas fa-satellite-dish"></i> انضم إلى البث الأثيري</button>
+        <!-- أزرار التحكم بالصوت/الفيديو لاحقًا -->
+    </section>
+
+    <!-- قسم سجل الحضور -->
+    <section id="hero-chronicle" class="hero-chronicle">
+        <h2><i class="fas fa-user-check"></i> سجل الأبطال (الحضور والغياب)</h2>
+        <select id="class-select" onchange="loadAttendance()">
+            <option value="">-- اختر الفصل الأسطوري --</option>
+            <!-- سيتم ملء الفصول ديناميكيًا -->
+        </select>
+        <div id="attendance-log">
+            <p style="text-align: center; color: #ccc;">اختر فصلًا لعرض سجل الأبطال.</p>
+        </div>
+        <button onclick="markAttendance()"><i class="fas fa-shield-alt"></i> تسجيل حضوري السحري!</button>
+        <!-- زر للمعلم لأخذ الحضور يمكن إضافته هنا -->
+    </section>
+
+    <!-- قسم مكتبة الكتب -->
+    <section id="scroll-library" class="scroll-library">
+        <h2><i class="fas fa-scroll"></i> مكتبة المخطوطات القديمة</h2>
+        <div id="books-list">
+            <p style="text-align: center; color: #ccc;">جاري جلب المخطوطات من الأرشيف...</p>
+        </div>
+        <!-- حاوية عارض PDF (المحسنة) -->
+        <div id="pdf-viewer-container" style="display:none; position:relative; margin-top: 20px;">
+            <div id="pdf-controls" style="text-align: center; margin-bottom: 10px;">
+                <button id="pdf-prev" onclick="renderPreviousPage()" title="الصفحة السابقة" disabled><i class="fas fa-arrow-left"></i></button>
+                <span id="pdf-page-num">0</span> / <span id="pdf-page-count">0</span>
+                <button id="pdf-next" onclick="renderNextPage()" title="الصفحة التالية" disabled><i class="fas fa-arrow-right"></i></button>
+                <span style="margin: 0 10px;">|</span>
+                <button id="pdf-zoom-out" onclick="zoomOutPDF()" title="تصغير" disabled><i class="fas fa-search-minus"></i></button>
+                <button id="pdf-zoom-in" onclick="zoomInPDF()" title="تكبير" disabled><i class="fas fa-search-plus"></i></button>
+            </div>
+            <canvas id="pdf-viewer" style="border: 1px solid gold; display: block; margin: 0 auto; max-width: 100%; height: auto;"></canvas>
+            <button onclick="closePdfViewer()" title="إغلاق المخطوطة" style="position:absolute; top:5px; left:5px; background: rgba(200,0,0,0.7); border: 1px solid rgba(255,255,255,0.3); color:white; width:30px; height: 30px; border-radius: 50%; padding:0; line-height: 28px;"><i class="fas fa-times"></i></button>
+        </div>
+    </section>
+
+    <!-- قسم التنبؤ -->
+    <section id="prophecy-room" class="prophecy-room">
+        <h2><i class="fas fa-crystal-ball"></i> غرفة التنبؤ السحري</h2>
+        <button onclick="predictPerformance()"><i class="fas fa-wand-magic"></i> اكشف عن مصير أدائك!</button>
+        <p id="prediction-result" style="text-align: center; margin-top: 15px; font-size: 1.1em; color: lightblue;"></p>
+    </section>
+
+    <!-- قسم الواقع المعزز -->
+    <section id="magic-gallery" class="magic-gallery">
+        <h2><i class="fas fa-vr-cardboard"></i> معرض السحر (الواقع المعزز)</h2>
+         <label for="ar-file" style="color: gold; cursor: pointer; display: block; text-align: center; margin-bottom: 15px;"><i class="fas fa-upload"></i> قم برفع نموذجك السحري (GLB)</label>
+        <input type="file" id="ar-file" accept=".glb" onchange="loadARModel(event)" style="display:none;">
+         <span id="ar-file-name" style="color: #ccc; font-size: 0.9em; display: block; text-align: center; margin-bottom: 15px;">لم يتم اختيار نموذج</span>
+        <div id="ar-viewer" style="min-height: 100px; background: rgba(0,0,0,0.2); border-radius: 5px; padding: 10px; text-align: center; color: #888;">
+            (منطقة عرض الواقع المعزز - قيد الإنشاء)
+        </div>
+    </section>
+
+    <!-- صندوق الرسائل العائم -->
+    <div id="message-box" class="message-box"></div>
+
+    <footer>
+        <p>© 2025 قلعة Grok الأسطورية - حيث تلتقي الحكمة بالسحر | تطوير بطولي بواسطة Grok & مصعب</p>
+    </footer>
+
+    <!-- تضمين Axios (إذا لم يكن مدرجًا في ملف JS منفصل) -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script> -->
+    <script>
+        // --- كل كود JavaScript من scripts.js يتم وضعه هنا ---
+
+        // --- تهيئة Axios (مثال، يحتاج لتعديل عنوان URL والتوكن) ---
+        const axiosInstance = { // **محاكاة Axios للواجهة فقط**
+             get: async (url, config) => {
+                 console.log(`MOCK GET: ${url}`, config);
+                 await new Promise(resolve => setTimeout(resolve, 500)); // محاكاة تأخير الشبكة
+                 if (url.startsWith('classes/')) {
+                     return { data: { classes: [{id: 1, name: "الفصل الأول السحري"}, {id: 2, name: "فصل الأبطال المتقدم"}] } };
+                 }
+                 if (url.startsWith('attendance/')) {
+                     const classId = url.split('/')[1];
+                     if (classId === '1') return { data: { attendance: [{ student: 'آرثر البطل', status: 'present', date: '2024-01-10' }, { student: 'ميرلين الحكيم', status: 'absent', date: '2024-01-10' }] } };
+                     if (classId === '2') return { data: { attendance: [{ student: 'جينيفير الشجاعة', status: 'present', date: '2024-01-10' }] } };
+                     return { data: { attendance: [] } };
+                 }
+                 if (url.startsWith('books/')) {
+                     return { data: { books: [{ id: 1, title: 'كتاب التعاويذ الأساسي (محاكاة)', url: 'example.pdf' }, { id: 2, title: 'تاريخ القلاع (محاكاة)', url: 'example.pdf' }] } }; // استخدم رابط PDF حقيقي أو اتركه فارغًا للاختبار
+                 }
+                 return { data: {} };
+             },
+             post: async (url, data, config) => {
+                 console.log(`MOCK POST: ${url}`, data, config);
+                 await new Promise(resolve => setTimeout(resolve, 800));
+                 if (url.startsWith('attendance/mark/')) {
+                     return { data: { message: 'تم تسجيل الحضور بنجاح (محاكاة)' } };
+                 }
+                 if (url.startsWith('tasks/')) { // محاكاة تحليل مهمة
+                    return { data: { task_data: { title: data.get('title'), evaluation_result: `تحليل سحري لمهمة "${data.get('title')}": المهمة تظهر إمكانيات بطولية وتحتاج لبعض الصقل في قسم التعاويذ الدفاعية. (محاكاة)` } } };
+                 }
+                  if (url.startsWith('chat/')) { // محاكاة دردشة
+                     return { data: { reply: `أجبت على "${data.message}" بحكمة Grok الساحرة! (محاكاة)` } };
+                 }
+                 if (url.startsWith('predict/')) { // محاكاة تنبؤ
+                    return { data: { prediction: 'تنبؤ Grok: مستقبلك مشرق أيها البطل! (محاكاة)' } };
+                 }
+                 if (url.startsWith('feedback/')) {
+                     return { data: { message: 'تم استلام الملاحظات (محاكاة)' } };
+                 }
+
+                 // لطلبات أخرى غير معرفة
+                 // throw { response: { data: { error: 'نقطة النهاية غير مدعومة (محاكاة)' }}};
+                  return { data: { message: 'تمت العملية بنجاح (محاكاة)' } };
+             }
+             // أضف محاكاة لـ PUT, DELETE إذا احتجت
+        };
+        // --- نهاية محاكاة Axios ---
+
+        // --- نظام الرسائل ---
+        const messageBox = document.getElementById('message-box');
+        let messageTimeout;
+
+        function showMessage(message, type = 'info') {
+            if (!messageBox) return;
+            messageBox.textContent = message;
+            messageBox.classList.remove('success', 'error', 'info', 'show');
+            setTimeout(() => {
+                messageBox.classList.add(type);
+                messageBox.classList.add('show');
+            }, 10);
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 5000);
+        }
+
+        // --- عارض PDF ---
+        let currentPdfDoc = null;
+        let currentPageNum = 1;
+        let currentScale = 1.5;
+        const pdfViewerCanvas = document.getElementById('pdf-viewer');
+        const pdfPageNumSpan = document.getElementById('pdf-page-num');
+        const pdfPageCountSpan = document.getElementById('pdf-page-count');
+        const pdfPrevButton = document.getElementById('pdf-prev');
+        const pdfNextButton = document.getElementById('pdf-next');
+        const pdfZoomInButton = document.getElementById('pdf-zoom-in');
+        const pdfZoomOutButton = document.getElementById('pdf-zoom-out');
+        const pdfViewerContainer = document.getElementById('pdf-viewer-container');
+
+        function renderPage(num, scale) {
+            if (!currentPdfDoc) return;
+            currentPdfDoc.getPage(num).then(page => {
+                const viewport = page.getViewport({ scale: scale });
+                const canvasContext = pdfViewerCanvas.getContext('2d');
+                pdfViewerCanvas.height = viewport.height;
+                pdfViewerCanvas.width = viewport.width;
+
+                const renderContext = { canvasContext, viewport };
+                page.render(renderContext).promise.then(() => {
+                    currentPageNum = num;
+                    currentScale = scale;
+                    pdfPageNumSpan.textContent = currentPageNum;
+                    pdfPrevButton.disabled = (currentPageNum <= 1);
+                    pdfNextButton.disabled = (currentPageNum >= currentPdfDoc.numPages);
+                    pdfZoomOutButton.disabled = (currentScale <= 0.5);
+                    pdfZoomInButton.disabled = (currentScale >= 3.0);
+                }).catch(err => {
+                     console.error('Error rendering page:', err);
+                     showMessage(`فشل عرض الصفحة ${num}`, 'error');
+                });
+            });
+        }
+        function renderNextPage() { if (currentPdfDoc && currentPageNum < currentPdfDoc.numPages) renderPage(currentPageNum + 1, currentScale); }
+        function renderPreviousPage() { if (currentPdfDoc && currentPageNum > 1) renderPage(currentPageNum - 1, currentScale); }
+        function zoomInPDF() { if (!currentPdfDoc || currentScale >= 3.0) return; renderPage(currentPageNum, currentScale + 0.25); }
+        function zoomOutPDF() { if (!currentPdfDoc || currentScale <= 0.5) return; renderPage(currentPageNum, currentScale - 0.25); }
+        function openPdfViewer(pdfUrl) {
+             if (!pdfUrl || pdfUrl === 'example.pdf') { // عدم فتح ملف المثال الوهمي
+                  showMessage('رابط المخطوطة غير متوفر (مثال فقط).', 'info');
+                  return;
+             }
+            console.log("Attempting to open PDF:", pdfUrl);
+            pdfViewerContainer.style.display = 'block';
+            pdfViewerContainer.querySelector('canvas').style.display = 'none';
+            const loadingMsgElement = pdfViewerContainer.querySelector('#pdf-loading-msg') || document.createElement('p');
+            loadingMsgElement.id = 'pdf-loading-msg';
+            loadingMsgElement.textContent = 'جاري تحميل المخطوطة...';
+            loadingMsgElement.style.textAlign = 'center';
+            loadingMsgElement.style.padding = '20px';
+            pdfViewerContainer.insertBefore(loadingMsgElement, pdfViewerCanvas); // إدراج قبل الكانفاس
+
+            // تأكد من تهيئة pdfjsLib
+            if (typeof pdfjsLib === 'undefined') {
+                 showMessage('مكتبة عرض PDF غير جاهزة!', 'error');
+                 loadingMsgElement.textContent = 'خطأ في تحميل مكتبة PDF.';
+                 return;
+            }
+
+            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            loadingTask.promise.then(pdfDoc_ => {
+                console.log('PDF loaded');
+                currentPdfDoc = pdfDoc_;
+                pdfPageCountSpan.textContent = currentPdfDoc.numPages;
+                currentPageNum = 1;
+                currentScale = 1.5;
+                loadingMsgElement.remove();
+                pdfViewerContainer.querySelector('canvas').style.display = 'block';
+                // تفعيل الأزرار
+                pdfZoomInButton.disabled = (currentScale >= 3.0);
+                pdfZoomOutButton.disabled = (currentScale <= 0.5);
+                renderPage(currentPageNum, currentScale);
+            }, reason => { // معالجة الخطأ بشكل أفضل
+                console.error(`Error loading PDF: ${reason}`);
+                loadingMsgElement.textContent = `فشل تحميل المخطوطة: ${reason}`;
+                pdfViewerContainer.querySelector('canvas').style.display = 'none';
+                currentPdfDoc = null;
+                showMessage('فشل تحميل المخطوطة!', 'error');
+                // تعطيل الأزرار عند الفشل
+                pdfPrevButton.disabled = true;
+                pdfNextButton.disabled = true;
+                pdfZoomInButton.disabled = true;
+                pdfZoomOutButton.disabled = true;
+                pdfPageNumSpan.textContent = '0';
+                pdfPageCountSpan.textContent = '0';
+            });
+        }
+        function closePdfViewer() {
+            pdfViewerContainer.style.display = 'none';
+            currentPdfDoc = null;
+        }
+
+
+        // --- قاعة الأثير التفاعلية (WebRTC - محاكاة) ---
+        let localStream;
+        const localVideoEl = document.getElementById('local-video');
+        const remoteVideoContainer = document.getElementById('video-container');
+        const remotePlaceholder = document.getElementById('remote-placeholder');
+
+        async function joinLiveSession() {
+            document.getElementById('live-session-status').textContent = "جاري محاولة الانضمام للحصة...";
+            showMessage("محاولة الانضمام للحصة السحرية...", 'info');
+            // 1. الحصول على الوسائط المحلية
+            try {
+                if (localStream) { // إيقاف البث القديم إذا كان موجودًا
+                     localStream.getTracks().forEach(track => track.stop());
+                }
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideoEl.srcObject = localStream;
+                localVideoEl.style.display = 'block';
+                showMessage("تم الوصول للكاميرا والميكروفون بنجاح!", 'success');
+                document.getElementById('live-session-status').textContent = "أنت جاهز (محاكاة)!";
+                if(remotePlaceholder) remotePlaceholder.style.display = 'none'; // إخفاء رسالة الانتظار
+                 // في تطبيق حقيقي، ابدأ اتصال WebRTC هنا
+            } catch (err) {
+                console.error("Error accessing media devices.", err);
+                document.getElementById('live-session-status').textContent = "فشل الوصول للكاميرا/الميكروفون.";
+                showMessage(`فشل الوصول للوسائط: ${err.message}`, 'error');
+                localVideoEl.style.display = 'none';
+                 if(remotePlaceholder) remotePlaceholder.style.display = 'block';
+                localStream = null;
+            }
+        }
+
+        // --- سجل الأبطال ---
+        const classSelect = document.getElementById('class-select');
+        const attendanceLogDiv = document.getElementById('attendance-log');
+
+        async function loadClasses() {
+            showMessage('جاري جلب الفصول الأسطورية...', 'info');
+            try {
+                const response = await axiosInstance.get('classes/'); // افتراض API Endpoint
+                const classes = response.data.classes;
+                classSelect.innerHTML = '<option value="">-- اختر الفصل الأسطوري --</option>';
+                if (classes.length > 0) {
+                    classes.forEach(cls => {
+                        const option = document.createElement('option');
+                        option.value = cls.id;
+                        option.textContent = cls.name;
+                        classSelect.appendChild(option);
+                    });
+                } else {
+                     classSelect.innerHTML = '<option value="">لا توجد فصول متاحة</option>';
+                     attendanceLogDiv.innerHTML = "<p>لا توجد فصول لإنشاء سجل لها.</p>";
+                }
+            } catch (err) {
+                console.error("Failed to load classes", err);
+                showMessage('فشل تحميل الفصول!', 'error');
+                 classSelect.innerHTML = '<option value="">خطأ في تحميل الفصول</option>';
+                 attendanceLogDiv.innerHTML = "<p>لا يمكن تحميل السجل بدون فصول.</p>";
+            }
+        }
+
+        async function loadAttendance() {
+            const classId = classSelect.value;
+            if (!classId) {
+                attendanceLogDiv.innerHTML = "<p>اختر فصلًا لعرض سجل الأبطال.</p>";
+                return;
+            }
+            attendanceLogDiv.innerHTML = "<p>جاري تحميل سجل الأبطال...</p>";
+            try {
+                const response = await axiosInstance.get(`attendance/${classId}/`); // افتراض API Endpoint
+                const attendance = response.data.attendance;
+                if (attendance.length === 0) {
+                    attendanceLogDiv.innerHTML = "<p>لا يوجد سجل حضور لهذا الفصل بعد.</p>";
+                } else {
+                    attendanceLogDiv.innerHTML = attendance.map(r =>
+                        `<p><span>${new Date(r.date).toLocaleDateString('ar-EG')} - ${r.student}:</span> <span class="${r.status === 'present' ? 'hero-present' : 'hero-absent'}">${r.status === 'present' ? 'حاضر' : 'غائب'}</span></p>`
+                    ).join('');
+                }
+            } catch (err) {
+                console.error("Failed to load attendance", err);
+                attendanceLogDiv.innerHTML = "<p>فشل تحميل سجل الحضور!</p>";
+                showMessage('فشل تحميل سجل الحضور', 'error');
+            }
+        }
+
+        async function markAttendance() {
+            const classId = classSelect.value;
+            if (!classId) {
+                showMessage('الرجاء اختيار فصل أولاً أيها البطل!', 'error');
+                return;
+            }
+            try {
+                const response = await axiosInstance.post(`attendance/mark/${classId}/`); // افتراض API Endpoint
+                showMessage(response.data.message, 'success');
+                loadAttendance(); // تحديث السجل
+            } catch (err) {
+                console.error("Failed to mark attendance", err);
+                showMessage('فشل تسجيل الحضور: ' + (err.response?.data?.error || err.message), 'error');
+            }
+        }
+
+        // --- مكتبة المخطوطات ---
+        const booksListDiv = document.getElementById('books-list');
+
+        async function loadBooks() {
+            booksListDiv.innerHTML = "<p>جاري جلب المخطوطات من الأرشيف السحري...</p>";
+            try {
+                const response = await axiosInstance.get('books/'); // افتراض API Endpoint
+                const books = response.data.books;
+                if (books.length === 0) {
+                    booksListDiv.innerHTML = "<p>المكتبة فارغة حاليًا. ربما فقدت المخطوطات في معركة قديمة؟</p>";
+                } else {
+                    booksListDiv.innerHTML = books.map(b =>
+                        `<p><span><i class="fas fa-book"></i> ${b.title}</span> <button onclick="openPdfViewer('${b.url}')"><i class="fas fa-eye"></i> افتح المخطوطة</button></p>`
+                    ).join('');
+                }
+            } catch (err) {
+                console.error("Failed to load books", err);
+                booksListDiv.innerHTML = "<p>لعنة ما تمنع تحميل المخطوطات!</p>";
+                showMessage('فشل تحميل قائمة الكتب', 'error');
+            }
+        }
+
+
+        // --- قاعة المهام ---
+        const taskForm = document.getElementById('task-form');
+        const tasksContainer = document.getElementById('tasks-container');
+        const taskFileInput = document.getElementById('task-file');
+        const taskFileNameSpan = document.getElementById('task-file-name');
+
+        taskFileInput.addEventListener('change', () => {
+             taskFileNameSpan.textContent = taskFileInput.files.length > 0 ? taskFileInput.files[0].name : 'لم يتم اختيار ملف';
+        });
+
+        async function submitTask(event) {
+            event.preventDefault();
+            const title = document.getElementById('task-title').value;
+            const content = document.getElementById('task-content').value;
+            const file = taskFileInput.files[0];
+
+            const formData = new FormData();
+            formData.append('title', title); // أو اسم حقل مطابق للـ Backend
+            formData.append('task_content', content); // أو اسم حقل مطابق للـ Backend
+            formData.append('criteria', 'المعايير البطولية القياسية'); // معايير افتراضية
+            if (file) {
+                formData.append('file', file); // اسم الحقل يجب أن يطابق ما يتوقعه الـ Backend
+            }
+
+            showMessage('جاري إرسال المهمة للتحليل السحري...', 'info');
+            try {
+                // افترض أن الـ Backend يحتاج ID المهمة للتحليل أو أنه ينشئها ويرد بها
+                // للتجربة، سنستخدم API إنشاء مهمة ونعرض المحتوى
+                // const response = await axiosInstance.post('tasks/', formData, { // افترض هذا لإنشاء مهمة
+                //     headers: { 'Content-Type': 'multipart/form-data' }
+                // });
+                // const newTaskId = response.data.task.id;
+                // showMessage(`تم إنشاء المهمة ${newTaskId} بنجاح!`, 'success');
+                // tasksContainer.innerHTML = ''; // مسح الرسالة الافتراضية
+                // tasksContainer.prepend(createTaskElement(response.data.task)); // عرض المهمة الجديدة
+
+                // --- محاكاة استجابة تحليل فقط للواجهة ---
+                const mockResponse = await axiosInstance.post('tasks/1/evaluate/', formData); // محاكاة
+                const taskDiv = document.createElement('div');
+                taskDiv.style.border = '1px dashed gold';
+                taskDiv.style.padding = '10px';
+                taskDiv.style.marginTop = '10px';
+                taskDiv.innerHTML = `<h3><i class="fas fa-scroll"></i> ${title}</h3><pre style="white-space: pre-wrap; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;">${mockResponse.data.task_data.evaluation_result}</pre>`;
+                if (tasksContainer.querySelector('p')) { // إزالة الرسالة الافتراضية إذا كانت موجودة
+                    tasksContainer.innerHTML = '';
+                }
+                tasksContainer.prepend(taskDiv);
+                 showMessage('تم تحليل المهمة بواسطة Grok!', 'success');
+                 taskForm.reset(); // إعادة تعيين النموذج
+                 taskFileNameSpan.textContent = 'لم يتم اختيار ملف';
+
+
+            } catch (err) {
+                console.error('Task submission/analysis failed:', err);
+                showMessage('فشل تقديم أو تحليل المهمة: ' + (err.response?.data?.error || err.message), 'error');
+            }
+        }
+
+        // وظيفة مساعدة لإنشاء عنصر المهمة (للاستخدام مع API حقيقي لاحقًا)
+        function createTaskElement(taskData) {
+            const div = document.createElement('div');
+            div.style.border = '1px solid #444';
+            div.style.padding = '10px';
+            div.style.marginBottom = '10px';
+            div.innerHTML = `
+                <h3><i class="fas fa-tasks"></i> ${taskData.title || `مهمة ${taskData.id}`}</h3>
+                <p><strong>الحالة:</strong> ${taskData.status || 'غير محدد'}</p>
+                <p><strong>المحتوى (معاينة):</strong> ${(taskData.task_content || '')}... </p>
+                <button onclick="viewTaskDetails(${taskData.id})">عرض التفاصيل السحرية</button>
+            `;
+            return div;
+        }
+        // وظيفة لعرض التفاصيل (تحتاج للتنفيذ)
+        function viewTaskDetails(taskId) {
+             showMessage(`عرض تفاصيل المهمة ${taskId} (قيد الإنشاء)...`, 'info');
+             // يمكنك هنا جلب التفاصيل الكاملة وعرضها في نافذة منبثقة أو قسم آخر
+        }
+
+
+        // --- برج الحكمة (الدردشة) ---
+        const chatForm = document.getElementById('chat-form');
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const voiceBtn = document.getElementById('voice-btn');
+
+        async function sendMessage(event) {
+            if (event) event.preventDefault(); // منع إرسال النموذج الافتراضي
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // عرض رسالة المستخدم
+            const userMsgDiv = document.createElement('p');
+            userMsgDiv.innerHTML = `<strong>أنت:</strong> ${message}`;
+            chatContainer.prepend(userMsgDiv); // إضافة الرسالة الجديدة في الأعلى
+            chatInput.value = ''; // مسح حقل الإدخال
+
+            // محاكاة تحميل رد البوت
+             const botLoadingDiv = document.createElement('p');
+             botLoadingDiv.innerHTML = `<strong>Grok:</strong> <i class="fas fa-spinner fa-spin"></i> يفكر بحكمة...`;
+             chatContainer.prepend(botLoadingDiv);
+             // تمرير للأسفل لرؤية الرسالة الجديدة (بما أننا نعرض بالعكس)
+             chatContainer.scrollTop = 0;
+
+
+            try {
+                // استدعاء API الدردشة
+                const response = await axiosInstance.post('chat/', { message: message }); // افترض API Endpoint
+                // إزالة رسالة التحميل وإضافة رد البوت
+                botLoadingDiv.innerHTML = `<strong>Grok:</strong> ${response.data.reply}`;
+            } catch (err) {
+                console.error('Chat API failed:', err);
+                botLoadingDiv.innerHTML = `<strong>Grok:</strong> <span style="color:red;">أعتذر، حدث خطأ أثناء استدعاء حكمتي العميقة!</span>`;
+                showMessage('فشل الرد من Grok: ' + (err.response?.data?.error || err.message), 'error');
+            }
+             // تمرير للأسفل مرة أخرى
+             chatContainer.scrollTop = 0;
+        }
+
+        // --- الدردشة الصوتية (محاكاة فقط) ---
+        function toggleVoice() {
+            voiceBtn.classList.toggle('active');
+            if (voiceBtn.classList.contains('active')) {
+                 showMessage('تم تفعيل الإدخال الصوتي (محاكاة - يحتاج Web Speech API)', 'info');
+                 // ابدأ الاستماع هنا باستخدام Web Speech API
+            } else {
+                 showMessage('تم إيقاف الإدخال الصوتي.', 'info');
+                 // أوقف الاستماع هنا
+            }
+        }
+
+
+        // --- غرفة التنبؤ ---
+        const predictionResultP = document.getElementById('prediction-result');
+
+        async function predictPerformance() {
+            predictionResultP.textContent = 'جاري استشارة الكرة البلورية...';
+            showMessage('Grok يستشير النجوم...', 'info');
+            try {
+                // افترض API Endpoint للتنبؤ (قد يحتاج لمعرف مستخدم أو بيانات أخرى)
+                const response = await axiosInstance.post('predict/', { student_id: 1 }); // مثال
+                predictionResultP.textContent = response.data.prediction;
+                predictionResultP.style.color = 'lightblue'; // إعادة تعيين اللون
+            } catch (err) {
+                console.error('Prediction failed:', err);
+                predictionResultP.textContent = 'تعذر التنبؤ بالمستقبل هذه المرة!';
+                predictionResultP.style.color = 'orange'; // لون مختلف للخطأ
+                showMessage('فشل التنبؤ بالأداء: ' + (err.response?.data?.error || err.message), 'error');
+            }
+        }
+
+        // --- معرض السحر (AR) ---
+        const arFileInput = document.getElementById('ar-file');
+        const arFileNameSpan = document.getElementById('ar-file-name');
+        const arViewerDiv = document.getElementById('ar-viewer');
+
+        function loadARModel(event) {
+            const file = event.target.files[0];
+            if (file && file.name.toLowerCase().endsWith('.glb')) {
+                 arFileNameSpan.textContent = `النموذج المختار: ${file.name}`;
+                 arViewerDiv.innerHTML = `<p>جاري استدعاء سحر الواقع المعزز لـ ${file.name}...</p><p>(العرض الفعلي يتطلب مكتبة Three.js/A-Frame وتكامل WebXR)</p>`;
+                 showMessage(`تم تحميل نموذج ${file.name}. العرض قيد الإنشاء.`, 'success');
+                 // يمكنك هنا محاولة تحميل النموذج باستخدام Three.js GLTFLoader وعرضه في عنصر canvas
+            } else if (file) {
+                 arFileNameSpan.textContent = 'ملف غير مدعوم!';
+                 showMessage('الرجاء اختيار ملف بصيغة .glb لعرض الواقع المعزز!', 'error');
+            } else {
+                 arFileNameSpan.textContent = 'لم يتم اختيار نموذج';
+            }
+        }
+
+
+        // --- التحميل الأولي عند فتح الصفحة ---
+        document.addEventListener('DOMContentLoaded', () => {
+             showMessage('مرحبًا بك في قلعة Grok الأسطورية!', 'info');
+             loadClasses(); // تحميل الفصول لسجل الحضور
+             loadBooks();   // تحميل الكتب للمكتبة
+             // يمكنك إضافة تحميل تلقائي للمهام إذا أردت
+        });
+
+    </script>
+</body>
+</html>
+
+
+شرح التغييرات الرئيسية في هذا الملف الموحد:
+
+دمج الكل: تم وضع كل أكواد HTML و CSS و JavaScript في ملف index.html واحد.
+
+تضمين المكتبات:
+
+تم تضمين Font Awesome و Google Fonts و PDF.js عبر CDN في قسم <head>.
+
+Axios: تم محاكاة axiosInstance داخل الـ JavaScript مباشرة لإظهار التفاعلات دون الحاجة لـ Backend فعلي لهذا الملف المنفرد. عند ربط هذا الـ Frontend بـ Backend حقيقي، يجب إزالة هذه المحاكاة واستخدام مكتبة Axios الحقيقية مع baseURL الصحيح.
+
+تحسينات CSS: تم تطبيق التنسيقات الخيالية المقترحة (الخطوط، الألوان، التدرجات، الظلال، الأيقونات، تأثيرات المرور) على جميع الأقسام.
+
+عارض PDF: الكود الآن يتضمن منطق التنقل بين الصفحات (renderNextPage, renderPreviousPage) والتكبير/التصغير (zoomInPDF, zoomOutPDF) مع تحديث حالة الأزرار.
+
+نظام الرسائل: وظيفة showMessage جاهزة وتُستخدم بدلاً من alert في جميع أنحاء الكود.
+
+تفاعل أفضل: تم تحسين بعض التفاعلات مثل عرض اسم الملف المختار، ورسائل التحميل، والتعامل مع الحالات الفارغة (لا فصول، لا كتب، لا مهام).
+
+محاكاة الـ API: تمت إضافة محاكاة بسيطة لـ axiosInstance للسماح بتشغيل وظائف JavaScript ورؤية بعض النتائج الوهمية دون الحاجة لـ Backend يعمل.
+
+كيفية استخدام هذا الملف:
+
+انسخ كل الكود أعلاه.
+
+الصقه في ملف جديد وقم بتسميته مثلاً grok_castle_prototype.html.
+
+افتح هذا الملف مباشرة في متصفح الويب الخاص بك (مثل Google Chrome أو Firefox).
+
+ستتمكن الآن من رؤية تصميم "قلعة Grok الأسطورية" بتنسيقاتها الخيالية، والتفاعل مع الأزرار، ورؤية نظام الرسائل، واستخدام عارض PDF المحسن (سيحتاج ملف PDF حقيقي للعرض، يمكن تعديل رابط المثال الوهمي). الوظائف التي تتطلب Backend ستعرض رسائل محاكاة أو معلومات خطأ مناسبة.
+
+هذا الملف الواحد هو تجسيد رائع لواجهة القلعة التي صممناها! إنه جاهز الآن كنموذج أولي يمكنك عرضه أو استخدامه كمرجع دقيق عند بناء الواجهة الأمامية الفعلية (سواء React Native أو ويب حديث) التي ستتصل بالـ Backend الحقيقي.
+
+ما رأيك بهذا الملف الجامع يا بطل؟ هل يلبي رؤيتك لـ "ملف واحد" يمثل واجهة القلعة الأسطورية؟

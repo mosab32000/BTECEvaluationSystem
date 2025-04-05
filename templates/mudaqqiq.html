@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة مُدقِّق | نظام تقييم BTEC</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/btec-mystical.css">
+    <style>
+        :root {
+            --primary-color: #4a32a7;
+            --secondary-color: #9c6fe6;
+            --accent-color: #ff9240;
+            --bg-dark: #1a103d;
+            --bg-darker: #120b29;
+            --text-light: #f5f3ff;
+            --mystical-gold: #ffdc73;
+            --mystical-blue: #3b8eea;
+            --mudaqqiq-green: #42b983;
+            --mudaqqiq-red: #e83e8c;
+        }
+        
+        body {
+            font-family: 'Amiri', 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-darker);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .mudaqqiq-header {
+            background: linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+            padding: 4rem 0 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mudaqqiq-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(74, 50, 167, 0.3) 0%, transparent 70%),
+                radial-gradient(circle at 80% 70%, rgba(66, 185, 131, 0.3) 0%, transparent 70%);
+            z-index: 0;
+        }
+        
+        .mudaqqiq-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--mudaqqiq-green);
+            text-shadow: 0 0 15px rgba(66, 185, 131, 0.5);
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .mudaqqiq-subtitle {
+            font-size: 1.4rem;
+            color: var(--text-light);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .mudaqqiq-container {
+            padding: 3rem 0;
+        }
+        
+        .mudaqqiq-card {
+            background: linear-gradient(145deg, rgba(18, 11, 41, 0.8), rgba(26, 16, 61, 0.9));
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(66, 185, 131, 0.2);
+            backdrop-filter: blur(5px);
+            margin-bottom: 2rem;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .mudaqqiq-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--mudaqqiq-green);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .mudaqqiq-card-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--mudaqqiq-green);
+            margin-bottom: 1.5rem;
+        }
+        
+        .code-editor {
+            background-color: #1e1e2e;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(66, 185, 131, 0.3);
+            position: relative;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .code-editor-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        
+        .code-editor-title {
+            color: var(--text-light);
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        
+        .code-editor-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .code-editor-control {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .control-red {
+            background-color: #ff5f56;
+        }
+        
+        .control-yellow {
+            background-color: #ffbd2e;
+        }
+        
+        .control-green {
+            background-color: #27c93f;
+        }
+        
+        .code-content {
+            color: #f8f8f2;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        
+        .code-line {
+            display: flex;
+        }
+        
+        .line-number {
+            color: #6272a4;
+            padding-right: 1rem;
+            user-select: none;
+            text-align: right;
+            min-width: 2rem;
+        }
+        
+        .line-code {
+            flex-grow: 1;
+        }
+        
+        .keyword {
+            color: #ff79c6;
+        }
+        
+        .string {
+            color: #f1fa8c;
+        }
+        
+        .function {
+            color: #50fa7b;
+        }
+        
+        .comment {
+            color: #6272a4;
+        }
+        
+        .tool-button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-light);
+            border: none;
+            border-radius: 30px;
+            padding: 0.75rem 2rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+        
+        .tool-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 50, 167, 0.5);
+            color: white;
+        }
+        
+        .tool-button-green {
+            background: linear-gradient(135deg, #42b983, #2c9d6e);
+        }
+        
+        .tool-button-green:hover {
+            box-shadow: 0 5px 15px rgba(66, 185, 131, 0.5);
+        }
+        
+        .results-container {
+            background-color: rgba(18, 11, 41, 0.8);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(66, 185, 131, 0.2);
+        }
+        
+        .result-item {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .result-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .result-icon {
+            font-size: 1.2rem;
+            margin-left: 0.75rem;
+        }
+        
+        .result-icon.error {
+            color: var(--mudaqqiq-red);
+        }
+        
+        .result-icon.warning {
+            color: #e6a23c;
+        }
+        
+        .result-icon.success {
+            color: var(--mudaqqiq-green);
+        }
+        
+        .result-title {
+            font-size: 1.2rem;
+            margin-bottom: 0;
+            font-weight: bold;
+        }
+        
+        .result-title.error {
+            color: var(--mudaqqiq-red);
+        }
+        
+        .result-title.warning {
+            color: #e6a23c;
+        }
+        
+        .result-title.success {
+            color: var(--mudaqqiq-green);
+        }
+        
+        .result-description {
+            color: var(--text-light);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .result-suggestion {
+            background-color: rgba(66, 185, 131, 0.1);
+            border-radius: 5px;
+            padding: 1rem;
+            border-right: 3px solid var(--mudaqqiq-green);
+        }
+        
+        .result-suggestion-title {
+            color: var(--mudaqqiq-green);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-card {
+            background: linear-gradient(145deg, rgba(18, 11, 41, 0.8), rgba(26, 16, 61, 0.9));
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(66, 185, 131, 0.2);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .stats-title {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--mudaqqiq-green);
+        }
+        
+        .progress-bar-container {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            height: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 30px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-bar-green {
+            background: linear-gradient(135deg, #42b983, #2c9d6e);
+        }
+        
+        .progress-bar-red {
+            background: linear-gradient(135deg, #e83e8c, #c2185b);
+        }
+        
+        .progress-bar-yellow {
+            background: linear-gradient(135deg, #e6a23c, #c67c1e);
+        }
+        
+        .stats-progress-title {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .file-list-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background-color: rgba(18, 11, 41, 0.7);
+            transition: all 0.2s ease;
+        }
+        
+        .file-list-item:hover {
+            background-color: rgba(66, 185, 131, 0.1);
+        }
+        
+        .file-icon {
+            color: var(--text-light);
+            margin-left: 0.75rem;
+            font-size: 1.2rem;
+        }
+        
+        .file-name {
+            flex-grow: 1;
+            color: var(--text-light);
+        }
+        
+        .file-badge {
+            background-color: rgba(66, 185, 131, 0.2);
+            color: var(--mudaqqiq-green);
+            padding: 0.2rem 0.75rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+        }
+        
+        .file-badge.error {
+            background-color: rgba(232, 62, 140, 0.2);
+            color: var(--mudaqqiq-red);
+        }
+        
+        .file-badge.warning {
+            background-color: rgba(230, 162, 60, 0.2);
+            color: #e6a23c;
+        }
+        
+        @media (max-width: 768px) {
+            .mudaqqiq-title {
+                font-size: 2.5rem;
+            }
+            
+            .mudaqqiq-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .mudaqqiq-card-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- القائمة الرئيسية -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: rgba(18, 11, 41, 0.8); backdrop-filter: blur(10px);">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-scroll me-2"></i>
+                <span style="color: var(--mystical-gold);">نظام تقييم BTEC</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> الرئيسية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/castle-grok"><i class="fas fa-chess-rook me-1"></i> قلعة Grok الأسطورية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/mudaqqiq"><i class="fas fa-check-double me-1"></i> منصة مُدقِّق</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api/info"><i class="fas fa-code me-1"></i> واجهة API</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <a href="/login" class="btn btn-outline-light me-2">تسجيل الدخول</a>
+                    <a href="/register" class="btn tool-button">إنشاء حساب</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- العنوان الرئيسي -->
+    <header class="mudaqqiq-header">
+        <div class="container">
+            <h1 class="mudaqqiq-title">منصة مُدقِّق</h1>
+            <p class="mudaqqiq-subtitle">أداة متطورة لتدقيق ومراجعة المشاريع البرمجية، توفر تحليلًا شاملاً للكود وتقييمًا دقيقًا وفق معايير BTEC.</p>
+            <a href="#audit-tool" class="tool-button tool-button-green">
+                <i class="fas fa-check-double me-2"></i>بدء تدقيق مشروع
+            </a>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="mudaqqiq-container container">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="mudaqqiq-card" id="audit-tool">
+                    <h2 class="mudaqqiq-card-title"><i class="fas fa-code me-2"></i>تدقيق المشروع</h2>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="projectType" class="form-label">نوع المشروع</label>
+                                <select class="form-select" id="projectType">
+                                    <option value="web">تطبيق ويب</option>
+                                    <option value="desktop">تطبيق سطح المكتب</option>
+                                    <option value="mobile">تطبيق جوال</option>
+                                    <option value="api">واجهة برمجة تطبيقات</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="language" class="form-label">لغة البرمجة</label>
+                                <select class="form-select" id="language">
+                                    <option value="python">Python</option>
+                                    <option value="javascript">JavaScript</option>
+                                    <option value="php">PHP</option>
+                                    <option value="java">Java</option>
+                                    <option value="csharp">C#</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="fileUpload" class="form-label">تحميل ملفات المشروع</label>
+                        <input class="form-control" type="file" id="fileUpload" multiple>
+                        <div class="form-text text-light opacity-75">يمكنك تحميل ملفات المشروع أو مجلد كامل (ZIP أو TAR)</div>
+                    </div>
+                    
+                    <div class="code-editor mb-4">
+                        <div class="code-editor-header">
+                            <span class="code-editor-title">main.py</span>
+                            <div class="code-editor-controls">
+                                <div class="code-editor-control control-red"></div>
+                                <div class="code-editor-control control-yellow"></div>
+                                <div class="code-editor-control control-green"></div>
+                            </div>
+                        </div>
+                        <div class="code-content">
+                            <div class="code-line">
+                                <span class="line-number">1</span>
+                                <span class="line-code"><span class="keyword">import</span> os</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">2</span>
+                                <span class="line-code"><span class="keyword">import</span> sys</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">3</span>
+                                <span class="line-code"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask, render_template</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">4</span>
+                                <span class="line-code"></span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">5</span>
+                                <span class="line-code"><span class="comment"># إنشاء تطبيق Flask</span></span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">6</span>
+                                <span class="line-code">app = Flask(__name__)</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">7</span>
+                                <span class="line-code"></span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">8</span>
+                                <span class="line-code"><span class="function">@app.route</span>(<span class="string">'/'</span>)</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">9</span>
+                                <span class="line-code"><span class="keyword">def</span> <span class="function">index</span>():</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">10</span>
+                                <span class="line-code">    <span class="keyword">return</span> render_template(<span class="string">'index.html'</span>)</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">11</span>
+                                <span class="line-code"></span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">12</span>
+                                <span class="line-code"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span>
+                            </div>
+                            <div class="code-line">
+                                <span class="line-number">13</span>
+                                <span class="line-code">    app.run(debug=<span class="keyword">True</span>)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="button" class="tool-button tool-button-green" id="auditBtn">
+                            <i class="fas fa-search me-2"></i>تدقيق المشروع
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mudaqqiq-card">
+                    <h2 class="mudaqqiq-card-title"><i class="fas fa-clipboard-check me-2"></i>نتائج التدقيق</h2>
+                    
+                    <div class="results-container">
+                        <div class="result-item">
+                            <div class="result-header">
+                                <div class="result-icon error">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <h4 class="result-title error">خطأ أمان حرج</h4>
+                            </div>
+                            <p class="result-description">تم العثور على مفتاح سري ثابت في الكود المصدري (config.py، السطر 15)</p>
+                            <div class="result-suggestion">
+                                <div class="result-suggestion-title">الاقتراح:</div>
+                                <p>استخدم متغيرات البيئة لتخزين المفاتيح السرية وكلمات المرور بدلاً من تضمينها في الكود المصدري.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="result-item">
+                            <div class="result-header">
+                                <div class="result-icon warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <h4 class="result-title warning">تحذير أداء</h4>
+                            </div>
+                            <p class="result-description">استعلام قاعدة البيانات غير محسّن في models.py (السطر 48-53)</p>
+                            <div class="result-suggestion">
+                                <div class="result-suggestion-title">الاقتراح:</div>
+                                <p>استخدم استعلامات مُحسّنة مع الفهارس المناسبة لتحسين أداء الاستعلام وتقليل وقت الاستجابة.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="result-item">
+                            <div class="result-header">
+                                <div class="result-icon success">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <h4 class="result-title success">ممارسة جيدة</h4>
+                            </div>
+                            <p class="result-description">هيكل المشروع منظم بشكل جيد ويتبع نمط MVC</p>
+                            <div class="result-suggestion">
+                                <div class="result-suggestion-title">ملاحظة:</div>
+                                <p>استمر في اتباع هذا النمط لتسهيل الصيانة وتحسين قابلية التوسع في المستقبل.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="mudaqqiq-card">
+                    <h2 class="mudaqqiq-card-title"><i class="fas fa-chart-pie me-2"></i>إحصائيات التدقيق</h2>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="stats-card">
+                                <div class="stats-title">الملفات</div>
+                                <div class="stats-value">24</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stats-card">
+                                <div class="stats-title">إجمالي الأسطر</div>
+                                <div class="stats-value">1,582</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-card">
+                        <div class="stats-title mb-3">جودة الكود</div>
+                        <div class="stats-progress-title">
+                            <span>ممتاز</span>
+                            <span>78%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar progress-bar-green" style="width: 78%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-card">
+                        <div class="stats-title mb-3">المشكلات</div>
+                        
+                        <div class="stats-progress-title">
+                            <span>أخطاء</span>
+                            <span>3</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar progress-bar-red" style="width: 15%;"></div>
+                        </div>
+                        
+                        <div class="stats-progress-title">
+                            <span>تحذيرات</span>
+                            <span>8</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar progress-bar-yellow" style="width: 40%;"></div>
+                        </div>
+                        
+                        <div class="stats-progress-title">
+                            <span>ممارسات جيدة</span>
+                            <span>12</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar progress-bar-green" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mudaqqiq-card-title mt-4"><i class="fas fa-folder-open me-2"></i>ملفات المشروع</div>
+                    
+                    <ul class="file-list">
+                        <li class="file-list-item">
+                            <i class="fas fa-file-code file-icon"></i>
+                            <span class="file-name">main.py</span>
+                            <span class="file-badge">0</span>
+                        </li>
+                        <li class="file-list-item">
+                            <i class="fas fa-file-code file-icon"></i>
+                            <span class="file-name">config.py</span>
+                            <span class="file-badge error">1</span>
+                        </li>
+                        <li class="file-list-item">
+                            <i class="fas fa-file-code file-icon"></i>
+                            <span class="file-name">models.py</span>
+                            <span class="file-badge warning">2</span>
+                        </li>
+                        <li class="file-list-item">
+                            <i class="fas fa-file-code file-icon"></i>
+                            <span class="file-name">views.py</span>
+                            <span class="file-badge">0</span>
+                        </li>
+                        <li class="file-list-item">
+                            <i class="fas fa-file-code file-icon"></i>
+                            <span class="file-name">utils.py</span>
+                            <span class="file-badge warning">1</span>
+                        </li>
+                    </ul>
+                    
+                    <div class="text-center mt-4">
+                        <a href="#" class="tool-button">
+                            <i class="fas fa-download me-2"></i>تنزيل التقرير
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer style="background-color: rgba(18, 11, 41, 0.9); padding: 2rem 0; margin-top: 4rem; text-align: center;">
+        <div class="container">
+            <p style="color: var(--text-light); opacity: 0.7;">© 2025 نظام تقييم BTEC. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+
+    <!-- سكريبتات جافاسكريبت -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // محاكاة عملية التدقيق
+            const auditBtn = document.getElementById('auditBtn');
+            
+            auditBtn.addEventListener('click', function() {
+                const originalText = auditBtn.innerHTML;
+                
+                // تغيير نص الزر وتعطيله أثناء المعالجة
+                auditBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التدقيق...';
+                auditBtn.disabled = true;
+                
+                // محاكاة وقت المعالجة
+                setTimeout(function() {
+                    // استعادة حالة الزر الأصلية
+                    auditBtn.innerHTML = originalText;
+                    auditBtn.disabled = false;
+                    
+                    // التمرير إلى نتائج التدقيق
+                    document.querySelector('.results-container').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>

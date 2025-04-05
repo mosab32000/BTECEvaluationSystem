@@ -1,16 +1,20 @@
 """
-معالجات السياق للقوالب
+معالجات السياق لنظام تقييم BTEC
+تستخدم لحقن متغيرات عامة في قوالب Jinja
 """
-import os
+
 from datetime import datetime
 
-def global_template_vars():
-    """تعريف المتغيرات العامة للقوالب"""
+def inject_globals():
+    """
+    حقن متغيرات عامة في جميع قوالب Jinja
+    
+    Returns:
+        dict: قاموس المتغيرات العامة
+    """
     return {
-        'app_name': 'BTEC Evaluation System',
-        'app_version': '1.0.0',
-        'current_year': datetime.now().year,
-        'is_production': os.environ.get('FLASK_ENV') == 'production',
-        'is_rtl': True,  # تمكين الدعم الكامل للغة العربية (RTL)
-        'app_description': 'نظام تقييم BTEC - منصة تقييم متطورة مدعومة بالذكاء الاصطناعي'
+        "now": datetime.utcnow(),
+        "app_name": "نظام تقييم BTEC",
+        "app_version": "1.0.0",
+        "app_description": "منصة متقدمة للتقييم الأكاديمي تستخدم الذكاء الاصطناعي"
     }

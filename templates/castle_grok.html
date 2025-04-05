@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قلعة Grok الأسطورية | نظام تقييم BTEC</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/btec-mystical.css">
+    <style>
+        :root {
+            --primary-color: #4a32a7;
+            --secondary-color: #9c6fe6;
+            --accent-color: #ff9240;
+            --bg-dark: #1a103d;
+            --text-light: #f5f3ff;
+            --mystical-gold: #ffdc73;
+            --mystical-blue: #3b8eea;
+            --castle-stone: #72757e;
+            --castle-dark: #0f0a27;
+        }
+        
+        body {
+            font-family: 'Amiri', 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--castle-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        .castle-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(15, 10, 39, 0.9), rgba(15, 10, 39, 0.9)),
+                url('/static/images/castle-background.svg');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+        }
+        
+        .castle-fog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 30% 40%, rgba(74, 50, 167, 0.2) 0%, transparent 70%),
+                radial-gradient(ellipse at 70% 60%, rgba(156, 111, 230, 0.2) 0%, transparent 70%);
+            z-index: -1;
+            filter: blur(40px);
+        }
+        
+        .moon {
+            position: fixed;
+            top: 80px;
+            right: 80px;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(255, 255, 230, 0.7));
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(255, 255, 230, 0.7);
+            z-index: -1;
+        }
+        
+        .castle-content {
+            padding-top: 3rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .castle-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .castle-header h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--mystical-gold);
+            text-shadow: 0 0 15px rgba(255, 220, 115, 0.7);
+            margin-bottom: 1rem;
+        }
+        
+        .castle-header p {
+            font-size: 1.4rem;
+            color: var(--text-light);
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .castle-card {
+            background: linear-gradient(145deg, rgba(15, 10, 39, 0.7), rgba(26, 16, 61, 0.9));
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(156, 111, 230, 0.3);
+            backdrop-filter: blur(5px);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .castle-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--mystical-gold);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+        
+        .chat-container {
+            height: 400px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            overflow-y: auto;
+            border: 1px solid rgba(156, 111, 230, 0.2);
+        }
+        
+        .chat-message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+        
+        .chat-user {
+            background: rgba(74, 50, 167, 0.3);
+            border: 1px solid rgba(74, 50, 167, 0.5);
+            margin-left: auto;
+        }
+        
+        .chat-grok {
+            background: rgba(255, 220, 115, 0.1);
+            border: 1px solid rgba(255, 220, 115, 0.3);
+            margin-right: auto;
+        }
+        
+        .chat-form {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .chat-input {
+            flex-grow: 1;
+            background: rgba(15, 10, 39, 0.8);
+            border: 1px solid rgba(156, 111, 230, 0.3);
+            color: var(--text-light);
+            padding: 0.75rem 1rem;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-input:focus {
+            border-color: var(--mystical-gold);
+            box-shadow: 0 0 10px rgba(255, 220, 115, 0.3);
+            outline: none;
+        }
+        
+        .chat-button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-light);
+            border: none;
+            border-radius: 30px;
+            padding: 0.75rem 2rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .chat-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 50, 167, 0.5);
+        }
+        
+        .castle-features {
+            margin-top: 4rem;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--mystical-gold);
+            margin-left: 1rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 10, 39, 0.7);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 220, 115, 0.3);
+        }
+        
+        .feature-text h3 {
+            font-size: 1.4rem;
+            color: var(--mystical-blue);
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-text p {
+            font-size: 1rem;
+            color: var(--text-light);
+            opacity: 0.8;
+        }
+        
+        .floating-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .floating-element {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 220, 115, 0.1);
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: float 20s infinite ease-in-out;
+            filter: blur(3px);
+        }
+        
+        .floating-element:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            width: 50px;
+            height: 50px;
+            animation-delay: 0s;
+        }
+        
+        .floating-element:nth-child(2) {
+            top: 70%;
+            left: 5%;
+            width: 40px;
+            height: 40px;
+            animation-delay: -5s;
+            background-color: rgba(74, 50, 167, 0.1);
+        }
+        
+        .floating-element:nth-child(3) {
+            top: 40%;
+            right: 10%;
+            width: 60px;
+            height: 60px;
+            animation-delay: -10s;
+            background-color: rgba(156, 111, 230, 0.1);
+        }
+        
+        .floating-element:nth-child(4) {
+            top: 80%;
+            right: 20%;
+            width: 45px;
+            height: 45px;
+            animation-delay: -15s;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-30px) translateX(20px) rotate(10deg);
+            }
+            50% {
+                transform: translateY(0) translateX(40px) rotate(20deg);
+            }
+            75% {
+                transform: translateY(30px) translateX(20px) rotate(10deg);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .castle-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .castle-header p {
+                font-size: 1.2rem;
+            }
+            
+            .moon {
+                width: 60px;
+                height: 60px;
+                top: 40px;
+                right: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- خلفية القلعة -->
+    <div class="castle-bg"></div>
+    <div class="castle-fog"></div>
+    <div class="moon"></div>
+    
+    <!-- العناصر الطافية -->
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
+    <!-- القائمة الرئيسية -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: rgba(15, 10, 39, 0.8); backdrop-filter: blur(10px);">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-scroll me-2"></i>
+                <span style="color: var(--mystical-gold);">نظام تقييم BTEC</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> الرئيسية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/castle-grok"><i class="fas fa-chess-rook me-1"></i> قلعة Grok الأسطورية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/mudaqqiq"><i class="fas fa-check-double me-1"></i> منصة مُدقِّق</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api/info"><i class="fas fa-code me-1"></i> واجهة API</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <a href="/login" class="btn btn-outline-light me-2">تسجيل الدخول</a>
+                    <a href="/register" class="btn chat-button">إنشاء حساب</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="container castle-content">
+        <header class="castle-header">
+            <h1>قلعة Grok الأسطورية</h1>
+            <p>مرحباً بك في قلعة Grok الأسطورية، حيث يمكنك التفاعل مع مساعد الذكاء الاصطناعي المتطور والاستفادة من قدراته الهائلة.</p>
+        </header>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="castle-card">
+                    <h2 style="color: var(--mystical-gold); margin-bottom: 1.5rem; font-size: 2rem;">
+                        <i class="fas fa-comment-dots me-2"></i>محادثة مع Grok
+                    </h2>
+                    
+                    <div class="chat-container" id="chatContainer">
+                        <div class="chat-message chat-grok">
+                            <p style="margin-bottom: 0;">مرحباً بك في قلعة Grok الأسطورية! أنا هنا لمساعدتك في تقييم مهام BTEC والإجابة على أسئلتك. كيف يمكنني مساعدتك اليوم؟</p>
+                        </div>
+                    </div>
+                    
+                    <form class="chat-form" id="chatForm">
+                        <input type="text" class="chat-input" id="userMessage" placeholder="اكتب رسالتك هنا..." required>
+                        <button type="submit" class="chat-button">
+                            <i class="fas fa-paper-plane me-1"></i>إرسال
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="castle-card">
+                    <h2 style="color: var(--mystical-gold); margin-bottom: 1.5rem; font-size: 1.8rem;">
+                        <i class="fas fa-magic me-2"></i>قدرات Grok
+                    </h2>
+                    
+                    <div class="castle-features">
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="feature-text">
+                                <h3>تقييم ذكي</h3>
+                                <p>تقييم مهام BTEC بشكل دقيق وموضوعي وفق المعايير المعتمدة.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div class="feature-text">
+                                <h3>بحث متقدم</h3>
+                                <p>القدرة على البحث في قواعد المعرفة واسترجاع المعلومات بسرعة ودقة.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-language"></i>
+                            </div>
+                            <div class="feature-text">
+                                <h3>متعدد اللغات</h3>
+                                <p>دعم اللغة العربية والإنجليزية وغيرها من اللغات العالمية.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="feature-text">
+                                <h3>تحليل البيانات</h3>
+                                <p>القدرة على تحليل البيانات وتقديم رؤى وتوصيات قيمة.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer style="background-color: rgba(15, 10, 39, 0.8); padding: 2rem 0; margin-top: 4rem; text-align: center;">
+        <div class="container">
+            <p style="color: var(--text-light); opacity: 0.7;">© 2025 نظام تقييم BTEC. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+
+    <!-- سكريبتات جافاسكريبت -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatForm = document.getElementById('chatForm');
+            const userMessageInput = document.getElementById('userMessage');
+            const chatContainer = document.getElementById('chatContainer');
+            
+            // معالجة إرسال الرسالة
+            chatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const userMessage = userMessageInput.value.trim();
+                if (!userMessage) return;
+                
+                // إضافة رسالة المستخدم
+                appendMessage('user', userMessage);
+                
+                // مسح حقل الإدخال
+                userMessageInput.value = '';
+                
+                // محاكاة الاستجابة (في التطبيق الحقيقي، سيتم استدعاء واجهة برمجة التطبيقات)
+                simulateGrokResponse(userMessage);
+            });
+            
+            // إضافة رسالة إلى المحادثة
+            function appendMessage(sender, text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chat-message');
+                
+                if (sender === 'user') {
+                    messageDiv.classList.add('chat-user');
+                } else {
+                    messageDiv.classList.add('chat-grok');
+                }
+                
+                messageDiv.innerHTML = `<p style="margin-bottom: 0;">${text}</p>`;
+                chatContainer.appendChild(messageDiv);
+                
+                // التمرير إلى أسفل
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            // محاكاة استجابة Grok
+            function simulateGrokResponse(userMessage) {
+                // إظهار حالة الكتابة
+                const typingDiv = document.createElement('div');
+                typingDiv.classList.add('chat-message', 'chat-grok');
+                typingDiv.innerHTML = '<p style="margin-bottom: 0;"><em>يقوم Grok بالكتابة...</em></p>';
+                chatContainer.appendChild(typingDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // مصفوفة من الاستجابات المحتملة
+                const responses = [
+                    "أفهم ما تقصده. دعني أفكر في أفضل طريقة للمساعدة في هذا الموضوع.",
+                    "هذا سؤال مثير للاهتمام! وفقًا لمعايير BTEC، يمكنني اقتراح عدة طرق للتعامل مع هذا التحدي.",
+                    "بالتأكيد يمكنني مساعدتك في ذلك. معايير تقييم BTEC تتطلب التركيز على جوانب محددة مثل التخطيط والتنفيذ والتقييم.",
+                    "لإنجاز هذه المهمة بشكل فعال، أوصي بالتركيز على توثيق خطوات العمل وتحليل النتائج بشكل منهجي.",
+                    "هذا مجال مهم في منهج BTEC. دعني أشارك معك بعض الموارد والاستراتيجيات التي ستساعدك على تحقيق أعلى الدرجات."
+                ];
+                
+                // اختيار استجابة عشوائية
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                
+                // محاكاة تأخير الاستجابة
+                setTimeout(() => {
+                    // إزالة رسالة الكتابة
+                    chatContainer.removeChild(typingDiv);
+                    
+                    // إضافة الاستجابة
+                    appendMessage('grok', randomResponse);
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>
