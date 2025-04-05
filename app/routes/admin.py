@@ -1,343 +1,633 @@
 """
-مسارات المسؤول للتحكم في النظام
+مسارات المسؤول في نظام تقييم BTEC
 """
 import logging
-from datetime import datetime, timedelta
+import json
+from datetime import datetime
+import os
 
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import func, desc
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, current_app, abort
+from flask_login import login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 
-from app import db
 from app.models.user import User
-from app.models.evaluation import Evaluation
 from app.models.rubric import Rubric
-from app.models.audit import AuditLog
-from app.models.system_metrics import SystemMetrics
-from app.core.security import token_required
-from app.database import log_audit, get_latest_metrics
+from app.models.evaluation import Evaluation
 
-# إنشاء Blueprint للمسؤول
-admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+# تهيئة السجل
+logger = logging.getLogger(__name__)
 
-@admin_bp.route('/dashboard', methods=['GET'])
-@jwt_required()
-@token_required(allowed_roles=['admin'])
+# إنشاء Blueprint
+bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+# دالة للتحقق من صلاحية المسؤول
+def admin_required(func):
+    """
+    دالة للتحقق من صلاحية المسؤول
+    """
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'admin':
+            flash("لا تملك صلاحية الوصول لهذه الصفحة", "error")
+            return redirect(url_for('index'))
+        return func(*args, **kwargs)
+    
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+@bp.route('/')
+@login_required
+@admin_required
 def admin_dashboard():
     """
-    الحصول على بيانات لوحة تحكم المسؤول
+    لوحة تحكم المسؤول
+    
+    Returns:
+        Response: استجابة HTTP
     """
-    # إحصائيات المستخدمين
-    total_users = User.query.count()
-    active_users = User.query.filter_by(is_active=True).count()
-    admin_users = User.query.filter_by(role='admin').count()
-    
-    # إحصائيات التقييمات
-    total_evaluations = Evaluation.query.count()
-    verified_evaluations = Evaluation.query.filter_by(is_verified=True).count()
-    
-    # التقييمات الأخيرة
-    recent_evaluations = Evaluation.query.order_by(Evaluation.created_at.desc()).limit(5).all()
-    
-    # المستخدمين الجدد
-    new_users = User.query.order_by(User.created_at.desc()).limit(5).all()
-    
-    # آخر مقاييس النظام
-    system_metrics = get_latest_metrics()
-    
-    # إرجاع البيانات
-    return jsonify({
-        'status': 'success',
-        'stats': {
-            'users': {
-                'total': total_users,
-                'active': active_users,
-                'admin': admin_users
-            },
-            'evaluations': {
-                'total': total_evaluations,
-                'verified': verified_evaluations,
-                'verification_rate': (verified_evaluations / total_evaluations) * 100 if total_evaluations > 0 else 0
-            },
-            'system': system_metrics
+    # إحصاءات النظام
+    stats = {
+        'users': {
+            'total': len(User.get_all(limit=1000)),
+            'admins': len(User.get_by_role('admin')),
+            'evaluators': len(User.get_by_role('evaluator')),
+            'students': len(User.get_by_role('student'))
         },
-        'recent_evaluations': [evaluation.to_dict() for evaluation in recent_evaluations],
-        'new_users': [user.to_dict() for user in new_users]
-    }), 200
+        'evaluations': Evaluation.get_statistics(),
+        'rubrics': len(Rubric.get_all(limit=1000))
+    }
+    
+    return render_template('admin/dashboard.html', stats=stats)
 
-@admin_bp.route('/users', methods=['GET'])
-@jwt_required()
-@token_required(allowed_roles=['admin'])
-def get_users():
+@bp.route('/users')
+@login_required
+@admin_required
+def manage_users():
     """
-    الحصول على قائمة المستخدمين
+    إدارة المستخدمين
+    
+    Returns:
+        Response: استجابة HTTP
     """
-    current_user_id = get_jwt_identity()
+    # الحصول على قائمة المستخدمين
+    users = User.get_all(limit=100)
     
-    # الحصول على معلمات الاستعلام
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    search = request.args.get('search', '')
+    return render_template('admin/users.html', users=users)
+
+@bp.route('/users/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_user():
+    """
+    إضافة مستخدم جديد
     
-    # البحث عن المستخدمين
-    query = User.query
-    
-    # تطبيق البحث إذا كان متوفرًا
-    if search:
-        query = query.filter(
-            (User.name.like(f'%{search}%')) |
-            (User.email.like(f'%{search}%'))
+    Returns:
+        Response: استجابة HTTP
+    """
+    if request.method == 'POST':
+        # الحصول على بيانات المستخدم
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+        
+        name = data.get('name')
+        email = data.get('email')
+        password = data.get('password')
+        role = data.get('role', 'student')
+        
+        # التحقق من البيانات المطلوبة
+        if not name or not email or not password:
+            if request.is_json:
+                return jsonify({"error": "يرجى تعبئة جميع الحقول المطلوبة"}), 400
+            flash("يرجى تعبئة جميع الحقول المطلوبة", "error")
+            return render_template('admin/add_user.html')
+        
+        # التحقق من عدم وجود المستخدم مسبقًا
+        existing_user = User.get_by_email(email)
+        if existing_user:
+            if request.is_json:
+                return jsonify({"error": "البريد الإلكتروني مستخدم بالفعل"}), 400
+            flash("البريد الإلكتروني مستخدم بالفعل", "error")
+            return render_template('admin/add_user.html')
+        
+        # التحقق من صحة الدور
+        if role not in ['admin', 'evaluator', 'student']:
+            if request.is_json:
+                return jsonify({"error": "الدور غير صالح"}), 400
+            flash("الدور غير صالح", "error")
+            return render_template('admin/add_user.html')
+        
+        # إنشاء مستخدم جديد
+        user = User(
+            email=email,
+            name=name,
+            role=role,
+            is_active=True
         )
+        user.set_password(password)
+        
+        if user.save():
+            logger.info(f"تم إنشاء مستخدم جديد: {email} (الدور: {role})")
+            
+            if request.is_json:
+                return jsonify({"message": "تم إنشاء المستخدم بنجاح", "user": user.to_dict()}), 201
+            
+            flash("تم إنشاء المستخدم بنجاح", "success")
+            return redirect(url_for('admin.manage_users'))
+        else:
+            logger.error(f"فشل في إنشاء مستخدم جديد: {email}")
+            
+            if request.is_json:
+                return jsonify({"error": "فشل في إنشاء المستخدم"}), 500
+            
+            flash("فشل في إنشاء المستخدم، يرجى المحاولة مرة أخرى", "error")
+            return render_template('admin/add_user.html')
     
-    # ترتيب المستخدمين حسب تاريخ الإنشاء
-    users = query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page)
-    
-    # تسجيل الحدث
-    log_audit('admin_list_users', f"Admin ID: {current_user_id}")
-    
-    # إرجاع المستخدمين
-    return jsonify({
-        'status': 'success',
-        'users': [user.to_dict() for user in users.items],
-        'pagination': {
-            'total': users.total,
-            'pages': users.pages,
-            'page': page,
-            'per_page': per_page,
-            'prev_page': users.prev_num,
-            'next_page': users.next_num,
-            'has_prev': users.has_prev,
-            'has_next': users.has_next
-        }
-    }), 200
+    # عرض نموذج إضافة مستخدم
+    return render_template('admin/add_user.html')
 
-@admin_bp.route('/user/<int:user_id>', methods=['PUT'])
-@jwt_required()
-@token_required(allowed_roles=['admin'])
-def update_user(user_id):
+@bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_user(user_id):
     """
-    تحديث معلومات مستخدم (بواسطة المسؤول)
-    """
-    current_user_id = get_jwt_identity()
-    data = request.json
+    تعديل مستخدم موجود
     
-    # البحث عن المستخدم
-    user = User.query.get(user_id)
+    Args:
+        user_id (int): معرف المستخدم
+        
+    Returns:
+        Response: استجابة HTTP
+    """
+    user = User.get_by_id(user_id)
     
     if not user:
-        return jsonify({
-            'status': 'error',
-            'message': 'المستخدم غير موجود'
-        }), 404
+        if request.is_json:
+            return jsonify({"error": "المستخدم غير موجود"}), 404
+        flash("المستخدم غير موجود", "error")
+        return redirect(url_for('admin.manage_users'))
     
-    try:
-        # تحديث معلومات المستخدم
-        if 'name' in data:
-            user.name = data['name']
+    if request.method == 'POST':
+        # الحصول على بيانات المستخدم
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
         
-        if 'email' in data and data['email'] != user.email:
+        name = data.get('name')
+        email = data.get('email')
+        password = data.get('password')
+        role = data.get('role')
+        is_active = data.get('is_active')
+        
+        # تحديث البيانات
+        if name:
+            user.name = name
+        
+        if email and email != user.email:
             # التحقق من عدم وجود مستخدم آخر بنفس البريد الإلكتروني
-            existing_user = User.query.filter_by(email=data['email']).first()
-            if existing_user and existing_user.id != user_id:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'البريد الإلكتروني مستخدم بالفعل'
-                }), 400
+            existing_user = User.get_by_email(email)
+            if existing_user and existing_user.id != user.id:
+                if request.is_json:
+                    return jsonify({"error": "البريد الإلكتروني مستخدم بالفعل"}), 400
+                flash("البريد الإلكتروني مستخدم بالفعل", "error")
+                return render_template('admin/edit_user.html', user=user)
             
-            user.email = data['email']
+            user.email = email
         
-        if 'role' in data:
-            # التحقق من أن المستخدم الحالي ليس المسؤول الوحيد
-            if user.role == 'admin' and data['role'] != 'admin':
-                admin_count = User.query.filter_by(role='admin', is_active=True).count()
-                if admin_count <= 1:
-                    return jsonify({
-                        'status': 'error',
-                        'message': 'لا يمكن تغيير دور المسؤول الوحيد'
-                    }), 400
+        if password:
+            user.set_password(password)
+        
+        if role and role in ['admin', 'evaluator', 'student']:
+            user.role = role
+        
+        if is_active is not None:
+            user.is_active = is_active in ['true', 'True', True, 1, '1']
+        
+        if user.save():
+            logger.info(f"تم تحديث المستخدم: {user.email}")
             
-            user.role = data['role']
-        
-        if 'is_active' in data:
-            # التحقق من أن المستخدم الحالي ليس المسؤول الوحيد
-            if user.role == 'admin' and not data['is_active']:
-                admin_count = User.query.filter_by(role='admin', is_active=True).count()
-                if admin_count <= 1:
-                    return jsonify({
-                        'status': 'error',
-                        'message': 'لا يمكن تعطيل المسؤول الوحيد'
-                    }), 400
+            if request.is_json:
+                return jsonify({"message": "تم تحديث المستخدم بنجاح", "user": user.to_dict()}), 200
             
-            user.is_active = data['is_active']
-        
-        # تحديث تاريخ التحديث
-        user.updated_at = datetime.utcnow()
-        
-        # حفظ التغييرات
-        db.session.commit()
-        
-        # تسجيل الحدث
-        log_audit('admin_update_user', f"Admin ID: {current_user_id}", {
-            'user_id': user.id,
-            'updates': data
-        })
-        
-        # إرجاع النجاح
-        return jsonify({
-            'status': 'success',
-            'message': 'تم تحديث معلومات المستخدم بنجاح',
-            'user': user.to_dict()
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"خطأ في تحديث معلومات المستخدم: {str(e)}")
-        
-        # تسجيل الخطأ
-        log_audit('admin_update_user_error', f"Admin ID: {current_user_id}", str(e))
-        
-        return jsonify({
-            'status': 'error',
-            'message': f'حدث خطأ أثناء تحديث معلومات المستخدم: {str(e)}'
-        }), 500
+            flash("تم تحديث المستخدم بنجاح", "success")
+            return redirect(url_for('admin.manage_users'))
+        else:
+            logger.error(f"فشل في تحديث المستخدم: {user.email}")
+            
+            if request.is_json:
+                return jsonify({"error": "فشل في تحديث المستخدم"}), 500
+            
+            flash("فشل في تحديث المستخدم، يرجى المحاولة مرة أخرى", "error")
+            return render_template('admin/edit_user.html', user=user)
+    
+    # عرض نموذج تعديل المستخدم
+    return render_template('admin/edit_user.html', user=user)
 
-@admin_bp.route('/user', methods=['POST'])
-@jwt_required()
-@token_required(allowed_roles=['admin'])
-def create_user():
+@bp.route('/users/delete/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
     """
-    إنشاء مستخدم جديد (بواسطة المسؤول)
-    """
-    current_user_id = get_jwt_identity()
-    data = request.json
+    حذف مستخدم
     
-    # التحقق من وجود البيانات المطلوبة
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({
-            'status': 'error',
-            'message': 'البريد الإلكتروني وكلمة المرور مطلوبان'
-        }), 400
-    
-    # التحقق مما إذا كان المستخدم موجودًا بالفعل
-    existing_user = User.query.filter_by(email=data['email']).first()
-    if existing_user:
-        return jsonify({
-            'status': 'error',
-            'message': 'البريد الإلكتروني مسجل بالفعل'
-        }), 400
-    
-    try:
-        # إنشاء المستخدم الجديد
-        from werkzeug.security import generate_password_hash
+    Args:
+        user_id (int): معرف المستخدم
         
-        user = User(
-            name=data.get('name', ''),
-            email=data['email'],
-            password_hash=generate_password_hash(data['password']),
-            role=data.get('role', 'user'),
-            is_active=data.get('is_active', True),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+    Returns:
+        Response: استجابة HTTP
+    """
+    user = User.get_by_id(user_id)
+    
+    if not user:
+        if request.is_json:
+            return jsonify({"error": "المستخدم غير موجود"}), 404
+        flash("المستخدم غير موجود", "error")
+        return redirect(url_for('admin.manage_users'))
+    
+    # منع حذف المستخدم الحالي
+    if user.id == current_user.id:
+        if request.is_json:
+            return jsonify({"error": "لا يمكنك حذف حسابك الحالي"}), 400
+        flash("لا يمكنك حذف حسابك الحالي", "error")
+        return redirect(url_for('admin.manage_users'))
+    
+    # حذف المستخدم
+    if user.delete():
+        logger.info(f"تم حذف المستخدم: {user.email}")
+        
+        if request.is_json:
+            return jsonify({"message": "تم حذف المستخدم بنجاح"}), 200
+        
+        flash("تم حذف المستخدم بنجاح", "success")
+    else:
+        logger.error(f"فشل في حذف المستخدم: {user.email}")
+        
+        if request.is_json:
+            return jsonify({"error": "فشل في حذف المستخدم"}), 500
+        
+        flash("فشل في حذف المستخدم، يرجى المحاولة مرة أخرى", "error")
+    
+    return redirect(url_for('admin.manage_users'))
+
+@bp.route('/rubrics')
+@login_required
+@admin_required
+def manage_rubrics():
+    """
+    إدارة معايير التقييم
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    # الحصول على قائمة معايير التقييم
+    rubrics = Rubric.get_all(limit=100)
+    
+    return render_template('admin/rubrics.html', rubrics=rubrics)
+
+@bp.route('/rubrics/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_rubric():
+    """
+    إضافة معيار تقييم جديد
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    if request.method == 'POST':
+        # الحصول على بيانات معيار التقييم
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+        
+        name = data.get('name')
+        description = data.get('description', '')
+        criteria_json = data.get('criteria', '{}')
+        max_score = data.get('max_score', 100)
+        
+        # التحقق من البيانات المطلوبة
+        if not name:
+            if request.is_json:
+                return jsonify({"error": "يرجى تحديد اسم معيار التقييم"}), 400
+            flash("يرجى تحديد اسم معيار التقييم", "error")
+            return render_template('admin/add_rubric.html')
+        
+        # التحقق من صحة تنسيق المعايير
+        try:
+            if isinstance(criteria_json, str):
+                criteria = json.loads(criteria_json)
+            else:
+                criteria = criteria_json
+        except json.JSONDecodeError:
+            if request.is_json:
+                return jsonify({"error": "تنسيق المعايير غير صالح (JSON)"}), 400
+            flash("تنسيق المعايير غير صالح (JSON)", "error")
+            return render_template('admin/add_rubric.html')
+        
+        # التحقق من الدرجة القصوى
+        try:
+            max_score = float(max_score)
+        except ValueError:
+            if request.is_json:
+                return jsonify({"error": "قيمة الدرجة القصوى غير صالحة"}), 400
+            flash("قيمة الدرجة القصوى غير صالحة", "error")
+            return render_template('admin/add_rubric.html')
+        
+        # إنشاء معيار تقييم جديد
+        rubric = Rubric(
+            name=name,
+            description=description,
+            criteria=criteria,
+            max_score=max_score,
+            created_by=current_user.id
         )
         
-        # حفظ المستخدم في قاعدة البيانات
-        db.session.add(user)
-        db.session.commit()
-        
-        # تسجيل الحدث
-        log_audit('admin_create_user', f"Admin ID: {current_user_id}", {
-            'user_id': user.id,
-            'email': user.email,
-            'role': user.role
-        })
-        
-        # إرجاع النجاح
-        return jsonify({
-            'status': 'success',
-            'message': 'تم إنشاء المستخدم بنجاح',
-            'user': user.to_dict()
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"خطأ في إنشاء المستخدم: {str(e)}")
-        
-        # تسجيل الخطأ
-        log_audit('admin_create_user_error', f"Admin ID: {current_user_id}", str(e))
-        
-        return jsonify({
-            'status': 'error',
-            'message': f'حدث خطأ أثناء إنشاء المستخدم: {str(e)}'
-        }), 500
+        if rubric.save():
+            logger.info(f"تم إنشاء معيار تقييم جديد: {name}")
+            
+            if request.is_json:
+                return jsonify({"message": "تم إنشاء معيار التقييم بنجاح", "rubric": rubric.to_dict()}), 201
+            
+            flash("تم إنشاء معيار التقييم بنجاح", "success")
+            return redirect(url_for('admin.manage_rubrics'))
+        else:
+            logger.error(f"فشل في إنشاء معيار تقييم جديد: {name}")
+            
+            if request.is_json:
+                return jsonify({"error": "فشل في إنشاء معيار التقييم"}), 500
+            
+            flash("فشل في إنشاء معيار التقييم، يرجى المحاولة مرة أخرى", "error")
+            return render_template('admin/add_rubric.html')
+    
+    # عرض نموذج إضافة معيار تقييم
+    return render_template('admin/add_rubric.html')
 
-@admin_bp.route('/audit-log', methods=['GET'])
-@jwt_required()
-@token_required(allowed_roles=['admin'])
-def get_audit_log():
+@bp.route('/rubrics/edit/<int:rubric_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_rubric(rubric_id):
     """
-    الحصول على سجل التدقيق
+    تعديل معيار تقييم موجود
+    
+    Args:
+        rubric_id (int): معرف معيار التقييم
+        
+    Returns:
+        Response: استجابة HTTP
     """
-    current_user_id = get_jwt_identity()
+    rubric = Rubric.get_by_id(rubric_id)
     
-    # الحصول على معلمات الاستعلام
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
-    event_type = request.args.get('event_type', '')
-    user = request.args.get('user', '')
-    days = request.args.get('days', 0, type=int)
+    if not rubric:
+        if request.is_json:
+            return jsonify({"error": "معيار التقييم غير موجود"}), 404
+        flash("معيار التقييم غير موجود", "error")
+        return redirect(url_for('admin.manage_rubrics'))
     
-    # البحث عن سجلات التدقيق
-    query = AuditLog.query
+    if request.method == 'POST':
+        # الحصول على بيانات معيار التقييم
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+        
+        name = data.get('name')
+        description = data.get('description')
+        criteria_json = data.get('criteria')
+        max_score = data.get('max_score')
+        
+        # تحديث البيانات
+        if name:
+            rubric.name = name
+        
+        if description:
+            rubric.description = description
+        
+        if criteria_json:
+            # التحقق من صحة تنسيق المعايير
+            try:
+                if isinstance(criteria_json, str):
+                    criteria = json.loads(criteria_json)
+                else:
+                    criteria = criteria_json
+                
+                rubric.criteria = criteria
+            except json.JSONDecodeError:
+                if request.is_json:
+                    return jsonify({"error": "تنسيق المعايير غير صالح (JSON)"}), 400
+                flash("تنسيق المعايير غير صالح (JSON)", "error")
+                return render_template('admin/edit_rubric.html', rubric=rubric)
+        
+        if max_score:
+            # التحقق من الدرجة القصوى
+            try:
+                rubric.max_score = float(max_score)
+            except ValueError:
+                if request.is_json:
+                    return jsonify({"error": "قيمة الدرجة القصوى غير صالحة"}), 400
+                flash("قيمة الدرجة القصوى غير صالحة", "error")
+                return render_template('admin/edit_rubric.html', rubric=rubric)
+        
+        if rubric.save():
+            logger.info(f"تم تحديث معيار التقييم: {rubric.name}")
+            
+            if request.is_json:
+                return jsonify({"message": "تم تحديث معيار التقييم بنجاح", "rubric": rubric.to_dict()}), 200
+            
+            flash("تم تحديث معيار التقييم بنجاح", "success")
+            return redirect(url_for('admin.manage_rubrics'))
+        else:
+            logger.error(f"فشل في تحديث معيار التقييم: {rubric.name}")
+            
+            if request.is_json:
+                return jsonify({"error": "فشل في تحديث معيار التقييم"}), 500
+            
+            flash("فشل في تحديث معيار التقييم، يرجى المحاولة مرة أخرى", "error")
+            return render_template('admin/edit_rubric.html', rubric=rubric)
     
-    # تطبيق الفلاتر
-    if event_type:
-        query = query.filter(AuditLog.event_type == event_type)
+    # عرض نموذج تعديل معيار التقييم
+    return render_template('admin/edit_rubric.html', rubric=rubric)
+
+@bp.route('/rubrics/delete/<int:rubric_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_rubric(rubric_id):
+    """
+    حذف معيار تقييم
     
-    if user:
-        query = query.filter(AuditLog.user.like(f'%{user}%'))
+    Args:
+        rubric_id (int): معرف معيار التقييم
+        
+    Returns:
+        Response: استجابة HTTP
+    """
+    rubric = Rubric.get_by_id(rubric_id)
     
-    if days > 0:
-        date_limit = datetime.utcnow() - timedelta(days=days)
-        query = query.filter(AuditLog.created_at >= date_limit)
+    if not rubric:
+        if request.is_json:
+            return jsonify({"error": "معيار التقييم غير موجود"}), 404
+        flash("معيار التقييم غير موجود", "error")
+        return redirect(url_for('admin.manage_rubrics'))
     
-    # ترتيب سجلات التدقيق حسب تاريخ الإنشاء (الأحدث أولاً)
-    audit_logs = query.order_by(AuditLog.created_at.desc()).paginate(page=page, per_page=per_page)
+    # حذف معيار التقييم
+    if rubric.delete():
+        logger.info(f"تم حذف معيار التقييم: {rubric.name}")
+        
+        if request.is_json:
+            return jsonify({"message": "تم حذف معيار التقييم بنجاح"}), 200
+        
+        flash("تم حذف معيار التقييم بنجاح", "success")
+    else:
+        logger.error(f"فشل في حذف معيار التقييم: {rubric.name}")
+        
+        if request.is_json:
+            return jsonify({"error": "فشل في حذف معيار التقييم"}), 500
+        
+        flash("فشل في حذف معيار التقييم، يرجى المحاولة مرة أخرى", "error")
     
-    # إرجاع سجلات التدقيق
+    return redirect(url_for('admin.manage_rubrics'))
+
+@bp.route('/evaluations')
+@login_required
+@admin_required
+def manage_evaluations():
+    """
+    إدارة التقييمات
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    # الحصول على قائمة التقييمات
+    evaluations = Evaluation.get_all(limit=100)
+    
+    # الحصول على الطلاب والمقيمين ومعايير التقييم
+    students = User.get_by_role('student')
+    evaluators = User.get_by_role('evaluator')
+    rubrics = Rubric.get_all()
+    
+    return render_template(
+        'admin/evaluations.html',
+        evaluations=evaluations,
+        students=students,
+        evaluators=evaluators,
+        rubrics=rubrics
+    )
+
+@bp.route('/system')
+@login_required
+@admin_required
+def system_settings():
+    """
+    إعدادات النظام
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    # جمع معلومات النظام والإحصاءات
+    users_count = len(User.get_all(limit=1000))
+    rubrics_count = len(Rubric.get_all(limit=1000))
+    evaluations_stats = Evaluation.get_statistics()
+    
+    # معلومات البيئة
+    env_info = {
+        'environment': os.environ.get('FLASK_ENV', 'development'),
+        'debug': current_app.debug,
+        'ai_enabled': current_app.config.get('AI_ENABLED', False),
+        'blockchain_enabled': current_app.config.get('BLOCKCHAIN_ENABLED', False),
+        'database_url': '***' + os.environ.get('DATABASE_URL', '')[-10:] if os.environ.get('DATABASE_URL') else 'Not Set',
+        'log_level': current_app.config.get('LOG_LEVEL', 'INFO')
+    }
+    
+    return render_template(
+        'admin/system_settings.html',
+        users_count=users_count,
+        rubrics_count=rubrics_count,
+        evaluations_stats=evaluations_stats,
+        env_info=env_info
+    )
+
+# مسارات API للمسؤول
+@bp.route('/api/users', methods=['GET'])
+@login_required
+@admin_required
+def api_get_users():
+    """
+    الحصول على قائمة المستخدمين عبر API
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    role = request.args.get('role')
+    limit = request.args.get('limit', 100, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    if role and role in ['admin', 'evaluator', 'student']:
+        users = User.get_by_role(role, limit=limit, offset=offset)
+    else:
+        users = User.get_all(limit=limit, offset=offset)
+    
+    users_data = [user.to_dict() for user in users]
+    
     return jsonify({
-        'status': 'success',
-        'audit_logs': [log.to_dict() for log in audit_logs.items],
-        'pagination': {
-            'total': audit_logs.total,
-            'pages': audit_logs.pages,
-            'page': page,
-            'per_page': per_page,
-            'prev_page': audit_logs.prev_num,
-            'next_page': audit_logs.next_num,
-            'has_prev': audit_logs.has_prev,
-            'has_next': audit_logs.has_next
-        }
+        "users": users_data,
+        "count": len(users_data),
+        "limit": limit,
+        "offset": offset
     }), 200
 
-@admin_bp.route('/metrics', methods=['GET'])
-@jwt_required()
-@token_required(allowed_roles=['admin'])
-def get_system_metrics():
+@bp.route('/api/rubrics', methods=['GET'])
+@login_required
+@admin_required
+def api_get_rubrics():
     """
-    الحصول على مقاييس النظام
+    الحصول على قائمة معايير التقييم عبر API
+    
+    Returns:
+        Response: استجابة HTTP
     """
-    days = request.args.get('days', 7, type=int)
+    limit = request.args.get('limit', 100, type=int)
+    offset = request.args.get('offset', 0, type=int)
     
-    # تحديد فترة البيانات
-    date_limit = datetime.utcnow() - timedelta(days=days)
+    rubrics = Rubric.get_all(limit=limit, offset=offset)
+    rubrics_data = [rubric.to_dict() for rubric in rubrics]
     
-    # الحصول على مقاييس النظام للفترة المحددة
-    metrics = SystemMetrics.query.filter(SystemMetrics.created_at >= date_limit) \
-        .order_by(SystemMetrics.created_at) \
-        .all()
-    
-    # إرجاع المقاييس
     return jsonify({
-        'status': 'success',
-        'metrics': [metric.to_dict() for metric in metrics]
+        "rubrics": rubrics_data,
+        "count": len(rubrics_data),
+        "limit": limit,
+        "offset": offset
+    }), 200
+
+@bp.route('/api/system/stats', methods=['GET'])
+@login_required
+@admin_required
+def api_get_system_stats():
+    """
+    الحصول على إحصاءات النظام عبر API
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    # إحصاءات المستخدمين
+    users_stats = {
+        'total': len(User.get_all(limit=1000)),
+        'admins': len(User.get_by_role('admin')),
+        'evaluators': len(User.get_by_role('evaluator')),
+        'students': len(User.get_by_role('student'))
+    }
+    
+    # إحصاءات التقييمات
+    evaluations_stats = Evaluation.get_statistics()
+    
+    # إحصاءات معايير التقييم
+    rubrics_stats = {
+        'total': len(Rubric.get_all(limit=1000))
+    }
+    
+    return jsonify({
+        "users": users_stats,
+        "evaluations": evaluations_stats,
+        "rubrics": rubrics_stats,
+        "timestamp": datetime.now().isoformat()
     }), 200

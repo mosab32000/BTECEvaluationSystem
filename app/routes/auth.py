@@ -2,117 +2,102 @@
 مسارات المصادقة في نظام تقييم BTEC
 """
 import logging
-from datetime import datetime
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session
+import json
+from datetime import datetime, timedelta
+import os
+
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
-from flask_jwt_extended import create_access_token, create_refresh_token
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from app import db
 from app.models.user import User
 
-# إنشاء مخطط مسارات المصادقة
-bp = Blueprint('auth', __name__, url_prefix='/auth')
-
-# إعداد التسجيل
+# تهيئة السجل
 logger = logging.getLogger(__name__)
 
-@bp.route('/register', methods=['GET', 'POST'])
-def register():
-    """تسجيل مستخدم جديد"""
-    # إذا كان المستخدم مسجل الدخول بالفعل
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    # إذا كان الطلب POST (إرسال النموذج)
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        name = request.form.get('name')
-        
-        # التحقق من البيانات
-        if not email or not password or not name:
-            flash('جميع الحقول مطلوبة.', 'danger')
-            return render_template('auth/register.html')
-        
-        # التحقق مما إذا كان المستخدم موجوداً بالفعل
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            flash('البريد الإلكتروني مستخدم بالفعل.', 'danger')
-            return render_template('auth/register.html')
-        
-        # إنشاء مستخدم جديد
-        user = User(
-            email=email,
-            name=name,
-            password_hash=generate_password_hash(password),
-            role='user',
-            created_at=datetime.utcnow()
-        )
-        
-        # حفظ المستخدم في قاعدة البيانات
-        try:
-            db.session.add(user)
-            db.session.commit()
-            
-            # تسجيل الدخول للمستخدم الجديد
-            login_user(user)
-            
-            flash('تم التسجيل بنجاح وتسجيل الدخول!', 'success')
-            return redirect(url_for('index'))
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"خطأ في تسجيل المستخدم: {str(e)}")
-            flash('حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.', 'danger')
-    
-    # عرض صفحة التسجيل
-    return render_template('auth/register.html')
+# إنشاء Blueprint
+bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """تسجيل الدخول"""
-    # إذا كان المستخدم مسجل الدخول بالفعل
+    """
+    صفحة تسجيل الدخول
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    # إذا كان المستخدم مسجل الدخول بالفعل، يتم إعادة توجيهه
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
-    # إذا كان الطلب POST (إرسال النموذج)
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        remember = 'remember' in request.form
+        # الحصول على بيانات تسجيل الدخول
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
         
-        # التحقق من البيانات
+        email = data.get('email')
+        password = data.get('password')
+        remember = data.get('remember', False)
+        
+        # التحقق من البيانات المطلوبة
         if not email or not password:
-            flash('البريد الإلكتروني وكلمة المرور مطلوبان.', 'danger')
+            if request.is_json:
+                return jsonify({"error": "يرجى تحديد البريد الإلكتروني وكلمة المرور"}), 400
+            flash("يرجى تحديد البريد الإلكتروني وكلمة المرور", "error")
             return render_template('auth/login.html')
         
         # البحث عن المستخدم
-        user = User.query.filter_by(email=email).first()
+        user = User.get_by_email(email)
         
-        # التحقق من صحة بيانات المستخدم
+        # التحقق من المستخدم وكلمة المرور
         if not user or not user.check_password(password):
-            flash('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'danger')
+            logger.warning(f"محاولة تسجيل دخول فاشلة للبريد الإلكتروني: {email}")
+            
+            if request.is_json:
+                return jsonify({"error": "البريد الإلكتروني أو كلمة المرور غير صحيحة"}), 401
+            
+            flash("البريد الإلكتروني أو كلمة المرور غير صحيحة", "error")
             return render_template('auth/login.html')
         
         # التحقق من حالة المستخدم
         if not user.is_active:
-            flash('هذا الحساب غير نشط. يرجى التواصل مع المسؤول.', 'danger')
+            logger.warning(f"محاولة تسجيل دخول لحساب غير مفعل: {email}")
+            
+            if request.is_json:
+                return jsonify({"error": "هذا الحساب غير مفعل"}), 403
+            
+            flash("هذا الحساب غير مفعل، يرجى الاتصال بالمسؤول", "error")
             return render_template('auth/login.html')
         
         # تسجيل الدخول
         login_user(user, remember=remember)
+        logger.info(f"تم تسجيل دخول المستخدم: {email}")
         
-        # تحديث وقت آخر تسجيل دخول
-        user.last_login = datetime.utcnow()
-        db.session.commit()
+        # إنشاء JWT token للAPI
+        access_token = create_access_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=user.id)
         
-        flash('تم تسجيل الدخول بنجاح!', 'success')
+        # حفظ التوكن في الجلسة للوصول إليه لاحقًا
+        session['access_token'] = access_token
         
-        # إعادة التوجيه إلى الصفحة المطلوبة قبل تسجيل الدخول أو الصفحة الرئيسية
+        # الرد بناءً على نوع الطلب
+        if request.is_json:
+            return jsonify({
+                "message": "تم تسجيل الدخول بنجاح",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": user.to_dict()
+            }), 200
+        
+        # إعادة التوجيه إلى الصفحة التي كان يحاول الوصول إليها أو الصفحة الرئيسية
         next_page = request.args.get('next')
         if not next_page or not next_page.startswith('/'):
             next_page = url_for('index')
-            
+        
+        flash("تم تسجيل الدخول بنجاح", "success")
         return redirect(next_page)
     
     # عرض صفحة تسجيل الدخول
@@ -121,114 +106,288 @@ def login():
 @bp.route('/logout')
 @login_required
 def logout():
-    """تسجيل الخروج"""
+    """
+    تسجيل الخروج
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    if current_user.is_authenticated:
+        logger.info(f"تم تسجيل خروج المستخدم: {current_user.email}")
+    
     logout_user()
-    flash('تم تسجيل الخروج بنجاح.', 'info')
-    return redirect(url_for('index'))
+    
+    # إزالة التوكن من الجلسة
+    if 'access_token' in session:
+        session.pop('access_token')
+    
+    if request.is_json:
+        return jsonify({"message": "تم تسجيل الخروج بنجاح"}), 200
+    
+    flash("تم تسجيل الخروج بنجاح", "info")
+    return redirect(url_for('auth.login'))
 
-@bp.route('/reset-password', methods=['GET', 'POST'])
-def reset_password_request():
-    """طلب إعادة تعيين كلمة المرور"""
-    # إذا كان المستخدم مسجل الدخول بالفعل
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    """
+    صفحة التسجيل (إنشاء حساب جديد)
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    # إذا كان المستخدم مسجل الدخول بالفعل، يتم إعادة توجيهه
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
-    # إذا كان الطلب POST (إرسال النموذج)
     if request.method == 'POST':
-        email = request.form.get('email')
+        # الحصول على بيانات التسجيل
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
         
-        # التحقق من البيانات
-        if not email:
-            flash('البريد الإلكتروني مطلوب.', 'danger')
-            return render_template('auth/reset_password_request.html')
+        name = data.get('name')
+        email = data.get('email')
+        password = data.get('password')
+        password_confirm = data.get('password_confirm')
         
-        # البحث عن المستخدم
-        user = User.query.filter_by(email=email).first()
+        # التحقق من البيانات المطلوبة
+        if not name or not email or not password or not password_confirm:
+            if request.is_json:
+                return jsonify({"error": "يرجى تعبئة جميع الحقول المطلوبة"}), 400
+            flash("يرجى تعبئة جميع الحقول المطلوبة", "error")
+            return render_template('auth/register.html')
         
-        # حتى لو لم يتم العثور على المستخدم، نعرض رسالة نجاح للأمان
-        flash('تم إرسال تعليمات إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.', 'info')
+        # التحقق من تطابق كلمات المرور
+        if password != password_confirm:
+            if request.is_json:
+                return jsonify({"error": "كلمات المرور غير متطابقة"}), 400
+            flash("كلمات المرور غير متطابقة", "error")
+            return render_template('auth/register.html')
         
-        # هنا يمكن إضافة رمز لإرسال رسالة بريد إلكتروني مع رابط إعادة تعيين كلمة المرور
-        # (يتطلب إعداد خدمة بريد إلكتروني)
+        # التحقق من عدم وجود المستخدم مسبقًا
+        existing_user = User.get_by_email(email)
+        if existing_user:
+            if request.is_json:
+                return jsonify({"error": "البريد الإلكتروني مستخدم بالفعل"}), 400
+            flash("البريد الإلكتروني مستخدم بالفعل", "error")
+            return render_template('auth/register.html')
         
-        return redirect(url_for('auth.login'))
+        # إنشاء مستخدم جديد
+        user = User(
+            email=email,
+            name=name,
+            role='student',  # الدور الافتراضي هو طالب
+            is_active=True   # نشط افتراضيًا
+        )
+        user.set_password(password)
+        
+        if user.save():
+            logger.info(f"تم إنشاء حساب جديد: {email}")
+            
+            if request.is_json:
+                return jsonify({"message": "تم إنشاء الحساب بنجاح"}), 201
+            
+            flash("تم إنشاء الحساب بنجاح، يمكنك الآن تسجيل الدخول", "success")
+            return redirect(url_for('auth.login'))
+        else:
+            logger.error(f"فشل في إنشاء حساب جديد: {email}")
+            
+            if request.is_json:
+                return jsonify({"error": "فشل في إنشاء الحساب"}), 500
+            
+            flash("فشل في إنشاء الحساب، يرجى المحاولة مرة أخرى", "error")
+            return render_template('auth/register.html')
     
-    # عرض صفحة طلب إعادة تعيين كلمة المرور
-    return render_template('auth/reset_password_request.html')
+    # عرض صفحة التسجيل
+    return render_template('auth/register.html')
 
+@bp.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    """
+    صفحة الملف الشخصي
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    if request.method == 'POST':
+        # تحديث بيانات الملف الشخصي
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+        
+        name = data.get('name')
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+        
+        # تحديث الاسم
+        if name and name != current_user.name:
+            current_user.name = name
+        
+        # تحديث كلمة المرور
+        if current_password and new_password:
+            if not current_user.check_password(current_password):
+                if request.is_json:
+                    return jsonify({"error": "كلمة المرور الحالية غير صحيحة"}), 400
+                flash("كلمة المرور الحالية غير صحيحة", "error")
+                return render_template('auth/profile.html')
+            
+            current_user.set_password(new_password)
+        
+        # حفظ التغييرات
+        if current_user.save():
+            logger.info(f"تم تحديث الملف الشخصي للمستخدم: {current_user.email}")
+            
+            if request.is_json:
+                return jsonify({"message": "تم تحديث الملف الشخصي بنجاح", "user": current_user.to_dict()}), 200
+            
+            flash("تم تحديث الملف الشخصي بنجاح", "success")
+        else:
+            logger.error(f"فشل في تحديث الملف الشخصي للمستخدم: {current_user.email}")
+            
+            if request.is_json:
+                return jsonify({"error": "فشل في تحديث الملف الشخصي"}), 500
+            
+            flash("فشل في تحديث الملف الشخصي، يرجى المحاولة مرة أخرى", "error")
+    
+    # عرض صفحة الملف الشخصي
+    return render_template('auth/profile.html')
+
+# مسارات API للمصادقة
 @bp.route('/api/login', methods=['POST'])
 def api_login():
-    """واجهة برمجة التطبيقات (API) لتسجيل الدخول"""
+    """
+    تسجيل الدخول عبر API
+    
+    Returns:
+        Response: استجابة HTTP
+    """
     data = request.get_json()
     
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({'success': False, 'message': 'البريد الإلكتروني وكلمة المرور مطلوبان.'}), 400
+    if not data:
+        return jsonify({"error": "بيانات JSON غير صالحة"}), 400
     
-    # البحث عن المستخدم
-    user = User.query.filter_by(email=data.get('email')).first()
+    email = data.get('email')
+    password = data.get('password')
     
-    # التحقق من صحة بيانات المستخدم
-    if not user or not user.check_password(data.get('password')):
-        return jsonify({'success': False, 'message': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'}), 401
+    if not email or not password:
+        return jsonify({"error": "يرجى تحديد البريد الإلكتروني وكلمة المرور"}), 400
     
-    # التحقق من حالة المستخدم
+    user = User.get_by_email(email)
+    
+    if not user or not user.check_password(password):
+        return jsonify({"error": "البريد الإلكتروني أو كلمة المرور غير صحيحة"}), 401
+    
     if not user.is_active:
-        return jsonify({'success': False, 'message': 'هذا الحساب غير نشط.'}), 403
+        return jsonify({"error": "هذا الحساب غير مفعل"}), 403
     
-    # تحديث وقت آخر تسجيل دخول
-    user.last_login = datetime.utcnow()
-    db.session.commit()
+    # إنشاء JWT tokens
+    access_token = create_access_token(identity=user.id)
+    refresh_token = create_refresh_token(identity=user.id)
     
-    # إنشاء رموز JWT
-    access_token = create_access_token(identity=user.uuid)
-    refresh_token = create_refresh_token(identity=user.uuid)
+    logger.info(f"تم إنشاء توكن للمستخدم عبر API: {email}")
     
     return jsonify({
-        'success': True,
-        'access_token': access_token,
-        'refresh_token': refresh_token,
-        'user': user.to_dict()
+        "message": "تم تسجيل الدخول بنجاح",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "user": user.to_dict()
+    }), 200
+
+@bp.route('/api/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """
+    تجديد توكن الوصول
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    current_user_id = get_jwt_identity()
+    user = User.get_by_id(current_user_id)
+    
+    if not user:
+        return jsonify({"error": "المستخدم غير موجود"}), 404
+    
+    if not user.is_active:
+        return jsonify({"error": "هذا الحساب غير مفعل"}), 403
+    
+    # إنشاء توكن وصول جديد
+    access_token = create_access_token(identity=current_user_id)
+    
+    logger.info(f"تم تجديد توكن للمستخدم: {user.email}")
+    
+    return jsonify({
+        "message": "تم تجديد التوكن بنجاح",
+        "access_token": access_token
+    }), 200
+
+@bp.route('/api/user', methods=['GET'])
+@jwt_required()
+def get_user():
+    """
+    الحصول على معلومات المستخدم الحالي
+    
+    Returns:
+        Response: استجابة HTTP
+    """
+    current_user_id = get_jwt_identity()
+    user = User.get_by_id(current_user_id)
+    
+    if not user:
+        return jsonify({"error": "المستخدم غير موجود"}), 404
+    
+    return jsonify({
+        "user": user.to_dict()
     }), 200
 
 @bp.route('/api/register', methods=['POST'])
 def api_register():
-    """واجهة برمجة التطبيقات (API) لتسجيل مستخدم جديد"""
+    """
+    التسجيل عبر API
+    
+    Returns:
+        Response: استجابة HTTP
+    """
     data = request.get_json()
     
-    if not data or not data.get('email') or not data.get('password') or not data.get('name'):
-        return jsonify({'success': False, 'message': 'جميع الحقول مطلوبة.'}), 400
+    if not data:
+        return jsonify({"error": "بيانات JSON غير صالحة"}), 400
     
-    # التحقق مما إذا كان المستخدم موجوداً بالفعل
-    existing_user = User.query.filter_by(email=data.get('email')).first()
+    name = data.get('name')
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not name or not email or not password:
+        return jsonify({"error": "يرجى تعبئة جميع الحقول المطلوبة"}), 400
+    
+    existing_user = User.get_by_email(email)
     if existing_user:
-        return jsonify({'success': False, 'message': 'البريد الإلكتروني مستخدم بالفعل.'}), 409
+        return jsonify({"error": "البريد الإلكتروني مستخدم بالفعل"}), 400
     
-    # إنشاء مستخدم جديد
     user = User(
-        email=data.get('email'),
-        name=data.get('name'),
-        password_hash=generate_password_hash(data.get('password')),
-        role='user',
-        created_at=datetime.utcnow()
+        email=email,
+        name=name,
+        role='student',
+        is_active=True
     )
+    user.set_password(password)
     
-    # حفظ المستخدم في قاعدة البيانات
-    try:
-        db.session.add(user)
-        db.session.commit()
+    if user.save():
+        logger.info(f"تم إنشاء حساب جديد عبر API: {email}")
         
-        # إنشاء رموز JWT
-        access_token = create_access_token(identity=user.uuid)
-        refresh_token = create_refresh_token(identity=user.uuid)
+        # للتبسيط، قم بتسجيل الدخول تلقائيًا بعد التسجيل
+        access_token = create_access_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=user.id)
         
         return jsonify({
-            'success': True,
-            'message': 'تم التسجيل بنجاح.',
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            'user': user.to_dict()
+            "message": "تم إنشاء الحساب بنجاح",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": user.to_dict()
         }), 201
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"خطأ في تسجيل المستخدم: {str(e)}")
-        return jsonify({'success': False, 'message': 'حدث خطأ أثناء التسجيل.'}), 500
+    else:
+        logger.error(f"فشل في إنشاء حساب جديد عبر API: {email}")
+        return jsonify({"error": "فشل في إنشاء الحساب"}), 500

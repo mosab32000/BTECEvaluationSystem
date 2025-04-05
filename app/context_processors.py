@@ -1,14 +1,16 @@
 """
 معالجات السياق للقوالب
 """
-import datetime
+import os
+from datetime import datetime
 
 def global_template_vars():
     """تعريف المتغيرات العامة للقوالب"""
     return {
-        'current_year': datetime.datetime.now().year,
+        'app_name': 'BTEC Evaluation System',
         'app_version': '1.0.0',
-        'site_name': 'نظام تقييم BTEC',
-        'site_description': 'منصة متكاملة لتقييم مهام BTEC باستخدام الذكاء الاصطناعي وتقنية البلوكتشين',
-        'support_email': 'support@btec-eval.com'
+        'current_year': datetime.now().year,
+        'is_production': os.environ.get('FLASK_ENV') == 'production',
+        'is_rtl': True,  # تمكين الدعم الكامل للغة العربية (RTL)
+        'app_description': 'نظام تقييم BTEC - منصة تقييم متطورة مدعومة بالذكاء الاصطناعي'
     }
