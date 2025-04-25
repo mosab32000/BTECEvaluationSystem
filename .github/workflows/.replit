@@ -1,0 +1,62 @@
+modules = ["nodejs-20", "web", "postgresql-16", "dotnet-7.0", "angular-node-20", "bash", "bun-1.2", "bun-1.1", "c-clang14", "dart-3.5", "dart-2.18", "deno-2", "deno-1", "elixir-1_15", "elixir-1_17", "go-1.23", "go-1.21", "go-1.20", "haskell-ghc9.6", "haskell-ghc9.0", "haskell-ghc9.2", "java-graalvm22.3", "nix", "nodejs-22", "nodejs-19", "nodejs-18", "nodejs-16", "php-8.2", "php-8.3", "php-8.1", "python-3.8", "python-base-3.13", "python-3.12", "python-base-3.11", "ruby-3.1", "ruby-3.2", "rust-nightly", "pyright", "pyright-extended", "ruff", "zig-0.11", "nodejs-with-prybar-18", "docker", "bun-1.0", "gcloud"]
+run = "npm run dev"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
+
+[[ports]]
+localPort = 80
+externalPort = 6800
+
+[[ports]]
+localPort = 2000
+externalPort = 3002
+
+[[ports]]
+localPort = 3000
+externalPort = 3003
+
+[[ports]]
+localPort = 4999
+externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 5173
+
+[[ports]]
+localPort = 8000
+externalPort = 9000
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
