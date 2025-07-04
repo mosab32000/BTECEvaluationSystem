@@ -1,0 +1,10 @@
+# تعيين لغة التشغيل
+language = "dockerfile"
+
+# الأمر الافتراضي عند تشغيل Replit
+run = "docker compose up"
+
+# يمكن تخصيص بيئة shell للتثبيت اليدوي إذا لزم الأمر:
+# replConfig = {
+#   "runShell": "pip install -r requirements.txt"
+# }
